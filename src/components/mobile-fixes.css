@@ -1,0 +1,45 @@
+/* Mobile Profile Dropdown Fixes */
+@media (max-width: 768px) {
+  /* Ensure dropdown is properly positioned and visible on mobile */
+  [data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+  }
+  
+  /* Fix dropdown menu positioning on mobile */
+  [role="menu"] {
+    max-width: 90vw !important;
+    transform: translateX(-10px) !important;
+  }
+  
+  /* Ensure dropdown trigger is easily tappable on mobile */
+  [data-radix-dropdown-menu-trigger] {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    touch-action: manipulation;
+  }
+  
+  /* Better mobile menu positioning */
+  .mobile-dropdown-content {
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    z-index: 9999;
+  }
+}
+
+/* General dropdown improvements */
+[data-radix-dropdown-menu-content] {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+
+/* Fix any potential z-index conflicts */
+.dropdown-menu-content {
+  z-index: 9999 !important;
+  position: relative;
+}
+
+/* Ensure mobile menu doesn't interfere with dropdowns */
+.mobile-menu-overlay {
+  z-index: 9998;
+}

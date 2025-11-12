@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": null,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/s/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/p/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/t/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/q/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/validate",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/route",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/track/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/pixel/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/health",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/dist/assets/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json))",
+      "dest": "/dist/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/index.html"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": "production"
+  }
+}
