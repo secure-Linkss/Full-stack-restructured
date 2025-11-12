@@ -54,33 +54,33 @@ from src.models.support_ticket_db import SupportTicket as SupportTicketDB, Suppo
 from src.models.subscription_verification import SubscriptionVerification
 from src.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB, SubscriptionHistory
 
-# Import blueprints from src.api (routes are in api folder)
-from src.api.user import user_bp
-from src.api.auth import auth_bp
-from src.api.links import links_bp
-from src.api.track import track_bp
-from src.api.events import events_bp
-from src.api.analytics import analytics_bp
-from src.api.campaigns import campaigns_bp
-from src.api.settings import settings_bp
-from src.api.admin import admin_bp
-from src.api.admin_complete import admin_complete_bp
-from src.api.admin_settings import admin_settings_bp
-from src.api.security import security_bp
-from src.api.telegram import telegram_bp
-from src.api.page_tracking import page_tracking_bp
-from src.api.shorten import shorten_bp
-from src.api.notifications import notifications_bp
-from src.api.quantum_redirect import quantum_bp
-from src.api.advanced_security import advanced_security_bp
-from src.api.domains import domains_bp
-from src.api.profile import profile_bp
-from src.api.broadcaster import broadcaster_bp
-from src.api.pending_users import pending_users_bp
-from src.api.payments import payments_bp
-from src.api.crypto_payments import crypto_payments_bp
-from src.api.support_tickets import support_tickets_bp
-from src.api.stripe_payments import stripe_bp
+# Import blueprints from api.routes (FIXED IMPORT PATHS)
+from api.routes.user import user_bp
+from api.routes.auth import auth_bp
+from api.routes.links import links_bp
+from api.routes.track import track_bp
+from api.routes.events import events_bp
+from api.routes.analytics import analytics_bp
+from api.routes.campaigns import campaigns_bp
+from api.routes.settings import settings_bp
+from api.routes.admin import admin_bp
+from api.routes.admin_complete import admin_complete_bp
+from api.routes.admin_settings import admin_settings_bp
+from api.routes.security import security_bp
+from api.routes.telegram import telegram_bp
+from api.routes.page_tracking import page_tracking_bp
+from api.routes.shorten import shorten_bp
+from api.routes.notifications import notifications_bp
+from api.routes.quantum_redirect import quantum_bp
+from api.routes.advanced_security import advanced_security_bp
+from api.routes.domains import domains_bp
+from api.routes.profile import profile_bp
+from api.routes.broadcaster import broadcaster_bp
+from api.routes.pending_users import pending_users_bp
+from api.routes.payments import payments_bp
+from api.routes.crypto_payments import crypto_payments_bp
+from api.routes.support_tickets import support_tickets_bp
+from api.routes.stripe_payments import stripe_bp
 
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))

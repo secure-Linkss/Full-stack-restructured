@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Automated fix for circular import issues
-Replaces 'from src.database import db
-from src.models.X import ...' with proper imports
+Replaces 'from src.models.X import db' with proper imports
 """
 
 import os

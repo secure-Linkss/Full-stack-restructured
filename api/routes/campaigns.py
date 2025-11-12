@@ -453,7 +453,7 @@ def auto_create_campaign(campaign_name, user_id):
     Returns the campaign object (existing or newly created).
     """
     from src.models.campaign import Campaign
-    from src.models.user import db
+    from src.database import db
     
     # Check if campaign exists for this user
     existing_campaign = Campaign.query.filter_by(
@@ -476,4 +476,3 @@ def auto_create_campaign(campaign_name, user_id):
     db.session.commit()
     
     return new_campaign
-
