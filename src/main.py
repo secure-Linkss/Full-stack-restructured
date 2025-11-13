@@ -27,32 +27,32 @@ from src.models.support_ticket_db import SupportTicket as SupportTicketDB
 from src.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB
 
 # Import from src.api instead of src.routes - CRITICAL FIX
-from api.user import user_bp
-from api.auth import auth_bp
-from api.links import links_bp
-from api.track import track_bp
-from api.events import events_bp
-from api.analytics import analytics_bp
-from api.campaigns import campaigns_bp
-from api.settings import settings_bp
-from api.admin import admin_bp
-from api.admin_complete import admin_complete_bp
-from api.admin_settings import admin_settings_bp
-from api.security import security_bp
-from api.telegram import telegram_bp
-from api.page_tracking import page_tracking_bp
-from api.shorten import shorten_bp
-from api.notifications import notifications_bp
-from api.quantum_redirect import quantum_bp
-from api.advanced_security import advanced_security_bp
-from api.domains import domains_bp
-from api.profile import profile_bp
-from api.broadcaster import broadcaster_bp
-from api.pending_users import pending_users_bp
-from api.payments import payments_bp
-from api.crypto_payments import crypto_payments_bp
-from api.support_tickets import support_tickets_bp
-from api.stripe_payments import stripe_bp
+from api.routes.user import user_bp
+from api.routes.auth import auth_bp
+from api.routes.links import links_bp
+from api.routes.track import track_bp
+from api.routes.events import events_bp
+from api.routes.analytics import analytics_bp
+from api.routes.campaigns import campaigns_bp
+from api.routes.settings import settings_bp
+from api.routes.admin import admin_bp
+from api.routes.admin_complete import admin_complete_bp
+from api.routes.admin_settings import admin_settings_bp
+from api.routes.security import security_bp
+from api.routes.telegram import telegram_bp
+from api.routes.page_tracking import page_tracking_bp
+from api.routes.shorten import shorten_bp
+from api.routes.notifications import notifications_bp
+from api.routes.quantum_redirect import quantum_bp
+from api.routes.advanced_security import advanced_security_bp
+from api.routes.domains import domains_bp
+from api.routes.profile import profile_bp
+from api.routes.broadcaster import broadcaster_bp
+from api.routes.pending_users import pending_users_bp
+from api.routes.payments import payments_bp
+from api.routes.crypto_payments import crypto_payments_bp
+from api.routes.support_tickets import support_tickets_bp
+from api.routes.stripe_payments import stripe_bp
 
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
