@@ -65,3 +65,6 @@ bleach==6.1.0
 
 # Scheduling (for cron jobs)
 APScheduler==3.10.4
+
+# Flask APScheduler
+Flask-APScheduler==1.13.1
