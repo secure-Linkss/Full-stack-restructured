@@ -29,7 +29,7 @@ stripe==7.8.0
 gunicorn==21.2.0
 
 # Geolocation & Maps
-geoip2==4.1.0
+# geoip2 removed temporarily to resolve Vercel 250MB size limit issue
 
 # Image Processing
 qrcode==7.4.2
