@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from src.models.link import Link
-from src.utils.validation import sanitize_link_data, sanitize_url # Import validation utilities
+from src.utils.validation import sanitize_url # Import validation utilities
 from src.database import db
 from src.models.user import User
 from src.models.campaign import Campaign
