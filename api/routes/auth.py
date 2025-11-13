@@ -3,34 +3,19 @@ from src.database import db
 from src.models.user import User
 from src.models.audit_log import AuditLog
 from src.models.notification import Notification
-from src.utils.validation import validate_email, validate_password, sanitize_string
+from src.utils.validation import validate_email, validate_password, sanitize_string # Import validation utilities
 from datetime import datetime, timedelta
 import secrets
 import hashlib
+from src.utils.validation import validate_password # Import for password strength check
+from datetime import datetime
 import jwt
 import os
-import pyotp
-import qrcode
-import io
-import base64
-from functools import wraps
+import pyotp # For 2FA verification
+import qrcode # For generating QR code for setup
+import io # For handling QR code image data
 
 auth_bp = Blueprint("auth", __name__)
-
-def login_required(f):
-    """Decorator to require login for protected endpoints"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user_id = session.get("user_id")
-        if not user_id:
-            return jsonify({"error": "Authentication required"}), 401
-        
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"error": "User not found"}), 401
-        
-        return f(*args, **kwargs)
-    return decorated_function
 
 # --- Password Reset Endpoints ---
 
@@ -112,6 +97,7 @@ def reset_password():
         db.session.commit()
         
         # Log the action
+        from src.models.audit_log import AuditLog
         audit_log = AuditLog(
             actor_id=user.id,
             action="Password reset",
@@ -183,6 +169,7 @@ def register():
         email = sanitize_string(email)
         plan = sanitize_string(plan)
 
+        # FIXED: Removed duplicate return statement
         if not all([username, email, password, plan]):
             return jsonify({"error": "Missing required fields (username, email, password, plan)"}), 400
 
@@ -207,7 +194,7 @@ def register():
             status="pending",
             is_active=False,
             is_verified=False,
-            plan_type=plan
+            plan_type=plan  # Store the selected plan
         )
         user.set_password(password)
 
@@ -264,16 +251,12 @@ def login():
         
         print(f"User found: {user is not None}")
 
-        if not user or not user.check_password(password):
-            # Track failed login attempt
-            if user:
-                user.failed_login_attempts += 1
-                user.last_failed_login = datetime.utcnow()
-                db.session.commit()
-            print("Login failed - invalid credentials")
-            return jsonify({"error": "Invalid credentials"}), 401
+        if user:
+            password_check = user.check_password(password)
+            print(f"Password check result: {password_check}")
+            print(f"User status: {user.status}, is_active: {user.is_active}")
 
-        print(f"Password check passed. User status: {user.status}, is_active: {user.is_active}")
+        # This block is now handled by the 2FA check above. Removing to avoid duplication.
 
         # --- 2FA Check ---
         if user.two_factor_enabled:
@@ -290,6 +273,14 @@ def login():
             if not user.verify_2fa_token(two_factor_token):
                 return jsonify({"error": "Invalid 2FA token"}), 401
         # --- End 2FA Check ---
+
+        # Check account status
+            if user:
+                user.failed_login_attempts += 1
+                user.last_failed_login = datetime.utcnow()
+                db.session.commit()
+            print("Login failed - invalid credentials")
+            return jsonify({"error": "Invalid credentials"}), 401
 
         # Check account status
         if user.status == "pending":

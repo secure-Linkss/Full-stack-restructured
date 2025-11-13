@@ -1,6 +1,5 @@
 -- Complete Enhanced Database Schema for Brain Link Tracker
 -- Created: November 8, 2025
--- Updated: November 12, 2025 - Added contact_submissions table
 -- This file contains ALL tables needed for the application including new payment features
 
 -- Enable UUID extension
@@ -272,7 +271,7 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_priority ON support_tickets(prior
 CREATE TABLE IF NOT EXISTS support_ticket_messages (
     id SERIAL PRIMARY KEY,
     ticket_id INTEGER REFERENCES support_tickets(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, -- NULL for system messages
     message TEXT NOT NULL,
     is_staff_reply BOOLEAN DEFAULT false,
     metadata JSONB,
@@ -317,7 +316,7 @@ CREATE TABLE IF NOT EXISTS security_settings (
 CREATE INDEX IF NOT EXISTS idx_security_settings_user ON security_settings(user_id);
 
 -- ================================================================
--- SUBSCRIPTION_VERIFICATION TABLE - For manual payment verification
+-- SUBSCRIPTION_VERIFICATION TABLE - For manual payment verification (e.g., crypto)
 -- ================================================================
 CREATE TABLE IF NOT EXISTS subscription_verification (
     id SERIAL PRIMARY KEY,
@@ -570,31 +569,6 @@ CREATE TABLE IF NOT EXISTS user_settings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_settings_user ON user_settings(user_id);
-
--- ================================================================
--- CONTACT_SUBMISSIONS TABLE - For contact form submissions
--- ================================================================
-CREATE TABLE IF NOT EXISTS contact_submissions (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    phone VARCHAR(50),
-    subject VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    status VARCHAR(50) DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'resolved', 'archived')),
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    admin_notes TEXT,
-    resolved_at TIMESTAMP,
-    metadata JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_contact_submissions_email ON contact_submissions(email);
-CREATE INDEX IF NOT EXISTS idx_contact_submissions_status ON contact_submissions(status);
-CREATE INDEX IF NOT EXISTS idx_contact_submissions_created_at ON contact_submissions(created_at);
 
 -- ================================================================
 -- END OF SCHEMA

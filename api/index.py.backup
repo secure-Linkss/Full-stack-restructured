@@ -1,27 +1,13 @@
 import os
 import sys
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, send_from_directory, request, redirect
-from api.config.production import config # Import the config dictionary
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_apscheduler import APScheduler
-# Rate limiting import
-try:
-    from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
-    RATE_LIMITING_AVAILABLE = True
-except ImportError:
-    print("⚠ Flask-Limiter not installed. Rate limiting disabled.")
-    RATE_LIMITING_AVAILABLE = False
 
 # Import database FIRST - prevents circular dependencies
 from src.database import db
@@ -84,78 +70,24 @@ from src.api.stripe_payments import stripe_bp
 
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ej5B3Amppi4gjpbC65te6rJuvJzgVCWW_xfB-ZLR1TE')
 
-# Load configuration based on environment
-env = os.environ.get('FLASK_ENV', 'development')
-app.config.from_object(config[env])
+# Enable CORS for all routes
+CORS(app, supports_credentials=True)
 
-# ============================================
-# PRODUCTION-READY CORS CONFIGURATION
-# ============================================
-# Get allowed origins from environment variable
-ALLOWED_ORIGINS = os.environ.get(
-    'ALLOWED_ORIGINS',
-    'http://localhost:3000,http://localhost:5173,http://localhost:5000'
-).split(',')
-
-# Production-ready CORS configuration
-CORS(app,
-     origins=ALLOWED_ORIGINS,
-     supports_credentials=True,
-     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-     max_age=3600
-)
-
-# ============================================
-# RATE LIMITING CONFIGURATION
-# ============================================
-if RATE_LIMITING_AVAILABLE:
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri=os.environ.get("REDIS_URL", "memory://")
-    )
-    print("✓ Rate limiting enabled")
+# Database configuration - use SQLite for testing
+database_url = os.environ.get('DATABASE_URL')
+if database_url and 'postgresql' in database_url:
+    # Production - PostgreSQL (Neon)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
-    limiter = None
-    print("⚠ Rate limiting disabled - install Flask-Limiter to enable")
+    # Development/Testing - SQLite fallback
+    os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'src', 'database'), exist_ok=True)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), '..', 'src', 'database', 'app.db')}"
 
-# Database configuration is now handled by the config object
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Already set in config object
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
-
-# ============================================
-# HTTPS REDIRECT MIDDLEWARE (Production)
-# ============================================
-@app.before_request
-def force_https():
-    """Redirect HTTP to HTTPS in production"""
-    # Only enforce HTTPS if not in development
-    if os.environ.get('FLASK_ENV') == 'production':
-        if request.url.startswith('http://') and not request.is_secure:
-            url = request.url.replace('http://', 'https://', 1)
-            return redirect(url, code=301)
-
-# ============================================
-# APSCHEDULER INITIALIZATION
-# ============================================
-scheduler = APScheduler()
-scheduler.init_app(app)
-
-# Import cron jobs after app is initialized
-from api.cron.subscription_expiry import check_subscription_expiry
-from api.cron.link_expiry import check_link_expiry
-
-# Add jobs to the scheduler
-scheduler.add_job(id='check_subscription_expiry', func=check_subscription_expiry, trigger='interval', hours=1, misfire_grace_time=3600)
-scheduler.add_job(id='check_link_expiry', func=check_link_expiry, trigger='interval', hours=1, misfire_grace_time=3600)
-
-# Start the scheduler
-scheduler.start()
-print("✓ APScheduler started with cron jobs.")
 
 with app.app_context():
     db.create_all()
@@ -221,20 +153,6 @@ app.register_blueprint(payments_bp)  # Payment processing routes - has /api in b
 app.register_blueprint(crypto_payments_bp)  # Crypto payment routes - has /api in blueprint
 app.register_blueprint(support_tickets_bp)  # Support ticket system - has /api in blueprint
 app.register_blueprint(stripe_bp)  # Stripe payment processing
-
-# Apply rate limiting to specific blueprints if available
-if RATE_LIMITING_AVAILABLE and limiter:
-    # Authentication endpoints - stricter limits
-    limiter.limit("5 per minute")(auth_bp)
-    
-    # Admin endpoints - moderate limits
-    limiter.limit("100 per hour")(admin_bp)
-    limiter.limit("100 per hour")(admin_complete_bp)
-    
-    # Link creation - prevent abuse
-    limiter.limit("20 per minute")(links_bp)
-    
-    print("✓ Rate limiting applied to sensitive endpoints")
 
 @app.route('/', defaults={'path': ''}) 
 @app.route('/<path:path>')
