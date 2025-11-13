@@ -52,24 +52,24 @@ const LoginPage = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-card border-border">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+      <Card className="w-full max-w-md bg-card border-border shadow-lg">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center mb-2">
             <Logo size="lg" />
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">Welcome Back</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-muted-foreground text-base">
             Sign in to your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-foreground text-sm font-medium">
                 Username/Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <Input
                   id="username"
                   name="username"
@@ -78,7 +78,7 @@ const LoginPage = ({ onLogin }) => {
                   value={formData.username}
                   onChange={handleChange}
                   required
-                  className="pl-10 bg-input border-border text-foreground placeholder-muted-foreground focus:border-primary"
+                  className="pl-10 bg-input border-border text-foreground placeholder:text-slate-500 dark:placeholder:text-slate-600 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -88,7 +88,7 @@ const LoginPage = ({ onLogin }) => {
                 Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
                 <Input
                   id="password"
                   name="password"
@@ -97,12 +97,13 @@ const LoginPage = ({ onLogin }) => {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="pl-10 pr-10 bg-input border-border text-foreground placeholder-muted-foreground focus:border-primary"
+                  className="pl-10 pr-10 bg-input border-border text-foreground placeholder:text-slate-500 dark:placeholder:text-slate-600 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-3 text-slate-400 hover:text-foreground dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -110,7 +111,7 @@ const LoginPage = ({ onLogin }) => {
             </div>
 
             {error && (
-              <div className="text-destructive text-sm text-center">
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center p-3 rounded-md">
                 {error}
               </div>
             )}
@@ -118,7 +119,7 @@ const LoginPage = ({ onLogin }) => {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm transition-all"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
@@ -126,7 +127,7 @@ const LoginPage = ({ onLogin }) => {
             <Button
               type="button"
               variant="outline"
-              className="w-full border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              className="w-full border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all"
             >
               Don't have an account? Sign up
             </Button>
