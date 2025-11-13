@@ -8,50 +8,50 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from src.config import config
+from api.config import config
 
 # Import models and blueprints
-from src.database import db
-from src.models.user import User
-from src.models.link import Link
-from src.models.tracking_event import TrackingEvent
-from src.models.campaign import Campaign
-from src.models.audit_log import AuditLog
-from src.models.security import SecuritySettings, BlockedIP, BlockedCountry
-from src.models.support_ticket import SupportTicket
-from src.models.subscription_verification import SubscriptionVerification
-from src.models.notification import Notification
-from src.models.domain import Domain
-from src.models.security_threat import SecurityThreat
-from src.models.security_threat_db import SecurityThreat as SecurityThreatDB
-from src.models.support_ticket_db import SupportTicket as SupportTicketDB
-from src.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB
+from api.database import db
+from api.models.user import User
+from api.models.link import Link
+from api.models.tracking_event import TrackingEvent
+from api.models.campaign import Campaign
+from api.models.audit_log import AuditLog
+from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
+from api.models.support_ticket import SupportTicket
+from api.models.subscription_verification import SubscriptionVerification
+from api.models.notification import Notification
+from api.models.domain import Domain
+from api.models.security_threat import SecurityThreat
+from api.models.security_threat_db import SecurityThreat as SecurityThreatDB
+from api.models.support_ticket_db import SupportTicket as SupportTicketDB
+from api.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB
 
-from src.api.user import user_bp
-from src.api.auth import auth_bp
-from src.api.links import links_bp
-from src.api.track import track_bp
-from src.api.events import events_bp
-from src.api.analytics_complete import analytics_bp
-from src.api.campaigns import campaigns_bp
-from src.api.settings import settings_bp
-from src.api.admin_complete import admin_complete_bp  # Use ONLY admin_complete
-from src.api.admin_settings import admin_settings_bp
-from src.api.security_complete import security_bp
-from src.api.telegram import telegram_bp
-from src.api.page_tracking import page_tracking_bp
-from src.api.shorten import shorten_bp
-from src.api.notifications import notifications_bp
-from src.api.quantum_redirect import quantum_bp
-from src.api.advanced_security import advanced_security_bp
-from src.api.domains import domains_bp
-from src.api.profile import profile_bp
-from src.api.broadcaster import broadcaster_bp
-from src.api.pending_users import pending_users_bp
-from src.api.payments import payments_bp
-from src.api.crypto_payments import crypto_payments_bp
-from src.api.support_tickets import support_tickets_bp
-from src.api.stripe_payments import stripe_bp
+from api.api.user import user_bp
+from api.api.auth import auth_bp
+from api.api.links import links_bp
+from api.api.track import track_bp
+from api.api.events import events_bp
+from api.api.analytics_complete import analytics_bp
+from api.api.campaigns import campaigns_bp
+from api.api.settings import settings_bp
+from api.api.admin_complete import admin_complete_bp  # Use ONLY admin_complete
+from api.api.admin_settings import admin_settings_bp
+from api.api.security_complete import security_bp
+from api.api.telegram import telegram_bp
+from api.api.page_tracking import page_tracking_bp
+from api.api.shorten import shorten_bp
+from api.api.notifications import notifications_bp
+from api.api.quantum_redirect import quantum_bp
+from api.api.advanced_security import advanced_security_bp
+from api.api.domains import domains_bp
+from api.api.profile import profile_bp
+from api.api.broadcaster import broadcaster_bp
+from api.api.pending_users import pending_users_bp
+from api.api.payments import payments_bp
+from api.api.crypto_payments import crypto_payments_bp
+from api.api.support_tickets import support_tickets_bp
+from api.api.stripe_payments import stripe_bp
 
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))

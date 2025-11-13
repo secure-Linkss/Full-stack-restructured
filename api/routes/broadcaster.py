@@ -5,10 +5,10 @@ Send system-wide notifications to all active users
 
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from src.database import db
-from src.models.user import User
-from src.models.notification import Notification
-from src.models.audit_log import AuditLog
+from api.database import db
+from api.models.user import User
+from api.models.notification import Notification
+from api.models.audit_log import AuditLog
 from datetime import datetime
 
 broadcaster_bp = Blueprint("broadcaster", __name__)

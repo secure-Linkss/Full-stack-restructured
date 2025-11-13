@@ -24,63 +24,63 @@ except ImportError:
     RATE_LIMITING_AVAILABLE = False
 
 # Import database FIRST - prevents circular dependencies
-from src.database import db
+from api.database import db
 
 # Import models in dependency order
 # Base models (no foreign keys)
-from src.models.user import User
-from src.models.admin_settings import AdminSettings
-from src.models.api_key import APIKey
+from api.models.user import User
+from api.models.admin_settings import AdminSettings
+from api.models.api_key import APIKey
 
 # Models with foreign keys to User
-from src.models.link import Link
-from src.models.campaign import Campaign
-from src.models.notification import Notification
-from src.models.audit_log import AuditLog
-from src.models.domain import Domain
+from api.models.link import Link
+from api.models.campaign import Campaign
+from api.models.notification import Notification
+from api.models.audit_log import AuditLog
+from api.models.domain import Domain
 
 # Tracking and Analytics models
-from src.models.tracking_event import TrackingEvent
-from src.models.ab_test import ABTest
+from api.models.tracking_event import TrackingEvent
+from api.models.ab_test import ABTest
 
 # Security models
-from src.models.security import SecuritySettings, BlockedIP, BlockedCountry
-from src.models.security_threat import SecurityThreat
-from src.models.security_threat_db import SecurityThreat as SecurityThreatDB
+from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
+from api.models.security_threat import SecurityThreat
+from api.models.security_threat_db import SecurityThreat as SecurityThreatDB
 
 # Support and Subscription models
-from src.models.support_ticket import SupportTicket
-from src.models.support_ticket_db import SupportTicket as SupportTicketDB, SupportTicketComment
-from src.models.subscription_verification import SubscriptionVerification
-from src.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB, SubscriptionHistory
+from api.models.support_ticket import SupportTicket
+from api.models.support_ticket_db import SupportTicket as SupportTicketDB, SupportTicketComment
+from api.models.subscription_verification import SubscriptionVerification
+from api.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB, SubscriptionHistory
 
-# Import blueprints from src.api (routes are in api folder)
-from src.api.user import user_bp
-from src.api.auth import auth_bp
-from src.api.links import links_bp
-from src.api.track import track_bp
-from src.api.events import events_bp
-from src.api.analytics import analytics_bp
-from src.api.campaigns import campaigns_bp
-from src.api.settings import settings_bp
-from src.api.admin import admin_bp
-from src.api.admin_complete import admin_complete_bp
-from src.api.admin_settings import admin_settings_bp
-from src.api.security import security_bp
-from src.api.telegram import telegram_bp
-from src.api.page_tracking import page_tracking_bp
-from src.api.shorten import shorten_bp
-from src.api.notifications import notifications_bp
-from src.api.quantum_redirect import quantum_bp
-from src.api.advanced_security import advanced_security_bp
-from src.api.domains import domains_bp
-from src.api.profile import profile_bp
-from src.api.broadcaster import broadcaster_bp
-from src.api.pending_users import pending_users_bp
-from src.api.payments import payments_bp
-from src.api.crypto_payments import crypto_payments_bp
-from src.api.support_tickets import support_tickets_bp
-from src.api.stripe_payments import stripe_bp
+# Import blueprints from api.api (routes are in api folder)
+from api.api.user import user_bp
+from api.api.auth import auth_bp
+from api.api.links import links_bp
+from api.api.track import track_bp
+from api.api.events import events_bp
+from api.api.analytics import analytics_bp
+from api.api.campaigns import campaigns_bp
+from api.api.settings import settings_bp
+from api.api.admin import admin_bp
+from api.api.admin_complete import admin_complete_bp
+from api.api.admin_settings import admin_settings_bp
+from api.api.security import security_bp
+from api.api.telegram import telegram_bp
+from api.api.page_tracking import page_tracking_bp
+from api.api.shorten import shorten_bp
+from api.api.notifications import notifications_bp
+from api.api.quantum_redirect import quantum_bp
+from api.api.advanced_security import advanced_security_bp
+from api.api.domains import domains_bp
+from api.api.profile import profile_bp
+from api.api.broadcaster import broadcaster_bp
+from api.api.pending_users import pending_users_bp
+from api.api.payments import payments_bp
+from api.api.crypto_payments import crypto_payments_bp
+from api.api.support_tickets import support_tickets_bp
+from api.api.stripe_payments import stripe_bp
 
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))

@@ -1,4 +1,4 @@
-from src.database import db
+from api.database import db
 from .user import User
 from .link import Link
 from .tracking_event import TrackingEvent

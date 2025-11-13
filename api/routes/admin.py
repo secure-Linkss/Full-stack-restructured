@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify, session, make_response
 from werkzeug.security import generate_password_hash
 from functools import wraps
-from src.database import db
-from src.models.user import User
-from src.models.campaign import Campaign
-from src.models.audit_log import AuditLog
-from src.models.link import Link
-from src.models.domain import Domain
+from api.database import db
+from api.models.user import User
+from api.models.campaign import Campaign
+from api.models.audit_log import AuditLog
+from api.models.link import Link
+from api.models.domain import Domain
 from datetime import datetime, timedelta
 
 admin_bp = Blueprint("admin", __name__)
@@ -573,7 +573,7 @@ def delete_all_system_data(current_user):
             return jsonify({"error": "Confirmation required"}), 400
         
         # Delete all tracking events
-        from src.models.tracking_event import TrackingEvent
+        from api.models.tracking_event import TrackingEvent
         TrackingEvent.query.delete()
         
         # Delete all links

@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify, session
-from src.models.link import Link
-from src.utils.validation import sanitize_link_data, sanitize_url # Import validation utilities
-from src.database import db
-from src.models.user import User
-from src.models.campaign import Campaign
-from src.models.tracking_event import TrackingEvent
+from api.models.link import Link
+from api.utils.validation import sanitize_link_data, sanitize_url # Import validation utilities
+from api.database import db
+from api.models.user import User
+from api.models.campaign import Campaign
+from api.models.tracking_event import TrackingEvent
 from functools import wraps
 import json
 import string

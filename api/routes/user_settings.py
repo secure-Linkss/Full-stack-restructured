@@ -4,8 +4,8 @@ User Settings Complete API - Extended user configuration
 
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from src.database import db
-from src.models.user import User
+from api.database import db
+from api.models.user import User
 import json
 
 user_settings_bp = Blueprint('user_settings', __name__)

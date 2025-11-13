@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, session
-from src.models.ab_test import ABTest, ABTestVariant
-from src.models.link import Link
-from src.models.user import User
-from src.database import db
+from api.models.ab_test import ABTest, ABTestVariant
+from api.models.link import Link
+from api.models.user import User
+from api.database import db
 from functools import wraps
 import random
 ab_tests_bp = Blueprint('ab_tests', __name__)

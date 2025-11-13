@@ -2,7 +2,7 @@
 SQLAlchemy Model for Admin Settings
 """
 from datetime import datetime
-from src.database import db
+from api.database import db
 
 class AdminSettings(db.Model):
     __tablename__ = 'admin_settings'

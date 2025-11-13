@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, session
 from functools import wraps
-from src.database import db
-from src.models.user import User
-from src.models.audit_log import AuditLog
+from api.database import db
+from api.models.user import User
+from api.models.audit_log import AuditLog
 
 admin_settings_bp = Blueprint('admin_settings', __name__)
 

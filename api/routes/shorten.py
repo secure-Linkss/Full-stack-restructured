@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session, g
-from src.models.link import Link
-from src.database import db
-from src.models.user import User
+from api.models.link import Link
+from api.database import db
+from api.models.user import User
 from functools import wraps
 import string
 import random

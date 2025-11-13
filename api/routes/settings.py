@@ -4,8 +4,8 @@ User Settings API - Personal user preferences and configurations
 
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from src.database import db
-from src.models.user import User
+from api.database import db
+from api.models.user import User
 
 settings_bp = Blueprint('settings', __name__)
 

@@ -6,14 +6,14 @@ Create a cron job or scheduled task to run this script daily
 """
 
 from datetime import datetime, timedelta
-from src.database import db
-from src.models.user import User
-from src.models.notification import Notification
+from api.database import db
+from api.models.user import User
+from api.models.notification import Notification
 # NOTE: Link model is assumed to be imported or defined elsewhere for check_link_expiry to work.
 # For this snippet, we'll assume 'Link' is available or replace with a placeholder if needed.
 # Since the original snippet uses 'db.session.query(Link)', we'll assume 'Link' is a valid model.
 try:
-    from src.models.link import Link
+    from api.models.link import Link
 except ImportError:
     # Placeholder for Link model if not available in the context
     class Link:

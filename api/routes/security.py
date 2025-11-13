@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify, session, g
 from datetime import datetime, timedelta
 import json
-from src.database import db
-from src.models.user import User
-from src.models.security import SecuritySettings, BlockedIP, BlockedCountry
-from src.models.link import Link
-from src.models.tracking_event import TrackingEvent
-from src.services.threat_intelligence import threat_intel
+from api.database import db
+from api.models.user import User
+from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
+from api.models.link import Link
+from api.models.tracking_event import TrackingEvent
+from api.services.threat_intelligence import threat_intel
 from functools import wraps
 
 security_bp = Blueprint("security", __name__)
@@ -592,7 +592,7 @@ def get_security_logs():
         start_date = end_date - timedelta(days=days)
         
         # Get user's links
-        from src.models.link import Link
+        from api.models.link import Link
         user_links = Link.query.filter_by(user_id=user_id).all()
         link_ids = [link.id for link in user_links]
         

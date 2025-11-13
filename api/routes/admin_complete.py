@@ -1,18 +1,18 @@
 from sqlalchemy import func
-from src.models.tracking_event import TrackingEvent
-from src.models.security_threat import SecurityThreat
+from api.models.tracking_event import TrackingEvent
+from api.models.security_threat import SecurityThreat
 from flask import Blueprint, request, jsonify, session, make_response
 from werkzeug.security import generate_password_hash
 from functools import wraps
-from src.database import db
-from src.models.user import User
-from src.models.campaign import Campaign
-from src.models.audit_log import AuditLog
-from src.models.link import Link
-from src.models.domain import Domain
-from src.models.security_threat_db import SecurityThreat
-from src.models.support_ticket_db import SupportTicket
-from src.models.subscription_verification_db import SubscriptionVerification
+from api.database import db
+from api.models.user import User
+from api.models.campaign import Campaign
+from api.models.audit_log import AuditLog
+from api.models.link import Link
+from api.models.domain import Domain
+from api.models.security_threat_db import SecurityThreat
+from api.models.support_ticket_db import SupportTicket
+from api.models.subscription_verification_db import SubscriptionVerification
 from datetime import datetime, timedelta
 import csv
 import io
@@ -213,7 +213,7 @@ def get_admin_campaigns(current_user):
     """Get all campaigns for admin - returns live data from Campaign table and campaign_name field"""
     try:
         campaigns_data = []
-        from src.models.tracking_event import TrackingEvent
+        from api.models.tracking_event import TrackingEvent
 
         # Method 1: Get campaigns from Campaign table
         campaigns_from_table = Campaign.query.all()
@@ -693,7 +693,7 @@ def delete_all_admin_system_data(current_user):
             return jsonify({"error": "Confirmation required"}), 400
         
         # Delete all tracking events
-        from src.models.tracking_event import TrackingEvent
+        from api.models.tracking_event import TrackingEvent
         TrackingEvent.query.delete()
         
         # Delete all links
@@ -1102,7 +1102,7 @@ def get_consistent_dashboard_stats():
         ).count()
         
         # Security threats
-        from src.models.security_threat import SecurityThreat
+        from api.models.security_threat import SecurityThreat
         active_threats = SecurityThreat.query.filter_by(status='active').count()
         
         # Subscription stats

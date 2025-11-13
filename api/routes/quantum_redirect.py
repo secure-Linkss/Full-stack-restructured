@@ -4,11 +4,11 @@ Super advanced 4-stage redirect system with cryptographic verification
 """
 
 from flask import Blueprint, request, jsonify, redirect, g
-from src.services.quantum_redirect import quantum_redirect
-from src.models.link import Link
-from src.models.tracking_event import TrackingEvent
-from src.database import db
-from src.models.user import User
+from api.services.quantum_redirect import quantum_redirect
+from api.models.link import Link
+from api.models.tracking_event import TrackingEvent
+from api.database import db
+from api.models.user import User
 from functools import wraps
 import time
 from datetime import datetime

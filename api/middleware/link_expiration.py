@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import redirect, render_template_string, abort
-from src.models.link import Link
+from api.models.link import Link
 def check_link_expiration(link):
     """
     Check if a link has expired and handle accordingly
@@ -115,7 +115,7 @@ def auto_expire_links():
     Background task to automatically update status of expired links
     Should be run periodically (e.g., via cron job or scheduler)
     """
-    from src.database import db
+    from api.database import db
     expired_links = Link.query.filter(
         Link.expires_at.isnot(None),
         Link.expires_at <= datetime.utcnow(),

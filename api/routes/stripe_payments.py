@@ -3,9 +3,9 @@ Stripe Payment Routes
 Handles Stripe payment processing, checkout sessions, and webhooks
 """
 from flask import Blueprint, request, jsonify, session
-from src.database import db
-from src.models.user import User
-from src.models.subscription_verification import SubscriptionVerification
+from api.database import db
+from api.models.user import User
+from api.models.subscription_verification import SubscriptionVerification
 import os
 import stripe
 from datetime import datetime, timedelta

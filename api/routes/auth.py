@@ -1,13 +1,14 @@
 from flask import Blueprint, request, jsonify, session
-from src.database import db
-from src.models.user import User
-from src.models.audit_log import AuditLog
-from src.models.notification import Notification
-from src.utils.validation import validate_email, validate_password, sanitize_string # Import validation utilities
+from api.database import db
+from api.models.user import User
+from api.models.audit_log import AuditLog
+from api.models.notification import Notification
+from api.middleware.auth_decorators import login_required
+from api.utils.validation import validate_email, validate_password, sanitize_string # Import validation utilities
 from datetime import datetime, timedelta
 import secrets
 import hashlib
-from src.utils.validation import validate_password # Import for password strength check
+from api.utils.validation import validate_password # Import for password strength check
 from datetime import datetime
 import jwt
 import os
@@ -97,7 +98,7 @@ def reset_password():
         db.session.commit()
         
         # Log the action
-        from src.models.audit_log import AuditLog
+        from api.models.audit_log import AuditLog
         audit_log = AuditLog(
             actor_id=user.id,
             action="Password reset",

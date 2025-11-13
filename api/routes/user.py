@@ -1,18 +1,13 @@
 from flask import Blueprint, request, jsonify, session
-from src.database import db
-from src.models.user import User
+from api.database import db
+from api.models.user import User
 from functools import wraps
+from api.middleware.auth_decorators import login_required
 import re
 
 user_bp = Blueprint("user", __name__)
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
-            return jsonify({"error": "Authentication required"}), 401
-        return f(*args, **kwargs)
-    return decorated_function
+
 
 def validate_email(email):
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"

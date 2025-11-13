@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
-from src.database import db
+from api.database import db
 from api.models.contact import ContactSubmission
-from src.models.user import User
-from src.models.notification import Notification
-from src.utils.validation import validate_email, sanitize_string
+from api.models.user import User
+from api.models.notification import Notification
+from api.utils.validation import validate_email, sanitize_string
 from datetime import datetime
 
 contact_bp = Blueprint('contact', __name__)

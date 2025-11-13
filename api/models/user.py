@@ -2,7 +2,7 @@
 User Model - Core user authentication and management
 '''
 
-from src.database import db
+from api.database import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import jwt

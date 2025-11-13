@@ -5,8 +5,8 @@ Provides access to application metrics and monitoring data
 
 from flask import Blueprint, jsonify, request, g
 from functools import wraps
-from src.services.monitoring import monitoring_service
-from src.models.user import User
+from api.services.monitoring import monitoring_service
+from api.models.user import User
 import os
 
 monitoring_bp = Blueprint('monitoring', __name__)

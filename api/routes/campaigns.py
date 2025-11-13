@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify, session, g
-from src.models.campaign import Campaign
-from src.models.link import Link
-from src.models.tracking_event import TrackingEvent
-from src.database import db
-from src.models.user import User
-from src.services.campaign_intelligence import campaign_intel
+from api.models.campaign import Campaign
+from api.models.link import Link
+from api.models.tracking_event import TrackingEvent
+from api.database import db
+from api.models.user import User
+from api.services.campaign_intelligence import campaign_intel
 from sqlalchemy import func
 from functools import wraps
 from datetime import datetime, timedelta
@@ -452,8 +452,8 @@ def auto_create_campaign(campaign_name, user_id):
     Auto-create a campaign if it doesn't exist.
     Returns the campaign object (existing or newly created).
     """
-    from src.models.campaign import Campaign
-    from src.models.user import db
+    from api.models.campaign import Campaign
+    from api.models.user import db
     
     # Check if campaign exists for this user
     existing_campaign = Campaign.query.filter_by(

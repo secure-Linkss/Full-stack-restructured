@@ -3,7 +3,7 @@ Crypto Wallet Address Model
 Admin-managed cryptocurrency wallet addresses for receiving payments
 """
 from datetime import datetime
-from src.database import db
+from api.database import db
 
 class CryptoWalletAddress(db.Model):
     __tablename__ = 'crypto_wallet_addresses'

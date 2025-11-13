@@ -3,7 +3,7 @@ Contact Submission Model
 For storing contact form submissions
 """
 
-from src.database import db
+from api.database import db
 from datetime import datetime
 
 class ContactSubmission(db.Model):

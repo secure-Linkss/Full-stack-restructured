@@ -3,7 +3,7 @@ Payment API Settings Model
 Admin-configurable blockchain verification APIs
 """
 from datetime import datetime
-from src.database import db
+from api.database import db
 
 class PaymentAPISetting(db.Model):
     __tablename__ = 'payment_api_settings'

@@ -4,7 +4,7 @@ Handles fetching and managing available domains for link shortening
 """
 
 from flask import Blueprint, jsonify, request, session, g
-from src.models.user import User
+from api.models.user import User
 from functools import wraps
 import os
 

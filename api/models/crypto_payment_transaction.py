@@ -3,7 +3,7 @@ Crypto Payment Transaction Model
 Tracks all cryptocurrency payment transactions with verification status
 """
 from datetime import datetime
-from src.database import db
+from api.database import db
 
 class CryptoPaymentTransaction(db.Model):
     __tablename__ = 'crypto_payment_transactions'

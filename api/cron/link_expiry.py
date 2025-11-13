@@ -7,8 +7,8 @@ Update your link redirect endpoint in src/api/track.py
 
 from flask import Blueprint, redirect, jsonify
 from datetime import datetime
-from src.models.link import Link
-from src.database import db
+from api.models.link import Link
+from api.database import db
 
 track_bp = Blueprint("track", __name__)
 
@@ -52,7 +52,7 @@ def redirect_link(short_code):
         link.last_clicked_at = datetime.utcnow()
         
         # Create tracking event
-        from src.models.tracking_event import TrackingEvent
+        from api.models.tracking_event import TrackingEvent
         tracking_event = TrackingEvent(
             link_id=link.id,
             user_id=link.user_id,

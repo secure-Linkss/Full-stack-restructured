@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from src.database import db
-from src.models.tracking_event import TrackingEvent
+from api.database import db
+from api.models.tracking_event import TrackingEvent
 from datetime import datetime
 
 page_tracking_bp = Blueprint("page_tracking", __name__)

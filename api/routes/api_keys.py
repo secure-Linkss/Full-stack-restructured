@@ -4,10 +4,10 @@ API Key Management API - CRUD operations for user API keys
 
 from flask import Blueprint, request, jsonify
 from functools import wraps
-from src.database import db
-from src.models.user import User
+from api.database import db
+from api.models.user import User
 # Assuming an ApiKey model exists or will be created
-# from src.models.api_key import ApiKey 
+# from api.models.api_key import ApiKey 
 
 api_keys_bp = Blueprint('api_keys', __name__)
 

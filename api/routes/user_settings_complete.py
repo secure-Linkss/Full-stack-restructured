@@ -12,8 +12,8 @@ All routes filter by current user_id
 """
 
 from flask import Blueprint, request, jsonify, session, g
-from src.database import db
-from src.models.user import User
+from api.database import db
+from api.models.user import User
 from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
 import json

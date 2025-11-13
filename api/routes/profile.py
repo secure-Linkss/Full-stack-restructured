@@ -4,8 +4,8 @@ Complete implementation for user profile, avatar, password reset, and subscripti
 """
 
 from flask import Blueprint, request, jsonify
-from src.database import db
-from src.models.user import User
+from api.database import db
+from api.models.user import User
 from werkzeug.security import generate_password_hash
 from functools import wraps
 import jwt

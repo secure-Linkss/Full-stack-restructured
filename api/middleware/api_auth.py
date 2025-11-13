@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import request, jsonify
-from src.models.api_key import APIKey
-from src.models.user import User
+from api.models.api_key import APIKey
+from api.models.user import User
 from datetime import datetime
 
 def require_api_key(f):
@@ -36,7 +36,7 @@ def require_api_key(f):
         
         # Update last used timestamp
         api_key.last_used_at = datetime.utcnow()
-        from src.database import db
+        from api.database import db
         db.session.commit()
         
         # Get user
@@ -71,7 +71,7 @@ def optional_api_key(f):
             if api_key and (not api_key.expires_at or api_key.expires_at >= datetime.utcnow()):
                 # Update last used
                 api_key.last_used_at = datetime.utcnow()
-                from src.database import db
+                from api.database import db
                 db.session.commit()
                 
                 # Get user

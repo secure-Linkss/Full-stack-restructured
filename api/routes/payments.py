@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from src.database import db
-from src.models.user import User
+from api.database import db
+from api.models.user import User
 from functools import wraps
 from datetime import datetime, timedelta
 import os

@@ -3,7 +3,7 @@ Subscription Plan Model
 Defines available subscription plans with pricing and features
 """
 from datetime import datetime
-from src.database import db
+from api.database import db
 
 class SubscriptionPlan(db.Model):
     __tablename__ = 'subscription_plans'

@@ -11,11 +11,11 @@ All routes filter by current user_id
 from flask import Blueprint, request, jsonify, session, g
 from datetime import datetime, timedelta
 import json
-from src.database import db
-from src.models.user import User
-from src.models.security import SecuritySettings, BlockedIP, BlockedCountry
-from src.models.link import Link
-from src.models.tracking_event import TrackingEvent
+from api.database import db
+from api.models.user import User
+from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
+from api.models.link import Link
+from api.models.tracking_event import TrackingEvent
 from functools import wraps
 
 security_bp = Blueprint("security", __name__)
