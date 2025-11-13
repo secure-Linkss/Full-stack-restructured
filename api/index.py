@@ -54,6 +54,9 @@ from src.models.support_ticket_db import SupportTicket as SupportTicketDB, Suppo
 from src.models.subscription_verification import SubscriptionVerification
 from src.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB, SubscriptionHistory
 
+# Contact model
+from api.models.contact import ContactSubmission
+
 # Import blueprints from api.routes (FIXED IMPORT PATHS)
 from api.routes.user import user_bp
 from api.routes.auth import auth_bp
@@ -81,6 +84,7 @@ from api.routes.payments import payments_bp
 from api.routes.crypto_payments import crypto_payments_bp
 from api.routes.support_tickets import support_tickets_bp
 from api.routes.stripe_payments import stripe_bp
+from api.routes.contact import contact_bp
 
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
@@ -221,6 +225,7 @@ app.register_blueprint(payments_bp)  # Payment processing routes - has /api in b
 app.register_blueprint(crypto_payments_bp)  # Crypto payment routes - has /api in blueprint
 app.register_blueprint(support_tickets_bp)  # Support ticket system - has /api in blueprint
 app.register_blueprint(stripe_bp)  # Stripe payment processing
+app.register_blueprint(contact_bp)  # Contact form routes - NEW
 
 # Apply rate limiting to specific blueprints if available
 if RATE_LIMITING_AVAILABLE and limiter:
@@ -233,6 +238,9 @@ if RATE_LIMITING_AVAILABLE and limiter:
     
     # Link creation - prevent abuse
     limiter.limit("20 per minute")(links_bp)
+    
+    # Contact form - prevent spam
+    limiter.limit("5 per hour")(contact_bp)
     
     print("✓ Rate limiting applied to sensitive endpoints")
 
