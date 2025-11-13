@@ -1,0 +1,33 @@
+{
+  "frontend": {
+    "user_dashboard": {
+      "present": 17,
+      "total": 17
+    },
+    "admin_panel": {
+      "present": 7,
+      "total": 7
+    },
+    "common": {
+      "present": 5,
+      "total": 5
+    },
+    "ui_components": 46
+  },
+  "backend": {
+    "api_routes": 37,
+    "models": 18
+  },
+  "new_implementations": {
+    "present": 6,
+    "total": 6
+  },
+  "core_files": {
+    "present": 10,
+    "total": 10
+  },
+  "build": {
+    "node_modules": true,
+    "dist": true
+  }
+}
