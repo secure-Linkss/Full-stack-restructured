@@ -50,3 +50,5 @@ APScheduler==3.10.4
 
 # Flask APScheduler
 Flask-APScheduler==1.13.1
+# Missing dependency for 2FA
+pyotp
