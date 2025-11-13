@@ -1,0 +1,30 @@
+# Ignore common development and build artifacts
+node_modules
+dist
+.git
+.gitignore
+.vercel
+.DS_Store
+.vscode
+
+# Ignore Python-specific build artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+venv
+env
+
+# Ignore large, non-essential project files
+# This is crucial for reducing the Serverless Function size
+migrations/
+database_schema.sql
+instance/
+*.zip
+*.tar.gz
+*.md
+*.txt
+*.log
