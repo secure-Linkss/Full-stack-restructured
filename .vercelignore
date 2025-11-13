@@ -8,6 +8,12 @@ dist
 .vscode
 
 # Ignore Python-specific build artifacts
+
+# CRITICAL: Exclude GeoIP database files which cause 250MB limit to be exceeded
+# These files are often bundled with the geoip2 library
+*.mmdb
+*.dat
+
 __pycache__
 *.pyc
 *.pyo
