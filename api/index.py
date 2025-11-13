@@ -57,6 +57,13 @@ from src.models.subscription_verification_db import SubscriptionVerification as 
 # Contact model
 from api.models.contact import ContactSubmission
 
+# NEW: Payment System Models
+from api.models.crypto_payment_transaction import CryptoPaymentTransaction
+from api.models.crypto_wallet_address import CryptoWalletAddress
+from api.models.payment_api_setting import PaymentAPISetting
+from api.models.subscription_plan import SubscriptionPlan
+from api.models.payment_history import PaymentHistory
+
 # Import blueprints from api.routes (FIXED IMPORT PATHS)
 from api.routes.user import user_bp
 from api.routes.auth import auth_bp
@@ -85,6 +92,9 @@ from api.routes.crypto_payments import crypto_payments_bp
 from api.routes.support_tickets import support_tickets_bp
 from api.routes.stripe_payments import stripe_bp
 from api.routes.contact import contact_bp
+
+# NEW: Complete Payment System Blueprint
+from api.routes.crypto_payments_complete import crypto_payments_complete_bp
 
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
@@ -225,7 +235,8 @@ app.register_blueprint(payments_bp)  # Payment processing routes - has /api in b
 app.register_blueprint(crypto_payments_bp)  # Crypto payment routes - has /api in blueprint
 app.register_blueprint(support_tickets_bp)  # Support ticket system - has /api in blueprint
 app.register_blueprint(stripe_bp)  # Stripe payment processing
-app.register_blueprint(contact_bp)  # Contact form routes - NEW
+app.register_blueprint(contact_bp)  # Contact form routes
+app.register_blueprint(crypto_payments_complete_bp)  # NEW: Complete payment system - has /api in routes
 
 # Apply rate limiting to specific blueprints if available
 if RATE_LIMITING_AVAILABLE and limiter:
@@ -241,6 +252,9 @@ if RATE_LIMITING_AVAILABLE and limiter:
     
     # Contact form - prevent spam
     limiter.limit("5 per hour")(contact_bp)
+    
+    # Payment endpoints - prevent abuse
+    limiter.limit("10 per hour")(crypto_payments_complete_bp)
     
     print("✓ Rate limiting applied to sensitive endpoints")
 
