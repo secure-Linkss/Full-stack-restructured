@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from src.models.link import Link
-from src.utils.validation import sanitize_url # Import validation utilities
+from src.utils.validation import validate_url # Import validation utilities
 from src.database import db
 from src.models.user import User
 from src.models.campaign import Campaign
@@ -207,7 +207,7 @@ def update_link(link_id):
         if "expiration_action" in sanitized_data:
             link.expiration_action = sanitized_data["expiration_action"]
         if "expiration_redirect_url" in sanitized_data:
-            link.expiration_redirect_url = sanitize_url(sanitized_data["expiration_redirect_url"])
+            link.expiration_redirect_url = validate_url(sanitized_data["expiration_redirect_url"])
         if "facebook_pixel_id" in sanitized_data:
             link.facebook_pixel_id = sanitized_data["facebook_pixel_id"]
         if "enable_facebook_pixel" in sanitized_data:
