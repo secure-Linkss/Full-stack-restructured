@@ -4,17 +4,16 @@ from api.models.user import User
 from api.models.audit_log import AuditLog
 from api.models.notification import Notification
 from api.middleware.auth_decorators import login_required
-from api.utils.validation import validate_email, validate_password, sanitize_string # Import validation utilities
+from api.utils.validation import validate_email, validate_password, sanitize_string
 from datetime import datetime, timedelta
 import secrets
 import hashlib
-from api.utils.validation import validate_password # Import for password strength check
-from datetime import datetime
 import jwt
 import os
-import pyotp # For 2FA verification
-import qrcode # For generating QR code for setup
-import io # For handling QR code image data
+import pyotp
+import qrcode
+import io
+import base64
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -32,29 +31,22 @@ def forgot_password():
         
         user = User.query.filter_by(email=email).first()
         
-        # Always return success to prevent email enumeration
         if not user:
             return jsonify({
                 "message": "If the email exists, a reset link has been sent"
             }), 200
         
-        # Generate reset token
         reset_token = secrets.token_urlsafe(32)
         user.reset_token = hashlib.sha256(reset_token.encode()).hexdigest()
         user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
         
         db.session.commit()
         
-        # TODO: Send email with reset link
-        # For now, return token (remove in production)
         reset_link = f"https://yourdomain.com/reset-password?token={reset_token}"
-        
-        # Send email here (implement email service)
-        # send_password_reset_email(user.email, reset_link)
         
         return jsonify({
             "message": "If the email exists, a reset link has been sent",
-            "reset_link": reset_link  # Remove this in production
+            "reset_link": reset_link
         }), 200
         
     except Exception as e:
@@ -72,32 +64,25 @@ def reset_password():
         if not token or not new_password:
             return jsonify({"error": "Token and password are required"}), 400
         
-        # Validate password strength
         is_strong, message = validate_password(new_password)
         if not is_strong:
             return jsonify({"error": message}), 400
         
-        # Hash the token to compare with stored hash
         token_hash = hashlib.sha256(token.encode()).hexdigest()
-        
-        # Find user with valid token
         user = User.query.filter_by(reset_token=token_hash).first()
         
         if not user:
             return jsonify({"error": "Invalid or expired reset token"}), 400
         
-        # Check if token is expired
         if user.reset_token_expires < datetime.utcnow():
             return jsonify({"error": "Reset token has expired"}), 400
         
-        # Update password
         user.set_password(new_password)
         user.reset_token = None
         user.reset_token_expires = None
         
         db.session.commit()
         
-        # Log the action
         from api.models.audit_log import AuditLog
         audit_log = AuditLog(
             actor_id=user.id,
@@ -137,8 +122,6 @@ def validate_reset_token():
         print(f"Validate token error: {e}")
         return jsonify({"error": "An error occurred"}), 500
 
-# --- End Password Reset Endpoints ---
-
 def log_audit(user_id, action, details=None):
     """Helper to log audit events"""
     try:
@@ -165,16 +148,13 @@ def register():
         password = data.get("password")
         plan = data.get("plan")
 
-        # 1. Sanitize inputs
         username = sanitize_string(username)
         email = sanitize_string(email)
         plan = sanitize_string(plan)
 
-        # FIXED: Removed duplicate return statement
         if not all([username, email, password, plan]):
             return jsonify({"error": "Missing required fields (username, email, password, plan)"}), 400
 
-        # 2. Validate inputs
         if not validate_email(email):
             return jsonify({"error": "Invalid email format"}), 400
         
@@ -195,7 +175,7 @@ def register():
             status="pending",
             is_active=False,
             is_verified=False,
-            plan_type=plan  # Store the selected plan
+            plan_type=plan
         )
         user.set_password(password)
 
@@ -204,7 +184,6 @@ def register():
 
         log_audit(user.id, "User registered", f"New user {username} registered with pending status and {plan} plan")
 
-        # Notify all admins about new pending user
         try:
             admins = User.query.filter(User.role.in_(["main_admin", "admin"])).all()
             for admin in admins:
@@ -220,7 +199,6 @@ def register():
             db.session.commit()
         except Exception as e:
             print(f"Error notifying admins: {e}")
-            # Don't fail registration if notification fails
 
         return jsonify({
             "message": "Registration successful! Your account is pending admin approval.",
@@ -237,34 +215,36 @@ def login():
     """User login"""
     try:
         data = request.get_json()
-        username = data.get("username")
+        login_identifier = data.get("username")
         password = data.get("password")
 
-        print(f"Login attempt - Username: {username}, Password provided: {bool(password)}")
+        print(f"Login attempt - Username: {login_identifier}, Password provided: {bool(password)}")
 
-        if not username or not password:
+        if not login_identifier or not password:
             return jsonify({"error": "Username and password required"}), 400
 
-        # Try to find user by username or email
         user = User.query.filter(
-            (User.username == username) | (User.email == username)
+            (User.username == login_identifier) | (User.email == login_identifier)
         ).first()
         
         print(f"User found: {user is not None}")
+
+        if not user or not user.check_password(password):
+            if user:
+                user.failed_login_attempts += 1
+                user.last_failed_login = datetime.utcnow()
+                db.session.commit()
+            print("Login failed - invalid credentials")
+            return jsonify({"error": "Invalid credentials"}), 401
 
         if user:
             password_check = user.check_password(password)
             print(f"Password check result: {password_check}")
             print(f"User status: {user.status}, is_active: {user.is_active}")
 
-        # This block is now handled by the 2FA check above. Removing to avoid duplication.
-
-        # --- 2FA Check ---
         if user.two_factor_enabled:
-            # Require 2FA token
             two_factor_token = data.get("two_factor_token")
             if not two_factor_token:
-                # Return a special status to prompt the frontend for the 2FA token
                 return jsonify({
                     "message": "2FA required",
                     "two_factor_required": True,
@@ -273,17 +253,7 @@ def login():
             
             if not user.verify_2fa_token(two_factor_token):
                 return jsonify({"error": "Invalid 2FA token"}), 401
-        # --- End 2FA Check ---
 
-        # Check account status
-            if user:
-                user.failed_login_attempts += 1
-                user.last_failed_login = datetime.utcnow()
-                db.session.commit()
-            print("Login failed - invalid credentials")
-            return jsonify({"error": "Invalid credentials"}), 401
-
-        # Check account status
         if user.status == "pending":
             return jsonify({"error": "Your account is pending admin approval"}), 403
 
@@ -296,21 +266,19 @@ def login():
         if not user.is_active:
             return jsonify({"error": "Your account is inactive"}), 403
 
-        # Update login tracking
         user.last_login = datetime.utcnow()
         user.last_ip = request.remote_addr
         user.login_count += 1
         user.failed_login_attempts = 0
         db.session.commit()
 
-        # Set session
         session["user_id"] = user.id
+        session["username"] = user.username
         session["role"] = user.role
 
-        # Generate token
         token = user.generate_token()
 
-        log_audit(user.id, "User logged in", f"User {username} logged in successfully")
+        log_audit(user.id, "User logged in", f"User {login_identifier} logged in successfully")
 
         return jsonify({
             "message": "Login successful",
@@ -388,8 +356,6 @@ def validate_token():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- 2FA Management Endpoints ---
-
 @auth_bp.route("/auth/2fa/generate", methods=["GET"])
 @login_required
 def generate_2fa():
@@ -401,16 +367,13 @@ def generate_2fa():
         if user.two_factor_enabled:
             return jsonify({"error": "2FA is already enabled. Disable it first to generate a new secret."}), 400
 
-        # Generate new secret and save it to the user model
         secret = user.generate_2fa_secret()
         
-        # Generate provisioning URI (for QR code)
         provisioning_uri = pyotp.totp.TOTP(secret).provisioning_uri(
             name=user.email,
             issuer_name="Brain Link Tracker"
         )
 
-        # Generate QR code image (base64 encoded)
         img = qrcode.make(provisioning_uri)
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
@@ -481,8 +444,6 @@ def disable_2fa():
         db.session.rollback()
         print(f"Disable 2FA error: {e}")
         return jsonify({"error": "An error occurred during 2FA disablement"}), 500
-
-# --- End 2FA Management Endpoints ---
 
 @auth_bp.route("/auth/refresh", methods=["POST"])
 def refresh_token():
