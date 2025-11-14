@@ -7,6 +7,11 @@ import Campaign from './components/Campaign'
 import Settings from './components/Settings'
 import AdminPanel from './components/AdminPanel'
 import LoginPage from './components/LoginPage'
+import RegisterPage from './components/RegisterPage'
+import HomePage from './components/HomePage'
+import FeaturesPage from './components/FeaturesPage'
+import PricingPage from './components/PricingPage'
+import ContactPage from './components/ContactPage'
 import TrackingLinks from './components/TrackingLinks'
 import Notifications from './components/Notifications'
 import { toast } from 'sonner'
@@ -21,55 +26,55 @@ const useAuth = () => {
     const token = localStorage.getItem('token')
     if (token) {
       // Verify the token with a backend call
-      // Fetch user data from backend using token
-      // In a real app, you would fetch user data from a protected endpoint
-	      // For now, we'll assume the token is valid and set a mock user
-	      // The actual user data should be fetched from the backend
-	      setUser({ 
-	        id: 1, 
-	        username: 'Brain', 
-	        role: 'main_admin', 
-	        plan_type: 'enterprise' 
-	      })
+      fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.user) {
+            setUser(data.user)
+          } else {
+            localStorage.removeItem('token')
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('token')
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    } else {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   const login = async (username, password) => {
-	    try {
-	      const response = await fetch('/api/auth/login', {
-	        method: 'POST',
-	        headers: { 'Content-Type': 'application/json' },
-	        body: JSON.stringify({ username, password }),
-	      });
-	
-	      const data = await response.json();
-	
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
       if (response.ok) {
         const token = data.token || data.access_token;
         localStorage.setItem('token', token);
-        // Use the actual user data from the backend response
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          setUser({ 
-            id: 1, 
-            username: username, 
-            role: 'main_admin', 
-            plan_type: 'enterprise' 
-          });
-        }
-	        toast.success('Login successful!');
-	        return true;
-	      } else {
-	        toast.error(data.msg || 'Login failed');
-	        return false;
-	      }
-	    } catch (error) {
-	      toast.error('Network error. Please try again.');
-	      return false;
-	    }
-	  }
+        setUser(data.user);
+        toast.success('Login successful!');
+        return true;
+      } else {
+        toast.error(data.error || 'Login failed');
+        return false;
+      }
+    } catch (error) {
+      toast.error('Network error. Please try again.');
+      return false;
+    }
+  }
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -85,7 +90,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <div>Loading...</div> // Or a proper spinner
+    return <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="text-white text-xl">Loading...</div>
+    </div>
   }
 
   if (!user) {
@@ -101,51 +108,106 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 }
 
 const App = () => {
-	  const { user, loading, login, logout } = useAuth()
-	
-	  if (loading) {
-	    return <div>Loading Application...</div>
-	  }
-	
-	  return (
-	    <div className="theme-dark">
-	      <Router>
-	      <Routes>
-	        <Route path="/login" element={<LoginPage onLogin={login} />} />
-        
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <Layout user={user} logout={logout} />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="links" element={<TrackingLinks />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="campaigns" element={<Campaign />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="notifications" element={<Notifications />} />
+  const { user, loading, login, logout } = useAuth()
+
+  if (loading) {
+    return <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="text-white text-xl">Loading Application...</div>
+    </div>
+  }
+
+  return (
+    <div className="theme-dark">
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={login} />} />
+          <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
+
+          {/* Protected Routes */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/links" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <TrackingLinks />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/analytics" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Analytics />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/campaigns" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Campaign />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Settings />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/notifications" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Notifications />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
           
           {/* Admin Protected Routes */}
           <Route 
-            path="admin" 
+            path="/admin" 
             element={
               <ProtectedRoute allowedRoles={['main_admin', 'admin']}>
-                <AdminPanel />
+                <Layout user={user} logout={logout}>
+                  <AdminPanel />
+                </Layout>
               </ProtectedRoute>
             } 
           />
           
           {/* Fallback for unknown routes */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Route>
-      </Routes>
-</Router>
-	    </div>
-	  )
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </div>
+  )
 }
 
 export default App
