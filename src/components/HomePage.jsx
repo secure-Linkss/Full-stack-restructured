@@ -8,6 +8,7 @@ import {
   ChevronRight, Menu, X
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import Logo from './Logo'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -95,19 +96,16 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20">
             {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <img src="/logo.png" alt="Brain Link Tracker" className="h-10 w-10 md:h-12 md:w-12" />
-              <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                Brain Link Tracker
-              </span>
+            <div className="cursor-pointer" onClick={() => navigate('/')}>
+              <Logo size="md" />
             </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link to="#features" className="text-slate-300 hover:text-white transition-colors">
+              <Link to="/features" className="text-slate-300 hover:text-white transition-colors">
                 Features
               </Link>
-              <Link to="#pricing" className="text-slate-300 hover:text-white transition-colors">
+              <Link to="/pricing" className="text-slate-300 hover:text-white transition-colors">
                 Pricing
               </Link>
               <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">
@@ -146,10 +144,10 @@ const HomePage = () => {
             className="md:hidden bg-slate-900 border-t border-slate-800"
           >
             <div className="px-4 py-4 space-y-3">
-              <Link to="#features" className="block text-slate-300 hover:text-white py-2">
+              <Link to="/features" className="block text-slate-300 hover:text-white py-2">
                 Features
               </Link>
-              <Link to="#pricing" className="block text-slate-300 hover:text-white py-2">
+              <Link to="/pricing" className="block text-slate-300 hover:text-white py-2">
                 Pricing
               </Link>
               <Link to="/contact" className="block text-slate-300 hover:text-white py-2">
@@ -389,9 +387,8 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <img src="/logo.png" alt="Brain Link Tracker" className="h-10 w-10" />
-                <span className="text-xl font-bold text-white">Brain Link Tracker</span>
+              <div className="mb-4">
+                <Logo size="md" />
               </div>
               <p className="text-slate-400 text-sm">
                 The most powerful link management platform for modern businesses.
@@ -400,8 +397,8 @@ const HomePage = () => {
             <div>
               <h3 className="text-white font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-slate-400 text-sm">
-                <li><Link to="#features" className="hover:text-white transition-colors">Features</Link></li>
-                <li><Link to="#pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
               </ul>
             </div>
