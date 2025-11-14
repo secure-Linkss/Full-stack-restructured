@@ -56,27 +56,31 @@ const HomePage = () => {
     }
   ]
 
+  // Updated pricing to match PricingPage - showing key plans only
   const plans = [
     {
       name: 'Free',
       price: '$0',
-      period: 'forever',
-      features: ['100 links/month', 'Basic analytics', 'QR codes', '7-day data retention'],
-      popular: false
+      period: '7-day trial',
+      features: ['10 links/day', 'Basic analytics', 'QR codes', '7-day data retention'],
+      popular: false,
+      planType: 'free'
     },
     {
-      name: 'Pro',
-      price: '$29',
-      period: 'per month',
-      features: ['Unlimited links', 'Advanced analytics', 'Custom domains', 'A/B testing', 'Priority support', '90-day data retention'],
-      popular: true
+      name: 'Monthly',
+      price: '$150',
+      period: '30 days',
+      features: ['5,000 links/day', 'Advanced security', '2FA authentication', 'IP blocking', 'Threat detection'],
+      popular: true,
+      planType: 'monthly'
     },
     {
       name: 'Enterprise',
-      price: '$99',
-      period: 'per month',
-      features: ['Everything in Pro', 'API access', 'White-label', 'Dedicated support', 'Custom integrations', 'Unlimited data retention'],
-      popular: false
+      price: '$999',
+      period: 'per year',
+      features: ['50,000 links/day', 'Unlimited links', 'Dedicated manager', 'Custom SLA', '24/7 support'],
+      popular: false,
+      planType: 'enterprise'
     }
   ]
 
@@ -286,8 +290,15 @@ const HomePage = () => {
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              Choose the plan that fits your needs. All plans include a 14-day free trial.
+              Choose the plan that fits your needs. Start with our free trial and scale as you grow.
             </p>
+            <Button 
+              variant="link"
+              onClick={() => navigate('/pricing')}
+              className="text-blue-400 hover:text-blue-300 mt-2"
+            >
+              View all pricing options →
+            </Button>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -333,7 +344,7 @@ const HomePage = () => {
                           ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
                           : 'bg-slate-700 hover:bg-slate-600'
                       } text-white`}
-                      onClick={() => navigate('/register')}
+                      onClick={() => navigate(`/register?plan=${plan.planType}`)}
                     >
                       Get Started
                       <ChevronRight className="ml-2 w-4 h-4" />
