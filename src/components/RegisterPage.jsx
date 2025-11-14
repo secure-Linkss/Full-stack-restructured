@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,15 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle2, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import Logo from './Logo'
 
 const RegisterPage = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const preselectedPlan = searchParams.get('plan') || 'free'
+  
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
-    plan: 'free'
+    plan: preselectedPlan
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -24,6 +28,12 @@ const RegisterPage = () => {
     score: 0,
     feedback: []
   })
+
+  useEffect(() => {
+    if (preselectedPlan) {
+      setFormData(prev => ({ ...prev, plan: preselectedPlan }))
+    }
+  }, [preselectedPlan])
 
   const checkPasswordStrength = (password) => {
     const feedback = []
@@ -80,7 +90,6 @@ const RegisterPage = () => {
     e.preventDefault()
     setLoading(true)
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match')
       setLoading(false)
@@ -142,8 +151,8 @@ const RegisterPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-slate-900 border-slate-800">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="Brain Link Tracker" className="h-16 w-16" />
+          <div className="flex justify-center mb-4 cursor-pointer" onClick={() => navigate('/')}>
+            <Logo size="lg" />
           </div>
           <CardTitle className="text-2xl font-bold text-white">Create Your Account</CardTitle>
           <CardDescription className="text-slate-400">
@@ -286,11 +295,13 @@ const RegisterPage = () => {
                   <SelectValue placeholder="Choose a plan" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="free" className="text-white">Free Plan</SelectItem>
-                  <SelectItem value="weekly" className="text-white">Weekly Plan</SelectItem>
-                  <SelectItem value="monthly" className="text-white">Monthly Plan</SelectItem>
-                  <SelectItem value="pro" className="text-white">Pro Plan</SelectItem>
-                  <SelectItem value="enterprise" className="text-white">Enterprise Plan</SelectItem>
+                  <SelectItem value="free" className="text-white">Free Plan - $0 (7-day trial, 10 links/day)</SelectItem>
+                  <SelectItem value="weekly" className="text-white">Weekly Plan - $35 (7 days)</SelectItem>
+                  <SelectItem value="biweekly" className="text-white">Biweekly Plan - $68 (14 days)</SelectItem>
+                  <SelectItem value="monthly" className="text-white">Monthly Plan - $150 (30 days)</SelectItem>
+                  <SelectItem value="quarterly" className="text-white">Quarterly Plan - $420 (90 days)</SelectItem>
+                  <SelectItem value="pro" className="text-white">Pro Plan - $299/month</SelectItem>
+                  <SelectItem value="enterprise" className="text-white">Enterprise Plan - $999/year</SelectItem>
                 </SelectContent>
               </Select>
             </div>
