@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,6 +8,7 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import Logo from './Logo'
 
 const LoginPage = ({ onLogin }) => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -20,27 +22,13 @@ const LoginPage = ({ onLogin }) => {
     setLoading(true)
     setError('')
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        onLogin(data.user, data.token || 'dummy-token')
-      } else {
-        setError(data.message || 'Login failed')
-      }
-    } catch (err) {
-      setError('Network error. Please try again.')
-    } finally {
-      setLoading(false)
+    const success = await onLogin(formData.username, formData.password)
+    
+    if (success) {
+      navigate('/dashboard')
     }
+    
+    setLoading(false)
   }
 
   const handleChange = (e) => {
@@ -54,7 +42,7 @@ const LoginPage = ({ onLogin }) => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-4 cursor-pointer" onClick={() => navigate('/')}>
             <Logo size="lg" />
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">Welcome Back</CardTitle>
@@ -126,6 +114,7 @@ const LoginPage = ({ onLogin }) => {
             <Button
               type="button"
               variant="outline"
+              onClick={() => navigate('/register')}
               className="w-full border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               Don't have an account? Sign up
