@@ -4,26 +4,24 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Phone, MapPin, Send, ArrowLeft } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import Logo from './Logo'
 
 const ContactPage = () => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     subject: '',
     message: ''
   })
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = async (e) => {
@@ -33,258 +31,166 @@ const ContactPage = () => {
     try {
       const response = await fetch('/api/contact/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
-
-      const data = await response.json()
-
+      
       if (response.ok) {
-        toast.success(data.message || 'Message sent successfully!')
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          subject: '',
-          message: ''
-        })
+        toast.success('Message sent successfully! We will get back to you shortly.')
+        setFormData({ name: '', email: '', subject: '', message: '' })
       } else {
-        toast.error(data.error || 'Failed to send message')
+        toast.error('Failed to send message. Please try again.')
       }
-    } catch (err) {
-      toast.error('Network error. Please try again.')
+    } catch (error) {
+      toast.error('Network error. Please try again later.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      {/* Navigation */}
-      <nav className="bg-slate-900/95 backdrop-blur-lg shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 md:h-20">
-            <div className="flex items-center space-x-3">
-              <img src="/logo.png" alt="Brain Link Tracker" className="h-10 w-10 md:h-12 md:w-12" />
-              <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                Brain Link Tracker
-              </span>
-            </div>
-            <Button 
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className="text-slate-300 hover:text-white hover:bg-slate-800"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-12">
+          <div className="flex justify-center mb-4 cursor-pointer" onClick={() => navigate('/')}>
+            <Logo size="lg" />
           </div>
+          <h1 className="text-4xl font-bold text-white mb-3">Get in Touch</h1>
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+            We're here to help and answer any question you might have. We look forward to hearing from you.
+          </p>
         </div>
-      </nav>
 
-      {/* Contact Section */}
-      <div className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              Get in Touch
-            </h1>
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Contact Info */}
+          <div className="space-y-6">
+            <Card className="bg-slate-800/50 border-slate-700 text-white">
+              <CardHeader>
+                <Mail className="w-6 h-6 text-blue-400 mb-2" />
+                <CardTitle className="text-xl">Email Us</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400">Send us an email for general inquiries.</p>
+                <a href="mailto:support@brainlinktracker.com" className="text-blue-400 hover:text-blue-300 font-medium mt-2 block">
+                  support@brainlinktracker.com
+                </a>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700 text-white">
+              <CardHeader>
+                <Phone className="w-6 h-6 text-purple-400 mb-2" />
+                <CardTitle className="text-xl">Call Us</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400">Call our sales team for enterprise solutions.</p>
+                <a href="tel:+1234567890" className="text-purple-400 hover:text-purple-300 font-medium mt-2 block">
+                  +1 (234) 567-890
+                </a>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-800/50 border-slate-700 text-white">
+              <CardHeader>
+                <MapPin className="w-6 h-6 text-pink-400 mb-2" />
+                <CardTitle className="text-xl">Our Office</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-400">Brain Link Tracker HQ</p>
+                <p className="text-slate-400">123 Analytics Ave, Suite 400</p>
+                <p className="text-slate-400">Data City, CA 90210</p>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Contact Information */}
-            <div className="lg:col-span-1 space-y-6">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Mail className="w-5 h-5 mr-2 text-blue-400" />
-                    Email Us
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-300">admin@brainlinktracker.com</p>
-                  <p className="text-slate-400 text-sm mt-2">We'll respond within 24 hours</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Phone className="w-5 h-5 mr-2 text-blue-400" />
-                    Call Us
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-300">+1 (555) 123-4567</p>
-                  <p className="text-slate-400 text-sm mt-2">Mon-Fri 9am-6pm EST</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <MapPin className="w-5 h-5 mr-2 text-blue-400" />
-                    Visit Us
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-300">123 Business Street</p>
-                  <p className="text-slate-300">San Francisco, CA 94105</p>
-                  <p className="text-slate-400 text-sm mt-2">United States</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border-blue-500/50">
-                <CardHeader>
-                  <CardTitle className="text-white">Enterprise Solutions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-300 text-sm mb-4">
-                    Need a custom solution for your business? Our enterprise team is ready to help.
-                  </p>
-                  <Button 
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                    onClick={() => navigate('/register')}
-                  >
-                    Schedule a Demo
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Contact Form */}
-            <div className="lg:col-span-2">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-2xl">Send us a Message</CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Fill out the form below and we'll get back to you shortly.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-white text-sm font-medium">
-                          Full Name *
-                        </Label>
-                        <Input
-                          id="name"
-                          name="name"
-                          type="text"
-                          placeholder="John Doe"
-                          value={formData.name}
-                          onChange={handleChange}
-                          required
-                          className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-white text-sm font-medium">
-                          Email Address *
-                        </Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          placeholder="john@example.com"
-                          value={formData.email}
-                          onChange={handleChange}
-                          required
-                          className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-
+          {/* Contact Form */}
+          <div className="lg:col-span-2">
+            <Card className="bg-slate-900 border-slate-800">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold text-white">Send us a message</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-white text-sm font-medium">
-                        Phone Number (Optional)
-                      </Label>
+                      <Label htmlFor="name" className="text-white">Name</Label>
                       <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        placeholder="+1 (555) 123-4567"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="subject" className="text-white text-sm font-medium">
-                        Subject *
-                      </Label>
-                      <Input
-                        id="subject"
-                        name="subject"
+                        id="name"
+                        name="name"
                         type="text"
-                        placeholder="How can we help you?"
-                        value={formData.subject}
+                        placeholder="Your Name"
+                        value={formData.name}
                         onChange={handleChange}
                         required
-                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
+                        className="bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
                       />
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="message" className="text-white text-sm font-medium">
-                        Message *
-                      </Label>
-                      <Textarea
-                        id="message"
-                        name="message"
-                        placeholder="Tell us more about your inquiry..."
-                        value={formData.message}
+                      <Label htmlFor="email" className="text-white">Email</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="Your Email"
+                        value={formData.email}
                         onChange={handleChange}
                         required
-                        rows={6}
-                        className="bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 resize-none"
+                        className="bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
                       />
                     </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="subject" className="text-white">Subject</Label>
+                    <Input
+                      id="subject"
+                      name="subject"
+                      type="text"
+                      placeholder="Subject of your inquiry"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      required
+                      className="bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
+                    />
+                  </div>
 
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-6"
-                    >
-                      {loading ? 'Sending...' : (
-                        <>
-                          Send Message
-                          <Send className="ml-2 w-4 h-4" />
-                        </>
-                      )}
-                    </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="message" className="text-white">Message</Label>
+                    <Textarea
+                      id="message"
+                      name="message"
+                      placeholder="Your message..."
+                      value={formData.message}
+                      onChange={handleChange}
+                      required
+                      rows={6}
+                      className="bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500"
+                    />
+                  </div>
 
-                    <p className="text-slate-400 text-sm text-center">
-                      By submitting this form, you agree to our Privacy Policy and Terms of Service.
-                    </p>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Message
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-800 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <img src="/logo.png" alt="Brain Link Tracker" className="h-8 w-8" />
-            <span className="text-lg font-bold text-white">Brain Link Tracker</span>
-          </div>
-          <p className="text-slate-400 text-sm">
-            &copy; {new Date().getFullYear()} Brain Link Tracker. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }
