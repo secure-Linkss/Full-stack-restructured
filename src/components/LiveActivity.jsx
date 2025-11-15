@@ -218,8 +218,8 @@ const LiveActivity = () => {
         <div className="flex items-center gap-3">
           <Activity className="h-6 w-6 md:h-8 md:w-8 text-yellow-400" />
           <div>
-	            <h1 className="text-xl md:text-2xl font-bold text-white">Live Activity</h1>
-	            <p className="text-sm md:text-base text-slate-400">Real-time tracking events</p>},{find:
+            <h1 className="text-xl md:text-2xl font-bold text-white">Live Activity</h1>
+            <p className="text-sm md:text-base text-slate-400">Real-time tracking events</p>
             <p className="text-xs md:text-sm text-muted-foreground">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </p>
@@ -467,4 +467,3 @@ const LiveActivity = () => {
 }
 
 export default LiveActivity
-
