@@ -88,8 +88,8 @@ const Profile = ({ user }) => {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
-	        <h1 className="text-3xl font-bold text-white mb-2">Profile Settings</h1>
-	        <p className="text-slate-400">Manage your account settings and preferences</p>},{find:
+        <h1 className="text-3xl font-bold text-white mb-2">Profile Settings</h1>
+        <p className="text-slate-400">Manage your account settings and preferences</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
