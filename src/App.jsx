@@ -12,8 +12,16 @@ import HomePage from './components/HomePage'
 import FeaturesPage from './components/FeaturesPage'
 import PricingPage from './components/PricingPage'
 import ContactPage from './components/ContactPage'
+import AboutPage from './components/AboutPage'
+import PrivacyPolicyPage from './components/PrivacyPolicyPage'
+import TermsOfServicePage from './components/TermsOfServicePage'
 import TrackingLinks from './components/TrackingLinks'
 import Notifications from './components/Notifications'
+import Geography from './components/Geography'
+import Security from './components/Security'
+import LinkShortener from './components/LinkShortener'
+import LiveActivity from './components/LiveActivity'
+import Profile from './components/Profile'
 import { toast } from 'sonner'
 
 // Auth Context/Hook
@@ -125,6 +133,9 @@ const App = () => {
           <Route path="/features" element={<FeaturesPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
           <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={login} />} />
           <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
 
@@ -165,6 +176,56 @@ const App = () => {
               <ProtectedRoute>
                 <Layout user={user} logout={logout}>
                   <Campaign />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/geography" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Geography />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/security" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Security />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/shortener" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <LinkShortener />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/live-activity" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <LiveActivity />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Layout user={user} logout={logout}>
+                  <Profile user={user} />
                 </Layout>
               </ProtectedRoute>
             }
