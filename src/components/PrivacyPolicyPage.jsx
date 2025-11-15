@@ -1,7 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Shield, Lock, Eye, Database, UserCheck, FileText, Mail, AlertCircle } from 'lucide-react'
+import { Shield, Lock, Eye, Database, UserCheck, FileText, Mail, AlertCircle, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Logo from './Logo'
 
@@ -211,266 +211,161 @@ const PrivacyPolicyPage = () => {
       content: [
         {
           subtitle: 'Age Requirement',
-          text: 'Our services are not intended for children under the age of 13 (or 16 in the European Union). We do not knowingly collect personal information from children.'
-        },
-        {
-          subtitle: 'Parental Notice',
-          text: 'If we become aware that we have collected personal information from a child without parental consent, we will take steps to delete that information promptly.'
-        },
-        {
-          subtitle: 'Reporting',
-          text: 'If you believe we have collected information from a child, please contact us immediately at privacy@brainlinktracker.com.'
+          text: 'Our Service is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that a child under 13 has provided us with personal information, we will take steps to delete such information.'
         }
       ]
     },
     {
       icon: <Mail className="w-6 h-6" />,
-      title: 'Changes to This Privacy Policy',
+      title: 'Contact Us',
       content: [
         {
-          subtitle: 'Updates',
-          text: 'We may update this privacy policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors.'
+          subtitle: 'Questions',
+          text: 'If you have any questions about this Privacy Policy, please contact us at:'
         },
         {
-          subtitle: 'Notification',
-          text: 'We will notify you of material changes by email or through a prominent notice on our platform at least 30 days before the changes take effect.'
+          subtitle: 'Email',
+          text: 'support@brainlinktracker.com'
         },
         {
-          subtitle: 'Continued Use',
-          text: 'Your continued use of our services after changes to this privacy policy constitutes acceptance of the updated terms.'
-        },
-        {
-          subtitle: 'Review',
-          text: 'We encourage you to review this privacy policy periodically to stay informed about how we protect your information.'
+          subtitle: 'Address',
+          text: 'Brain Link Tracker, 123 Analytics Way, San Francisco, CA 94105'
         }
       ]
     }
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg shadow-lg">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pt-20">
+      {/* Navigation - Consistent with HomePage */}
+      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-slate-900/95 backdrop-blur-lg shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
+          <div className="flex justify-between items-center h-16 md:h-20">
+            {/* Logo */}
+            <div className="cursor-pointer" onClick={() => navigate("/")}>
               <Logo size="md" />
             </div>
-            <div className="flex items-center space-x-4">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-8">
+              <Link to="/features" className="text-slate-300 hover:text-white transition-colors">
+                Features
+              </Link>
+              <Link to="/pricing" className="text-slate-300 hover:text-white transition-colors">
+                Pricing
+              </Link>
+              <Link to="/about" className="text-slate-300 hover:text-white transition-colors">
+                About
+              </Link>
+              <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">
+                Contact
+              </Link>
               <Button 
                 variant="ghost" 
-                onClick={() => navigate('/login')}
+                onClick={() => navigate("/login")}
                 className="text-slate-300 hover:text-white hover:bg-slate-800"
               >
                 Sign In
               </Button>
               <Button 
-                onClick={() => navigate('/register')}
+                onClick={() => navigate("/register")}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
               >
                 Get Started
+              </Button>
+            </div>
+
+            {/* Mobile Menu Button - Added a simple back button for mobile view */}
+            <div className="md:hidden">
+              <Button 
+                variant="ghost"
+                onClick={() => navigate("/")}
+                className="text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Home
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-12 px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-900/20 to-purple-900/20">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                <Shield className="w-10 h-10 text-white" />
-              </div>
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-blue-500/10 rounded-full">
+              <Shield className="w-12 h-12 text-blue-400" />
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Privacy Policy
-            </h1>
-            <p className="text-lg text-slate-400 mb-4">
-              Your privacy is important to us. This policy explains how we collect, use, and protect your information.
-            </p>
-            <p className="text-sm text-slate-500">
-              Last Updated: November 14, 2025
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Privacy Policy Content */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Introduction */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12"
-          >
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="pt-6">
-                <p className="text-slate-300 leading-relaxed mb-4">
-                  Brain Link Tracker ("we," "our," or "us") is committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our link management platform and services.
-                </p>
-                <p className="text-slate-300 leading-relaxed mb-4">
-                  By using Brain Link Tracker, you agree to the collection and use of information in accordance with this policy. If you do not agree with our policies and practices, please do not use our services.
-                </p>
-                <p className="text-slate-300 leading-relaxed">
-                  We reserve the right to make changes to this Privacy Policy at any time and for any reason. We will alert you about any changes by updating the "Last Updated" date of this Privacy Policy.
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Main Sections */}
-          <div className="space-y-8">
-            {sections.map((section, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300">
-                  <CardHeader>
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white">
-                        {section.icon}
-                      </div>
-                      <CardTitle className="text-white text-2xl">{section.title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {section.content.map((item, itemIndex) => (
-                      <div key={itemIndex}>
-                        <h3 className="text-lg font-semibold text-blue-400 mb-2">
-                          {item.subtitle}
-                        </h3>
-                        <p className="text-slate-300 leading-relaxed">
-                          {item.text}
-                        </p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
           </div>
-
-          {/* Contact Information */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12"
-          >
-            <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/50">
-              <CardHeader>
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-6 h-6 text-blue-400" />
-                  <CardTitle className="text-white text-xl">Contact Us</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-300 leading-relaxed mb-4">
-                  If you have questions or concerns about this Privacy Policy or our data practices, please contact us:
-                </p>
-                <div className="space-y-2 text-slate-300">
-                  <p><strong className="text-white">Email:</strong> privacy@brainlinktracker.com</p>
-                  <p><strong className="text-white">Support:</strong> support@brainlinktracker.com</p>
-                  <p><strong className="text-white">Data Protection Officer:</strong> dpo@brainlinktracker.com</p>
-                </div>
-                <p className="text-slate-400 text-sm mt-4">
-                  We will respond to your inquiry within 30 days of receipt.
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Legal Compliance */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-8"
-          >
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white text-xl">Legal Compliance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-300 leading-relaxed mb-4">
-                  Brain Link Tracker complies with applicable data protection laws and regulations, including:
-                </p>
-                <ul className="space-y-2 text-slate-300">
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">•</span>
-                    <span>General Data Protection Regulation (GDPR) for users in the European Union</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">•</span>
-                    <span>California Consumer Privacy Act (CCPA) for California residents</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">•</span>
-                    <span>Children's Online Privacy Protection Act (COPPA)</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-400 mr-2">•</span>
-                    <span>Other applicable international and local privacy laws</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Privacy Policy
+          </h1>
+          <p className="text-lg text-slate-400">
+            Last Updated: November 15, 2025
+          </p>
         </div>
-      </section>
+      </div>
+
+      {/* Content */}
+      <div className="py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {sections.map((section, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white text-2xl flex items-center">
+                    {section.icon}
+                    <span className="ml-3">{section.title}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-slate-300 space-y-4">
+                  {section.content.map((item, itemIndex) => (
+                    <div key={itemIndex}>
+                      <h3 className="text-white font-semibold mb-2">{item.subtitle}</h3>
+                      <p>{item.text}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              Questions About Your Privacy?
-            </h2>
-            <p className="text-lg text-slate-400 mb-8">
-              We're here to help. Contact our privacy team or review our other policies.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg"
-                onClick={() => navigate('/contact')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                Contact Us
+          <h2 className="text-4xl font-bold text-white mb-6">Ready to Transform Your Tracking?</h2>
+          <p className="text-xl text-slate-400 mb-8">
+            Join thousands of businesses already using Brain Link Tracker to optimize their campaigns
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/register">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8">
+                Start Free Trial
               </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                onClick={() => navigate('/terms')}
-                className="border-slate-700 text-white hover:bg-slate-800"
-              >
-                Terms of Service
+            </Link>
+            <Link to="/contact">
+              <Button size="lg" variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white text-lg px-8">
+                Contact Sales
               </Button>
-            </div>
-          </motion.div>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-800 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Footer - Consistent with HomePage */}
+      <footer className="bg-slate-900 border-t border-slate-800 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div className="col-span-2 md:col-span-1">
               <div className="mb-4">
                 <Logo size="md" />
               </div>
