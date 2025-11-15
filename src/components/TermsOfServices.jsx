@@ -1,32 +1,61 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Shield, FileText, Users, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Shield, FileText, Users, AlertCircle, Menu, X } from 'lucide-react'
+import { motion } from 'framer-motion'
 import Logo from './Logo'
 
 const TermsOfServices = () => {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      {/* Navigation */}
-      <nav className="bg-slate-900/95 backdrop-blur-lg shadow-lg sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pt-20">
+      {/* Navigation - Consistent with HomePage */}
+      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-slate-900/95 backdrop-blur-lg shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20">
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/')}>
+            {/* Logo */}
+            <div className="cursor-pointer" onClick={() => navigate('/')}>
               <Logo size="md" />
-              <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                Brain Link Tracker
-              </span>
             </div>
-            <Button 
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className="text-slate-300 hover:text-white hover:bg-slate-800"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-8">
+              <Link to="/features" className="text-slate-300 hover:text-white transition-colors">
+                Features
+              </Link>
+              <Link to="/pricing" className="text-slate-300 hover:text-white transition-colors">
+                Pricing
+              </Link>
+              <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">
+                Contact
+              </Link>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/login')}
+                className="text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                Sign In
+              </Button>
+              <Button 
+                onClick={() => navigate('/register')}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                Get Started
+              </Button>
+            </div>
+
+            {/* Mobile Menu Button - Added a simple back button for mobile view */}
+            <div className="md:hidden">
+              <Button 
+                variant="ghost"
+                onClick={() => navigate('/')}
+                className="text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
@@ -43,7 +72,7 @@ const TermsOfServices = () => {
             Terms of Service
           </h1>
           <p className="text-lg text-slate-400">
-            Last Updated: November 14, 2024
+            Last Updated: November 15, 2025
           </p>
         </div>
       </div>
@@ -299,63 +328,55 @@ const TermsOfServices = () => {
             </CardHeader>
             <CardContent className="text-slate-300 space-y-4">
               <p>
-                We may terminate or suspend your account and access to the Service immediately, without prior notice or liability, for any reason, including if you breach these Terms.
+                We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
               </p>
               <p>
-                Upon termination, your right to use the Service will immediately cease. All provisions of these Terms that by their nature should survive termination shall survive, including ownership provisions, warranty disclaimers, indemnity, and limitations of liability.
+                Upon termination, your right to use the Service will immediately cease. If you wish to terminate your account, you may simply discontinue using the Service.
               </p>
             </CardContent>
           </Card>
 
-          {/* Contact Information */}
-          <Card className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border-blue-500/50">
-            <CardHeader>
-              <CardTitle className="text-white text-2xl">Contact Us</CardTitle>
-            </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
-              <p>
-                If you have any questions about these Terms of Service, please contact us:
-              </p>
-              <div className="space-y-2">
-                <p><strong className="text-white">Email:</strong> legal@brainlinktracker.com</p>
-                <p><strong className="text-white">Address:</strong> Brain Link Tracker HQ, 123 Analytics Ave, Suite 400, Data City, CA 90210</p>
-                <p><strong className="text-white">Phone:</strong> +1 (234) 567-890</p>
-              </div>
-              <div className="pt-4">
-                <Button 
-                  onClick={() => navigate('/contact')}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                >
-                  Contact Support
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Acknowledgment */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="text-slate-300 space-y-4 pt-6">
-              <p className="text-center text-sm">
-                By using Brain Link Tracker, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
-              </p>
-              <p className="text-center text-slate-500 text-xs">
-                © {new Date().getFullYear()} Brain Link Tracker. All rights reserved.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-slate-950 border-t border-slate-800 py-8 px-4 sm:px-6 lg:px-8 mt-12">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <Logo size="sm" />
-            <span className="text-lg font-bold text-white">Brain Link Tracker</span>
+      {/* Footer - Consistent with HomePage */}
+      <footer className="bg-slate-900 border-t border-slate-800 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div className="col-span-2 md:col-span-1">
+              <div className="mb-4">
+                <Logo size="md" />
+              </div>
+              <p className="text-slate-400 text-sm">
+                The most powerful link management platform for modern businesses.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-4">Product</h3>
+              <ul className="space-y-2 text-slate-400 text-sm">
+                <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-slate-400 text-sm">
+                <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-4">Legal</h3>
+              <ul className="space-y-2 text-slate-400 text-sm">
+                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-slate-400 text-sm">
-            &copy; {new Date().getFullYear()} Brain Link Tracker. All rights reserved.
-          </p>
+          <div className="border-t border-slate-800 pt-8 text-center text-slate-400 text-sm">
+            <p>&copy; {new Date().getFullYear()} Brain Link Tracker. All rights reserved.</p>
+          </div>
         </div>
       </footer>
     </div>
