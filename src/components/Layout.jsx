@@ -23,34 +23,86 @@ import {
   X,
   ShieldAlert,
   BarChart3,
+  Bell,
 } from 'lucide-react'
 
-const Layout = ({ children }) => {
+const Layout = ({ children, user: propUser, logout: propLogout }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(propUser || null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(!propUser)
 
-  
+  // Fetch user data if not provided via props
+  useEffect(() => {
+    if (propUser) {
+      setUser(propUser)
+      setLoading(false)
+      return
+    }
 
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          setLoading(false)
+          return
+        }
 
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user) {
+            setUser(data.user)
+          }
+        } else {
+          localStorage.removeItem('token')
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error)
+        localStorage.removeItem('token')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [propUser])
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      navigate('/login')
-    } catch (error) {
-      console.error('Error logging out:', error)
+    if (propLogout) {
+      propLogout()
+    } else {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' })
+        localStorage.removeItem('token')
+        setUser(null)
+        navigate('/login')
+      } catch (error) {
+        console.error('Error logging out:', error)
+      }
     }
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen bg-slate-900">Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-900">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
   }
 
   if (!user) {
-    return null
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-900">
+        <div className="text-white text-xl">Please log in to continue</div>
+      </div>
+    )
   }
 
   // Determine if user is admin (admin or main_admin)
@@ -67,6 +119,7 @@ const Layout = ({ children }) => {
     { id: 'security', label: 'Security', icon: Shield, path: '/security' },
     { id: 'shortener', label: 'Link Shortener', icon: Zap, path: '/shortener' },
     { id: 'live-activity', label: 'Live Activity', icon: TrendingUp, path: '/live-activity' },
+    { id: 'notifications', label: 'Notifications', icon: Bell, path: '/notifications' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
   ]
 
@@ -88,7 +141,7 @@ const Layout = ({ children }) => {
     if (user.first_name && user.last_name) {
       return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
     }
-    return user.email?.[0]?.toUpperCase() || 'U'
+    return user.email?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || 'U'
   }
 
   // Get role badge color
@@ -383,8 +436,10 @@ const Layout = ({ children }) => {
         )}
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto">
-          {children}
+        <div className="flex-1 overflow-auto bg-slate-900">
+          <div className="p-6">
+            {children}
+          </div>
         </div>
       </div>
     </div>
@@ -392,4 +447,3 @@ const Layout = ({ children }) => {
 }
 
 export default Layout
-
