@@ -18,3 +18,4 @@ python-telegram-bot==20.7
 stripe==7.8.0
 Werkzeug==3.0.1
 python-dateutil==2.9.0
+geoip2
