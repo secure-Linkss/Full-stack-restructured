@@ -1,4 +1,4 @@
-from src.database import db
+from api.database import db
 import uuid
 
 class Link(db.Model):

@@ -3,7 +3,7 @@ Domain Model
 Manages custom domains for short link generation
 """
 
-from src.database import db
+from api.database import db
 from datetime import datetime
 
 class Domain(db.Model):

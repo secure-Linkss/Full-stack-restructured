@@ -10,49 +10,49 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 # Import models and blueprints
-from src.models.user import db, User
-from src.models.link import Link
-from src.models.tracking_event import TrackingEvent
-from src.models.campaign import Campaign
-from src.models.audit_log import AuditLog
-from src.models.security import SecuritySettings, BlockedIP, BlockedCountry
-from src.models.support_ticket import SupportTicket
-from src.models.subscription_verification import SubscriptionVerification
-from src.models.notification import Notification
-from src.models.domain import Domain
-from src.models.security_threat import SecurityThreat
-from src.models.security_threat_db import SecurityThreat as SecurityThreatDB
-from src.models.support_ticket_db import SupportTicket as SupportTicketDB
-from src.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB
+from api.models.user import db, User
+from api.models.link import Link
+from api.models.tracking_event import TrackingEvent
+from api.models.campaign import Campaign
+from api.models.audit_log import AuditLog
+from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
+from api.models.support_ticket import SupportTicket
+from api.models.subscription_verification import SubscriptionVerification
+from api.models.notification import Notification
+from api.models.domain import Domain
+from api.models.security_threat import SecurityThreat
+from api.models.security_threat_db import SecurityThreat as SecurityThreatDB
+from api.models.support_ticket_db import SupportTicket as SupportTicketDB
+from api.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB
 
-from src.routes.user import user_bp
-from src.routes.auth import auth_bp
-from src.routes.links import links_bp
-from src.routes.track import track_bp
-from src.routes.events import events_bp
-from src.routes.analytics import analytics_bp
-from src.routes.campaigns import campaigns_bp
-from src.routes.settings import settings_bp
-from src.routes.admin import admin_bp
-from src.routes.admin_complete import admin_complete_bp
-from src.routes.admin_settings import admin_settings_bp
-from src.routes.security import security_bp
-from src.routes.telegram import telegram_bp
-from src.routes.page_tracking import page_tracking_bp
-from src.routes.shorten import shorten_bp
-from src.routes.notifications import notifications_bp
-from src.routes.quantum_redirect import quantum_bp
-from src.routes.advanced_security import advanced_security_bp
-from src.routes.domains import domains_bp
-from src.routes.profile import profile_bp
-from src.routes.broadcaster import broadcaster_bp
-from src.routes.pending_users import pending_users_bp
-from src.routes.payments import payments_bp
-from src.routes.crypto_payments import crypto_payments_bp
-from src.routes.support_tickets import support_tickets_bp
-from src.routes.admin_missing import admin_missing_bp
-from src.routes.user_missing import user_missing_bp
-from src.routes.missing_api_routes import missing_routes_bp
+from api.routes.user import user_bp
+from api.routes.auth import auth_bp
+from api.routes.links import links_bp
+from api.routes.track import track_bp
+from api.routes.events import events_bp
+from api.routes.analytics import analytics_bp
+from api.routes.campaigns import campaigns_bp
+from api.routes.settings import settings_bp
+from api.routes.admin import admin_bp
+from api.routes.admin_complete import admin_complete_bp
+from api.routes.admin_settings import admin_settings_bp
+from api.routes.security import security_bp
+from api.routes.telegram import telegram_bp
+from api.routes.page_tracking import page_tracking_bp
+from api.routes.shorten import shorten_bp
+from api.routes.notifications import notifications_bp
+from api.routes.quantum_redirect import quantum_bp
+from api.routes.advanced_security import advanced_security_bp
+from api.routes.domains import domains_bp
+from api.routes.profile import profile_bp
+from api.routes.broadcaster import broadcaster_bp
+from api.routes.pending_users import pending_users_bp
+from api.routes.payments import payments_bp
+from api.routes.crypto_payments import crypto_payments_bp
+from api.routes.support_tickets import support_tickets_bp
+from api.routes.admin_missing import admin_missing_bp
+from api.routes.user_missing import user_missing_bp
+from api.routes.missing_api_routes import missing_routes_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ej5B3Amppi4gjpbC65te6rJuvJzgVCWW_xfB-ZLR1TE')

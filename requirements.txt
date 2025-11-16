@@ -11,4 +11,4 @@ gunicorn==23.0.0
 stripe==10.8.0
 cryptography==43.0.1
 bcrypt==4.2.0
-python-dateutil==2.9.0
+python-dateutil==2.9.0bleach==6.1.0
