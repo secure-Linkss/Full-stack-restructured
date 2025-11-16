@@ -1,9 +1,10 @@
 [phases.setup]
-nixPkgs = ["nodejs_18", "python311", "python311Packages.pip", "pnpm-9_x"]
+nixPkgs = ["nodejs_18", "python311", "python311Packages.pip", "python311Packages.virtualenv", "pnpm-9_x"]
 
 [phases.install]
 cmds = [
-  "pip install -r requirements.txt",
+  "python -m venv /opt/venv",
+  ". /opt/venv/bin/activate && pip install -r requirements.txt",
   "pnpm install --frozen-lockfile"
 ]
 
@@ -11,4 +12,4 @@ cmds = [
 cmds = ["pnpm run build"]
 
 [start]
-cmd = "gunicorn -w 4 -b 0.0.0.0:$PORT api.index:app"
+cmd = ". /opt/venv/bin/activate && gunicorn -w 4 -b 0.0.0.0:$PORT api.index:app"
