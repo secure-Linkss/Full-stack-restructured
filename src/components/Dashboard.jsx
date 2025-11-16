@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
-import { CalendarDays, Link, MousePointer, Users, BarChart as BarChartIcon, Globe, Shield, TrendingUp, Eye, Mail, RefreshCw, Download, Search } from 'lucide-react';
+import { CalendarDays, Link, MousePointer, Users, BarChart as BarChartIcon, Globe, Shield, TrendingUp, Eye, Mail, RefreshCw, Download, Search, Copy, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
   const [period, setPeriod] = useState('7d');
@@ -16,8 +17,10 @@ const Dashboard = () => {
   const [topCountries, setTopCountries] = useState([]);
   const [topCampaigns, setTopCampaigns] = useState([]);
   const [recentCaptures, setRecentCaptures] = useState([]);
+  const [allCapturedEmails, setAllCapturedEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllEmails, setShowAllEmails] = useState(false);
 
   const fetchDashboardData = async (selectedPeriod) => {
     try {
@@ -41,9 +44,9 @@ const Dashboard = () => {
           deviceDesktop: data.deviceBreakdown?.desktop || 0,
           deviceMobile: data.deviceBreakdown?.mobile || 0,
           deviceTablet: data.deviceBreakdown?.tablet || 0,
-          deviceDesktopPercent: data.deviceBreakdown?.desktop || 0,
-          deviceMobilePercent: data.deviceBreakdown?.mobile || 0,
-          deviceTabletPercent: data.deviceBreakdown?.tablet || 0
+          deviceDesktopPercent: data.deviceBreakdown?.desktopPercent || 0,
+          deviceMobilePercent: data.deviceBreakdown?.mobilePercent || 0,
+          deviceTabletPercent: data.deviceBreakdown?.tabletPercent || 0
         };
         setStats(dashboardStats);
 
@@ -51,9 +54,11 @@ const Dashboard = () => {
         setTopCountries(data.topCountries || []);
         setTopCampaigns(data.campaignPerformance || []);
         setRecentCaptures(data.recentCaptures || []);
+        setAllCapturedEmails(data.allCapturedEmails || []);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -69,11 +74,12 @@ const Dashboard = () => {
 
   const handleRefresh = () => {
     fetchDashboardData(period);
+    toast.success('Dashboard refreshed');
   };
 
   const handleExport = () => {
     if (chartData.length === 0) {
-      alert("No data to export.");
+      toast.error("No data to export.");
       return;
     }
 
@@ -98,6 +104,12 @@ const Dashboard = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Data exported successfully');
+  };
+
+  const handleCopyEmail = (email) => {
+    navigator.clipboard.writeText(email);
+    toast.success('Email copied to clipboard');
   };
 
   const additionalStats = {
@@ -109,9 +121,9 @@ const Dashboard = () => {
   };
 
   const deviceData = [
-    { name: 'Desktop', value: 0, percentage: 0, color: '#8b5cf6' },
-    { name: 'Mobile', value: 0, percentage: 0, color: '#06b6d4' },
-    { name: 'Tablet', value: 0, percentage: 0, color: '#10b981' }
+    { name: 'Desktop', value: stats.deviceDesktop || 0, percentage: stats.deviceDesktopPercent || 0, color: '#8b5cf6' },
+    { name: 'Mobile', value: stats.deviceMobile || 0, percentage: stats.deviceMobilePercent || 0, color: '#06b6d4' },
+    { name: 'Tablet', value: stats.deviceTablet || 0, percentage: stats.deviceTabletPercent || 0, color: '#10b981' }
   ];
 
   const performanceData = chartData.length > 0 ? chartData.map((item) => ({
@@ -124,6 +136,7 @@ const Dashboard = () => {
   const countriesData = topCountries.length > 0 ? topCountries : [];
   const campaignsData = topCampaigns.length > 0 ? topCampaigns : [];
   const capturesData = recentCaptures.length > 0 ? recentCaptures.slice(0, 5) : [];
+  const displayedEmails = showAllEmails ? allCapturedEmails : allCapturedEmails.slice(0, 10);
 
   return (
     <div className="space-y-6 p-6">
@@ -256,7 +269,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
+        <Card 
+          className="hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20"
+          onClick={() => setShowAllEmails(!showAllEmails)}
+        >
           <CardContent className="p-6">
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
@@ -316,6 +332,75 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* All Captured Emails Card - Expandable */}
+      {showAllEmails && (
+        <Card className="bg-slate-800 border-slate-700 mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white flex items-center">
+                <Mail className="h-5 w-5 mr-2 text-orange-400" />
+                All Captured Emails
+                <span className="ml-3 text-sm font-normal text-slate-400">
+                  ({allCapturedEmails.length} total)
+                </span>
+              </CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowAllEmails(false)}
+                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              >
+                Close
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
+              {displayedEmails.map((capture, index) => (
+                <div key={index} className="p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                        <Mail className="h-4 w-4 text-orange-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate text-white" title={capture.email}>
+                          {capture.email}
+                        </p>
+                        <p className="text-xs text-slate-400">{capture.timestamp}</p>
+                        {capture.campaign && (
+                          <p className="text-xs text-slate-500 mt-1">Campaign: {capture.campaign}</p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleCopyEmail(capture.email)}
+                      className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-600"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {allCapturedEmails.length > 10 && !showAllEmails && (
+              <div className="text-center mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllEmails(true)}
+                  className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                >
+                  Show All {allCapturedEmails.length} Emails
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -453,7 +538,7 @@ const Dashboard = () => {
                     style={{ backgroundColor: item.color }}
                   ></div>
                   <span className="text-xs text-slate-400">
-                    {item.name}
+                    {item.name} ({item.percentage}%)
                   </span>
                 </div>
               ))}
