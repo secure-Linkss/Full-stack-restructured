@@ -1,9 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install --legacy-peer-deps",
-  "framework": null,
   "builds": [
     {
       "src": "api/index.py",
@@ -19,22 +15,6 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/s/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/p/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/t/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
       "src": "/q/(.*)",
       "dest": "/api/index.py"
     },
@@ -47,28 +27,20 @@
       "dest": "/api/index.py"
     },
     {
-      "src": "/track/(.*)",
+      "src": "/t/(.*)",
       "dest": "/api/index.py"
     },
     {
-      "src": "/pixel/(.*)",
+      "src": "/p/(.*)",
       "dest": "/api/index.py"
     },
     {
-      "src": "/health",
+      "src": "/api/(.*)",
       "dest": "/api/index.py"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/dist/assets/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json))",
-      "dest": "/dist/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/index.html"
+      "dest": "/index.html"
     }
   ],
   "env": {

@@ -3,7 +3,7 @@ Support Ticket Database Model
 SQLAlchemy model for customer support system
 """
 
-from api.database import db
+from src.database import db
 from datetime import datetime
 
 class SupportTicket(db.Model):

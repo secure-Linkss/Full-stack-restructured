@@ -3,7 +3,7 @@ Subscription Verification Database Model
 SQLAlchemy model for subscription management and verification
 """
 
-from api.database import db
+from src.database import db
 from datetime import datetime
 from decimal import Decimal
 from sqlalchemy import Numeric

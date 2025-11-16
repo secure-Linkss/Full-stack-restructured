@@ -1,161 +1,78 @@
 import os
 import sys
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, send_from_directory, request, redirect
-from api.config.production import config # Import the config dictionary
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_apscheduler import APScheduler
-# Rate limiting import
-try:
-    from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
-    RATE_LIMITING_AVAILABLE = True
-except ImportError:
-    print("⚠ Flask-Limiter not installed. Rate limiting disabled.")
-    RATE_LIMITING_AVAILABLE = False
 
-# Import database FIRST - prevents circular dependencies
-from api.database import db
+# Import models and blueprints
+from src.models.user import db, User
+from src.models.link import Link
+from src.models.tracking_event import TrackingEvent
+from src.models.campaign import Campaign
+from src.models.audit_log import AuditLog
+from src.models.security import SecuritySettings, BlockedIP, BlockedCountry
+from src.models.support_ticket import SupportTicket
+from src.models.subscription_verification import SubscriptionVerification
+from src.models.notification import Notification
+from src.models.domain import Domain
+from src.models.security_threat import SecurityThreat
+from src.models.security_threat_db import SecurityThreat as SecurityThreatDB
+from src.models.support_ticket_db import SupportTicket as SupportTicketDB
+from src.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB
 
-# Import models in dependency order
-# Base models (no foreign keys)
-from api.models.user import User
-from api.models.admin_settings import AdminSettings
-from api.models.api_key import APIKey
-
-# Models with foreign keys to User
-from api.models.link import Link
-from api.models.campaign import Campaign
-from api.models.notification import Notification
-from api.models.audit_log import AuditLog
-from api.models.domain import Domain
-
-# Tracking and Analytics models
-from api.models.tracking_event import TrackingEvent
-from api.models.ab_test import ABTest
-
-# Security models
-from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
-from api.models.security_threat import SecurityThreat
-from api.models.security_threat_db import SecurityThreat as SecurityThreatDB
-
-# Support and Subscription models
-from api.models.support_ticket import SupportTicket
-from api.models.support_ticket_db import SupportTicket as SupportTicketDB, SupportTicketComment
-from api.models.subscription_verification import SubscriptionVerification
-from api.models.subscription_verification_db import SubscriptionVerification as SubscriptionVerificationDB, SubscriptionHistory
-
-# Import blueprints from api.api (routes are in api folder)
-from api.api.user import user_bp
-from api.api.auth import auth_bp
-from api.api.links import links_bp
-from api.api.track import track_bp
-from api.api.events import events_bp
-from api.api.analytics import analytics_bp
-from api.api.campaigns import campaigns_bp
-from api.api.settings import settings_bp
-from api.api.admin import admin_bp
-from api.api.admin_complete import admin_complete_bp
-from api.api.admin_settings import admin_settings_bp
-from api.api.security import security_bp
-from api.api.telegram import telegram_bp
-from api.api.page_tracking import page_tracking_bp
-from api.api.shorten import shorten_bp
-from api.api.notifications import notifications_bp
-from api.api.quantum_redirect import quantum_bp
-from api.api.advanced_security import advanced_security_bp
-from api.api.domains import domains_bp
-from api.api.profile import profile_bp
-from api.api.broadcaster import broadcaster_bp
-from api.api.pending_users import pending_users_bp
-from api.api.payments import payments_bp
-from api.api.crypto_payments import crypto_payments_bp
-from api.api.support_tickets import support_tickets_bp
-from api.api.stripe_payments import stripe_bp
-
+from src.routes.user import user_bp
+from src.routes.auth import auth_bp
+from src.routes.links import links_bp
+from src.routes.track import track_bp
+from src.routes.events import events_bp
+from src.routes.analytics import analytics_bp
+from src.routes.campaigns import campaigns_bp
+from src.routes.settings import settings_bp
+from src.routes.admin import admin_bp
+from src.routes.admin_complete import admin_complete_bp
+from src.routes.admin_settings import admin_settings_bp
+from src.routes.security import security_bp
+from src.routes.telegram import telegram_bp
+from src.routes.page_tracking import page_tracking_bp
+from src.routes.shorten import shorten_bp
+from src.routes.notifications import notifications_bp
+from src.routes.quantum_redirect import quantum_bp
+from src.routes.advanced_security import advanced_security_bp
+from src.routes.domains import domains_bp
+from src.routes.profile import profile_bp
+from src.routes.broadcaster import broadcaster_bp
+from src.routes.pending_users import pending_users_bp
+from src.routes.payments import payments_bp
+from src.routes.crypto_payments import crypto_payments_bp
+from src.routes.support_tickets import support_tickets_bp
+from src.routes.admin_missing import admin_missing_bp
+from src.routes.user_missing import user_missing_bp
+from src.routes.missing_api_routes import missing_routes_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ej5B3Amppi4gjpbC65te6rJuvJzgVCWW_xfB-ZLR1TE')
 
-# Load configuration based on environment
-env = os.environ.get('FLASK_ENV', 'development')
-app.config.from_object(config[env])
+# Enable CORS for all routes
+CORS(app, supports_credentials=True)
 
-# ============================================
-# PRODUCTION-READY CORS CONFIGURATION
-# ============================================
-# Get allowed origins from environment variable
-ALLOWED_ORIGINS = os.environ.get(
-    'ALLOWED_ORIGINS',
-    'http://localhost:3000,http://localhost:5173,http://localhost:5000'
-).split(',')
-
-# Production-ready CORS configuration
-CORS(app,
-     origins=ALLOWED_ORIGINS,
-     supports_credentials=True,
-     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-     max_age=3600
-)
-
-# ============================================
-# RATE LIMITING CONFIGURATION
-# ============================================
-if RATE_LIMITING_AVAILABLE:
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri=os.environ.get("REDIS_URL", "memory://")
-    )
-    print("✓ Rate limiting enabled")
+# Database configuration - use SQLite for testing
+database_url = os.environ.get('DATABASE_URL')
+if database_url and 'postgresql' in database_url:
+    # Production - PostgreSQL (Neon)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
-    limiter = None
-    print("⚠ Rate limiting disabled - install Flask-Limiter to enable")
+    # Development/Testing - SQLite fallback
+    os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'src', 'database'), exist_ok=True)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), '..', 'src', 'database', 'app.db')}"
 
-# Database configuration is now handled by the config object
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Already set in config object
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
-
-# ============================================
-# HTTPS REDIRECT MIDDLEWARE (Production)
-# ============================================
-@app.before_request
-def force_https():
-    """Redirect HTTP to HTTPS in production"""
-    # Only enforce HTTPS if not in development
-    if os.environ.get('FLASK_ENV') == 'production':
-        if request.url.startswith('http://') and not request.is_secure:
-            url = request.url.replace('http://', 'https://', 1)
-            return redirect(url, code=301)
-
-# ============================================
-# APSCHEDULER INITIALIZATION
-# ============================================
-scheduler = APScheduler()
-scheduler.init_app(app)
-
-# Import cron jobs after app is initialized
-from api.cron.subscription_expiry import check_subscription_expiry
-from api.cron.link_expiry import check_link_expiry
-
-# Add jobs to the scheduler
-scheduler.add_job(id='check_subscription_expiry', func=check_subscription_expiry, trigger='interval', hours=1, misfire_grace_time=3600)
-scheduler.add_job(id='check_link_expiry', func=check_link_expiry, trigger='interval', hours=1, misfire_grace_time=3600)
-
-# Start the scheduler
-scheduler.start()
-print("✓ APScheduler started with cron jobs.")
 
 with app.app_context():
     db.create_all()
@@ -220,21 +137,9 @@ app.register_blueprint(pending_users_bp)  # Pending users routes - has /api in b
 app.register_blueprint(payments_bp)  # Payment processing routes - has /api in blueprint
 app.register_blueprint(crypto_payments_bp)  # Crypto payment routes - has /api in blueprint
 app.register_blueprint(support_tickets_bp)  # Support ticket system - has /api in blueprint
-app.register_blueprint(stripe_bp)  # Stripe payment processing
-
-# Apply rate limiting to specific blueprints if available
-if RATE_LIMITING_AVAILABLE and limiter:
-    # Authentication endpoints - stricter limits
-    limiter.limit("5 per minute")(auth_bp)
-    
-    # Admin endpoints - moderate limits
-    limiter.limit("100 per hour")(admin_bp)
-    limiter.limit("100 per hour")(admin_complete_bp)
-    
-    # Link creation - prevent abuse
-    limiter.limit("20 per minute")(links_bp)
-    
-    print("✓ Rate limiting applied to sensitive endpoints")
+app.register_blueprint(admin_missing_bp)  # Missing admin routes
+app.register_blueprint(user_missing_bp)  # Missing user routes
+app.register_blueprint(missing_routes_bp)  # Missing API routes
 
 @app.route('/', defaults={'path': ''}) 
 @app.route('/<path:path>')

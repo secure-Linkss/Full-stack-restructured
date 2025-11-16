@@ -246,207 +246,315 @@ class AdvancedCampaignIntelligence:
             predictions['next_30_days'] = {
                 'predicted_clicks': int(avg_daily_clicks * 30 * (1 + clicks_trend)),
                 'predicted_conversions': int(avg_daily_conversions * 30 * (1 + conversion_trend)),
-                'confidence': self._calculate_prediction_confidence(recent_days)
+                'confidence': max(0.6, self._calculate_prediction_confidence(recent_days) - 0.2)
             }
             
             predictions['trend_analysis'] = {
-                'clicks_trend': f"{clicks_trend:.2f}",
-                'conversion_trend': f"{conversion_trend:.2f}"
+                'clicks_trend': 'increasing' if clicks_trend > 0.05 else 'decreasing' if clicks_trend < -0.05 else 'stable',
+                'conversion_trend': 'increasing' if conversion_trend > 0.05 else 'decreasing' if conversion_trend < -0.05 else 'stable',
+                'trend_strength': abs(clicks_trend) + abs(conversion_trend)
             }
-            
+        
         return predictions
 
-    def _calculate_daily_performance(self, events: List[Dict]) -> Dict:
-        """Aggregate performance metrics by day"""
-        daily_data = defaultdict(lambda: {'clicks': 0, 'conversions': 0})
-        
-        for event in events:
-            if 'timestamp' in event:
-                day = datetime.fromisoformat(event['timestamp']).date().isoformat()
-                daily_data[day]['clicks'] += 1
-                if event.get('captured_email'):
-                    daily_data[day]['conversions'] += 1
-                    
-        return dict(daily_data)
-
-    def _calculate_trend(self, data: List[int]) -> float:
-        """Simple linear trend calculation (slope)"""
-        if len(data) < 2:
-            return 0.0
-        
-        x = list(range(len(data)))
-        y = data
-        
-        # Simple linear regression slope
-        n = len(x)
-        sum_x = sum(x)
-        sum_y = sum(y)
-        sum_xy = sum(xi * yi for xi, yi in zip(x, y))
-        sum_x_sq = sum(xi**2 for xi in x)
-        
-        try:
-            slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x_sq - sum_x**2)
-            # Convert slope to a percentage change over the period
-            return slope / statistics.mean(y) if statistics.mean(y) != 0 else 0.0
-        except ZeroDivisionError:
-            return 0.0
-
-    def _calculate_prediction_confidence(self, daily_data: List[Dict]) -> float:
-        """Calculate confidence based on data variance"""
-        if len(daily_data) < 2:
-            return 0.5
-        
-        clicks = [d['clicks'] for d in daily_data]
-        conversions = [d['conversions'] for d in daily_data]
-        
-        try:
-            clicks_variance = statistics.variance(clicks)
-            conversions_variance = statistics.variance(conversions)
-            
-            # Inverse of variance (higher variance = lower confidence)
-            # Normalize to a 0-1 range (simplified)
-            confidence = 1.0 - min((clicks_variance + conversions_variance) / 1000, 1.0)
-            return max(0.1, confidence) # Minimum confidence of 10%
-        except statistics.StatisticsError:
-            return 0.5
-
     def _recommend_ab_tests(self, campaign_data: Dict) -> List[Dict]:
-        """Recommend A/B tests based on statistical significance"""
-        events = campaign_data.get('events', [])
+        """Recommend A/B tests based on performance analysis"""
         recommendations = []
+        metrics = campaign_data.get('metrics', {})
+        events = campaign_data.get('events', [])
         
-        # Placeholder for A/B test data (e.g., two versions of a link)
-        ab_test_data = defaultdict(lambda: {'clicks': 0, 'conversions': 0})
+        clicks = metrics.get('clicks', 0)
+        conversions = metrics.get('conversions', 0)
         
-        # Simulate finding two link versions for A/B test
-        link_versions = defaultdict(list)
-        for event in events:
-            link_versions[event.get('link_id')].append(event)
-            
-        # Simple A/B test simulation: compare two links with high traffic
-        high_traffic_links = sorted(link_versions.items(), key=lambda x: len(x[1]), reverse=True)[:2]
+        # Only recommend tests if we have sufficient data
+        if clicks < self.min_sample_size:
+            return recommendations
         
-        if len(high_traffic_links) == 2 and len(high_traffic_links[0][1]) >= self.min_sample_size and len(high_traffic_links[1][1]) >= self.min_sample_size:
-            link_a_id, link_a_events = high_traffic_links[0]
-            link_b_id, link_b_events = high_traffic_links[1]
-            
-            link_a_clicks = len(link_a_events)
-            link_a_conversions = sum(1 for e in link_a_events if e.get('captured_email'))
-            
-            link_b_clicks = len(link_b_events)
-            link_b_conversions = sum(1 for e in link_b_events if e.get('captured_email'))
-            
-            # Perform a simple Z-test for two proportions (conversion rates)
-            cr_a = link_a_conversions / link_a_clicks
-            cr_b = link_b_conversions / link_b_clicks
-            
-            # Pooled proportion
-            p_pooled = (link_a_conversions + link_b_conversions) / (link_a_clicks + link_b_clicks)
-            
-            try:
-                # Standard error
-                se = math.sqrt(p_pooled * (1 - p_pooled) * (1/link_a_clicks + 1/link_b_clicks))
-                
-                # Z-score
-                z_score = (cr_a - cr_b) / se
-                
-                # For 95% confidence, Z-score > 1.96 is significant
-                if abs(z_score) > 1.96:
-                    winner = link_a_id if cr_a > cr_b else link_b_id
-                    recommendations.append({
-                        'type': 'ab_test_result',
-                        'description': f'A/B Test between Link {link_a_id} and Link {link_b_id} is statistically significant.',
-                        'winner': f'Link {winner}',
-                        'confidence': '95%',
-                        'action': f'Deactivate the losing link and focus traffic on Link {winner}.'
-                    })
-                else:
-                    recommendations.append({
-                        'type': 'ab_test_inconclusive',
-                        'description': f'A/B Test between Link {link_a_id} and Link {link_b_id} is inconclusive.',
-                        'action': 'Continue running the test or redesign the experiment.'
-                    })
-            except ZeroDivisionError:
-                pass
-                
+        conversion_rate = conversions / clicks if clicks > 0 else 0
+        
+        # Landing page optimization test
+        if conversion_rate < 0.03:
+            recommendations.append({
+                'test_type': 'landing_page_optimization',
+                'priority': 'high',
+                'description': 'Test different landing page designs to improve conversion rate',
+                'variants': [
+                    'Current design (Control)',
+                    'Simplified design with larger CTA',
+                    'Video-based landing page',
+                    'Mobile-optimized design'
+                ],
+                'success_metric': 'conversion_rate',
+                'minimum_duration': '14 days',
+                'required_sample_size': max(self.min_sample_size * 2, clicks),
+                'expected_impact': 'high'
+            })
+        
+        # Call-to-action test
+        recommendations.append({
+            'test_type': 'call_to_action',
+            'priority': 'medium',
+            'description': 'Test different call-to-action buttons and messaging',
+            'variants': [
+                'Get Started Now',
+                'Try Free Today',
+                'Learn More',
+                'Join Now'
+            ],
+            'success_metric': 'click_through_rate',
+            'minimum_duration': '7 days',
+            'required_sample_size': self.min_sample_size,
+            'expected_impact': 'medium'
+        })
+        
+        # Audience targeting test
+        device_performance = self._analyze_device_performance(events)
+        if len(device_performance) > 1:
+            recommendations.append({
+                'test_type': 'audience_targeting',
+                'priority': 'medium',
+                'description': 'Test device-specific targeting and bidding strategies',
+                'variants': [
+                    'Equal targeting across devices',
+                    'Mobile-focused targeting',
+                    'Desktop-focused targeting',
+                    'Dynamic device bidding'
+                ],
+                'success_metric': 'cost_per_conversion',
+                'minimum_duration': '10 days',
+                'required_sample_size': self.min_sample_size * 3,
+                'expected_impact': 'medium'
+            })
+        
         return recommendations
 
     def _assess_campaign_risks(self, campaign_data: Dict) -> Dict:
-        """Assess security and performance risks"""
-        events = campaign_data.get('events', [])
-        risk_score = 0
-        risk_factors = {}
-        
-        # Bot traffic risk
-        bot_traffic = sum(1 for e in events if e.get('is_bot'))
-        total_traffic = len(events)
-        bot_percentage = (bot_traffic / total_traffic) * 100 if total_traffic > 0 else 0
-        
-        if bot_percentage > 10:
-            risk_score += 30
-            risk_factors['bot_traffic'] = f"High bot traffic detected ({bot_percentage:.1f}%). Implement stronger bot blocking."
-        elif bot_percentage > 5:
-            risk_score += 15
-            risk_factors['bot_traffic'] = f"Moderate bot traffic detected ({bot_percentage:.1f}%). Monitor closely."
-        
-        # Geographic risk (e.g., high traffic from sanctioned or high-fraud countries)
-        geo_counts = Counter(e.get('country') for e in events)
-        high_risk_countries = ['North Korea', 'Iran', 'Russia'] # Example
-        high_risk_traffic = sum(geo_counts.get(c, 0) for c in high_risk_countries)
-        high_risk_percentage = (high_risk_traffic / total_traffic) * 100 if total_traffic > 0 else 0
-        
-        if high_risk_percentage > 5:
-            risk_score += 25
-            risk_factors['geo_risk'] = f"Significant traffic from high-risk countries ({high_risk_percentage:.1f}%). Review geo-blocking settings."
-            
-        # Performance stability risk (high variance)
-        daily_performance = self._calculate_daily_performance(events)
-        if len(daily_performance) >= 7:
-            clicks = [d['clicks'] for d in daily_performance.values()]
-            try:
-                clicks_cv = statistics.stdev(clicks) / statistics.mean(clicks) if statistics.mean(clicks) != 0 else 0
-                if clicks_cv > 0.5:
-                    risk_score += 20
-                    risk_factors['performance_volatility'] = f"High click volatility detected (CV: {clicks_cv:.2f}). Indicates unstable traffic source."
-            except statistics.StatisticsError:
-                pass
-                
-        return {
-            'score': min(risk_score, 100),
-            'factors': risk_factors,
-            'assessment': 'High' if risk_score >= 50 else ('Medium' if risk_score >= 25 else 'Low')
+        """Assess campaign risks and provide mitigation strategies"""
+        risks = {
+            'risk_score': 0.0,
+            'risk_factors': [],
+            'mitigation_strategies': []
         }
+        
+        metrics = campaign_data.get('metrics', {})
+        events = campaign_data.get('events', [])
+        
+        clicks = metrics.get('clicks', 0)
+        conversions = metrics.get('conversions', 0)
+        
+        # Low volume risk
+        if clicks < 100:
+            risks['risk_factors'].append({
+                'type': 'low_volume',
+                'severity': 'medium',
+                'description': 'Low traffic volume may lead to unreliable data',
+                'impact': 'Statistical significance issues'
+            })
+            risks['mitigation_strategies'].append('Increase budget or expand targeting')
+        
+        # High cost per conversion risk
+        if conversions > 0:
+            estimated_cpc = 1.50  # Placeholder - would come from actual cost data
+            cost_per_conversion = (clicks * estimated_cpc) / conversions
+            if cost_per_conversion > 50:
+                risks['risk_factors'].append({
+                    'type': 'high_cost_per_conversion',
+                    'severity': 'high',
+                    'description': f'Cost per conversion (${cost_per_conversion:.2f}) exceeds recommended threshold',
+                    'impact': 'Poor ROI and budget efficiency'
+                })
+                risks['mitigation_strategies'].append('Optimize targeting and improve conversion rate')
+        
+        # Audience concentration risk
+        country_distribution = Counter(event.get('country', 'unknown') for event in events)
+        if country_distribution:
+            top_country_percentage = max(country_distribution.values()) / len(events)
+            if top_country_percentage > 0.8:
+                risks['risk_factors'].append({
+                    'type': 'audience_concentration',
+                    'severity': 'medium',
+                    'description': 'Over 80% of traffic from single country',
+                    'impact': 'Vulnerability to market changes'
+                })
+                risks['mitigation_strategies'].append('Diversify geographic targeting')
+        
+        # Calculate overall risk score
+        risk_weights = {'low': 1, 'medium': 2, 'high': 3}
+        total_risk = sum(risk_weights.get(risk['severity'], 1) for risk in risks['risk_factors'])
+        risks['risk_score'] = min(total_risk * 10, 100)
+        
+        return risks
 
-    # Helper methods for audience insights (stubs)
     def _analyze_device_performance(self, events: List[Dict]) -> Dict:
-        """Analyze conversion rate by device type"""
-        # Implementation required
-        return {}
+        """Analyze performance by device type"""
+        device_data = defaultdict(lambda: {'clicks': 0, 'conversions': 0})
+        
+        for event in events:
+            device = event.get('device_type', 'unknown')
+            device_data[device]['clicks'] += 1
+            if event.get('captured_email'):
+                device_data[device]['conversions'] += 1
+        
+        # Calculate conversion rates
+        device_performance = {}
+        for device, data in device_data.items():
+            if data['clicks'] > 0:
+                device_performance[device] = {
+                    'clicks': data['clicks'],
+                    'conversions': data['conversions'],
+                    'conversion_rate': data['conversions'] / data['clicks']
+                }
+        
+        return device_performance
 
     def _analyze_geographic_performance(self, events: List[Dict]) -> Dict:
-        """Analyze conversion rate by country"""
-        # Implementation required
-        return {}
+        """Analyze performance by geography"""
+        geo_data = defaultdict(lambda: {'clicks': 0, 'conversions': 0})
+        
+        for event in events:
+            country = event.get('country', 'unknown')
+            geo_data[country]['clicks'] += 1
+            if event.get('captured_email'):
+                geo_data[country]['conversions'] += 1
+        
+        # Calculate conversion rates
+        geo_performance = {}
+        for country, data in geo_data.items():
+            if data['clicks'] >= 10:  # Only include countries with significant traffic
+                geo_performance[country] = {
+                    'clicks': data['clicks'],
+                    'conversions': data['conversions'],
+                    'conversion_rate': data['conversions'] / data['clicks']
+                }
+        
+        return geo_performance
 
     def _analyze_time_performance(self, events: List[Dict]) -> Dict:
-        """Analyze conversion rate by time of day"""
-        # Implementation required
-        return {}
+        """Analyze performance by time of day"""
+        time_data = defaultdict(lambda: {'clicks': 0, 'conversions': 0})
+        
+        for event in events:
+            if event.get('timestamp'):
+                try:
+                    hour = datetime.fromisoformat(event['timestamp']).hour
+                    time_data[hour]['clicks'] += 1
+                    if event.get('captured_email'):
+                        time_data[hour]['conversions'] += 1
+                except:
+                    continue
+        
+        # Calculate conversion rates
+        time_performance = {}
+        for hour, data in time_data.items():
+            if data['clicks'] > 0:
+                time_performance[hour] = {
+                    'clicks': data['clicks'],
+                    'conversions': data['conversions'],
+                    'conversion_rate': data['conversions'] / data['clicks']
+                }
+        
+        return time_performance
 
     def _analyze_behavioral_patterns(self, events: List[Dict]) -> Dict:
-        """Analyze user journey and common drop-off points"""
-        # Implementation required
-        return {}
+        """Analyze user behavioral patterns"""
+        patterns = {
+            'session_duration_analysis': {},
+            'click_patterns': {},
+            'conversion_journey': {}
+        }
+        
+        # Session duration analysis
+        durations = [event.get('session_duration', 0) for event in events if event.get('session_duration', 0) > 0]
+        if durations:
+            patterns['session_duration_analysis'] = {
+                'average': statistics.mean(durations),
+                'median': statistics.median(durations),
+                'std_dev': statistics.stdev(durations) if len(durations) > 1 else 0
+            }
+        
+        return patterns
 
     def _analyze_demographics(self, events: List[Dict]) -> Dict:
-        """Analyze inferred demographics (e.g., language, time zone)"""
-        # Implementation required
-        return {}
+        """Analyze demographic patterns"""
+        demographics = {
+            'browser_distribution': Counter(event.get('browser', 'unknown') for event in events),
+            'os_distribution': Counter(event.get('os', 'unknown') for event in events),
+            'country_distribution': Counter(event.get('country', 'unknown') for event in events)
+        }
+        
+        return demographics
 
     def _analyze_engagement_patterns(self, events: List[Dict]) -> Dict:
-        """Analyze time on page, scroll depth, etc."""
-        # Implementation required
-        return {}
+        """Analyze user engagement patterns"""
+        engagement = {
+            'bounce_rate': 0.0,
+            'repeat_visitors': 0,
+            'conversion_funnel': {}
+        }
+        
+        # Calculate bounce rate (simplified)
+        total_sessions = len(set(event.get('ip_address', '') for event in events))
+        bounced_sessions = len([event for event in events if event.get('session_duration', 0) < 30])
+        
+        if total_sessions > 0:
+            engagement['bounce_rate'] = bounced_sessions / total_sessions
+        
+        return engagement
 
-# Initialize the intelligence system
+    def _calculate_daily_performance(self, events: List[Dict]) -> Dict:
+        """Calculate daily performance metrics"""
+        daily_data = defaultdict(lambda: {'clicks': 0, 'conversions': 0})
+        
+        for event in events:
+            if event.get('timestamp'):
+                try:
+                    date = datetime.fromisoformat(event['timestamp']).date()
+                    daily_data[date]['clicks'] += 1
+                    if event.get('captured_email'):
+                        daily_data[date]['conversions'] += 1
+                except:
+                    continue
+        
+        return dict(daily_data)
+
+    def _calculate_trend(self, values: List[float]) -> float:
+        """Calculate trend coefficient using linear regression"""
+        if len(values) < 2:
+            return 0.0
+        
+        n = len(values)
+        x_values = list(range(n))
+        
+        # Simple linear regression
+        x_mean = statistics.mean(x_values)
+        y_mean = statistics.mean(values)
+        
+        numerator = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_values, values))
+        denominator = sum((x - x_mean) ** 2 for x in x_values)
+        
+        if denominator == 0:
+            return 0.0
+        
+        slope = numerator / denominator
+        return slope / y_mean if y_mean != 0 else 0.0
+
+    def _calculate_prediction_confidence(self, recent_data: List[Dict]) -> float:
+        """Calculate confidence level for predictions"""
+        if len(recent_data) < 3:
+            return 0.5
+        
+        # Calculate variance in recent performance
+        clicks_values = [d['clicks'] for d in recent_data]
+        conversion_values = [d['conversions'] for d in recent_data]
+        
+        clicks_cv = statistics.stdev(clicks_values) / statistics.mean(clicks_values) if statistics.mean(clicks_values) > 0 else 1
+        conversion_cv = statistics.stdev(conversion_values) / statistics.mean(conversion_values) if statistics.mean(conversion_values) > 0 else 1
+        
+        # Lower variance = higher confidence
+        avg_cv = (clicks_cv + conversion_cv) / 2
+        confidence = max(0.3, 1.0 - avg_cv)
+        
+        return min(confidence, 0.95)
+
+# Global campaign intelligence instance
 campaign_intel = AdvancedCampaignIntelligence()

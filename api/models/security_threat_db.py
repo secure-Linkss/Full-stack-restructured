@@ -3,7 +3,7 @@ Security Threat Database Model
 SQLAlchemy model for security threat tracking
 """
 
-from api.database import db
+from src.database import db
 from datetime import datetime
 
 class SecurityThreat(db.Model):

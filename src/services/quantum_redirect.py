@@ -1,3 +1,10 @@
+"""
+QUANTUM REDIRECT SYSTEM - PRODUCTION VERSION
+Super advanced 4-stage cryptographic verification and tracking system
+Designed for maximum security, data fidelity, and speed (<3 seconds total)
+USES NEON DATABASE INSTEAD OF REDIS FOR PRODUCTION
+"""
+
 import jwt
 import time
 import hashlib
@@ -252,185 +259,340 @@ class QuantumRedirectSystem:
             }
             
             # Create signed JWT
-            genesis_token = self._create_advanced_jwt(genesis_payload, self.SECRET_KEY_1, self.GENESIS_TOKEN_EXPIRY)
+            genesis_token = self._create_advanced_jwt(
+                genesis_payload, 
+                self.SECRET_KEY_1, 
+                self.GENESIS_TOKEN_EXPIRY
+            )
             
-            # Construct the redirect URL to the validation hub
-            # The validation hub is assumed to be at the root of the application
-            redirect_url = f"/validate?token={genesis_token}"
-            
+            # Update performance metrics
             self.performance_metrics['total_redirects'] += 1
             
+            # Generate validation hub URL (using same domain)
+            validation_url = f"/validate?token={genesis_token}"
+            
             return {
-                'status': 'redirect',
-                'url': redirect_url,
-                'token': genesis_token,
-                'processing_time': time.time() - start_time
+                'success': True,
+                'redirect_url': validation_url,
+                'click_id': click_id,
+                'processing_time_ms': (time.time() - start_time) * 1000,
+                'stage': 'genesis_complete'
             }
             
         except Exception as e:
             self.performance_metrics['blocked_attempts'] += 1
             return {
-                'status': 'error',
-                'message': f"Genesis stage failed: {str(e)}",
-                'processing_time': time.time() - start_time
+                'success': False,
+                'error': f"Genesis stage failed: {str(e)}",
+                'processing_time_ms': (time.time() - start_time) * 1000,
+                'stage': 'genesis_failed'
             }
 
-    def stage2_validation_hub(self, genesis_token: str, user_ip: str, user_agent: str) -> Dict:
+    def stage2_validation_hub(self, genesis_token: str, current_ip: str, current_user_agent: str, lenient_mode: bool = True) -> Dict:
         """
         Stage 2: Validation Hub Processing
-        Verifies genesis token and issues transit token
-        Target execution time: <50ms
+        Ruthless validation of traffic with cryptographic verification
+        Target execution time: <150ms
+        lenient_mode: If True, allows IP/UA mismatches (for development/proxies)
         """
         start_time = time.time()
         
-        # 1. Verify Genesis Token
-        is_valid, payload, reason = self._verify_advanced_jwt(genesis_token, self.SECRET_KEY_1, 'validation-hub')
-        
-        if not is_valid:
-            self.performance_metrics['security_violations'][reason] = self.performance_metrics['security_violations'].get(reason, 0) + 1
-            self.performance_metrics['blocked_attempts'] += 1
-            return {
-                'status': 'blocked',
-                'message': f"Validation failed at Genesis stage: {reason}",
-                'processing_time': time.time() - start_time
+        try:
+            # Verify genesis token
+            is_valid, payload, error_reason = self._verify_advanced_jwt(
+                genesis_token, 
+                self.SECRET_KEY_1, 
+                'validation-hub'
+            )
+            
+            if not is_valid:
+                self.performance_metrics['security_violations'][error_reason] += 1
+                self.performance_metrics['blocked_attempts'] += 1
+                return {
+                    'success': False,
+                    'error': f"Token validation failed: {error_reason}",
+                    'processing_time_ms': (time.time() - start_time) * 1000,
+                    'stage': 'validation_failed',
+                    'security_violation': error_reason,
+                    'click_id': payload.get('sub') if payload else None
+                }
+            
+            # Contextual verification - IP and User-Agent matching
+            current_ip_hash = self._hash_value(current_ip)
+            current_ua_hash = self._hash_value(current_user_agent)
+            
+            ip_mismatch = payload['ip_hash'] != current_ip_hash
+            ua_mismatch = payload['ua_hash'] != current_ua_hash
+            
+            if ip_mismatch and not lenient_mode:
+                self.performance_metrics['security_violations']['ip_mismatch'] += 1
+                self.performance_metrics['blocked_attempts'] += 1
+                return {
+                    'success': False,
+                    'error': "IP address mismatch - potential token interception",
+                    'processing_time_ms': (time.time() - start_time) * 1000,
+                    'stage': 'validation_failed',
+                    'security_violation': 'ip_mismatch',
+                    'click_id': payload['sub']
+                }
+            
+            if ua_mismatch and not lenient_mode:
+                self.performance_metrics['security_violations']['ua_mismatch'] += 1
+                self.performance_metrics['blocked_attempts'] += 1
+                return {
+                    'success': False,
+                    'error': "User-Agent mismatch - potential bot activity",
+                    'processing_time_ms': (time.time() - start_time) * 1000,
+                    'stage': 'validation_failed',
+                    'security_violation': 'ua_mismatch',
+                    'click_id': payload['sub']
+                }
+            
+            if lenient_mode and (ip_mismatch or ua_mismatch):
+                print(f"Warning: IP/UA mismatch in lenient mode for click {payload['sub']}")
+            
+            # Generate transit token for routing gateway
+            transit_payload = {
+                'iss': 'validation-hub',
+                'sub': payload['sub'],  # Original click ID
+                'aud': 'routing-gateway',
+                'link_id': payload['link_id'],
+                'validated_at': datetime.utcnow().isoformat(),
+                'stage': 'transit',
+                'security_score': 100,  # Passed all validations
+                'original_params': payload.get('original_params', {})  # Pass original params
             }
             
-        # 2. Verify IP and UA hashes (optional, but highly recommended)
-        if payload.get('ip_hash') != self._hash_value(user_ip):
-            self.performance_metrics['security_violations']['ip_mismatch'] += 1
-            # return {
-            #     'status': 'blocked',
-            #     'message': "Validation failed: IP mismatch",
-            #     'processing_time': time.time() - start_time
-            # }
-        
-        if payload.get('ua_hash') != self._hash_value(user_agent):
-            self.performance_metrics['security_violations']['ua_mismatch'] += 1
-            # return {
-            #     'status': 'blocked',
-            #     'message': "Validation failed: User Agent mismatch",
-            #     'processing_time': time.time() - start_time
-            # }
+            transit_token = self._create_advanced_jwt(
+                transit_payload,
+                self.SECRET_KEY_2,
+                self.TRANSIT_TOKEN_EXPIRY
+            )
             
-        # 3. Issue Transit Token
-        transit_payload = {
-            'iss': 'validation-hub',
-            'sub': payload['sub'],  # Click ID
-            'aud': 'routing-service',
-            'link_id': payload['link_id'],
-            'stage': 'transit',
-            'original_params': payload['original_params']
-        }
-        
-        transit_token = self._create_advanced_jwt(transit_payload, self.SECRET_KEY_2, self.TRANSIT_TOKEN_EXPIRY)
-        
-        # Construct the redirect URL to the routing service
-        redirect_url = f"/route?token={transit_token}"
-        
-        return {
-            'status': 'redirect',
-            'url': redirect_url,
-            'token': transit_token,
-            'processing_time': time.time() - start_time
-        }
+            # Generate routing gateway URL (using same domain)
+            routing_url = f"/route?transit_token={transit_token}"
+            
+            return {
+                'success': True,
+                'redirect_url': routing_url,
+                'click_id': payload['sub'],
+                'processing_time_ms': (time.time() - start_time) * 1000,
+                'stage': 'validation_complete'
+            }
+            
+        except Exception as e:
+            self.performance_metrics['blocked_attempts'] += 1
+            return {
+                'success': False,
+                'error': f"Validation stage failed: {str(e)}",
+                'processing_time_ms': (time.time() - start_time) * 1000,
+                'stage': 'validation_failed'
+            }
 
-    def stage3_routing_service(self, transit_token: str, user_ip: str, user_agent: str) -> Dict:
+    def stage3_routing_gateway(self, transit_token: str, tracking_params: Dict = None) -> Dict:
         """
-        Stage 3: Routing Service Processing
-        Verifies transit token and issues routing token with final destination
-        Target execution time: <50ms
+        Stage 3: Routing Gateway Processing
+        Final decision making and commercial tracking parameter injection
+        Target execution time: <100ms
         """
         start_time = time.time()
         
-        # 1. Verify Transit Token
-        is_valid, payload, reason = self._verify_advanced_jwt(transit_token, self.SECRET_KEY_2, 'routing-service')
-        
-        if not is_valid:
-            self.performance_metrics['security_violations'][reason] = self.performance_metrics['security_violations'].get(reason, 0) + 1
-            self.performance_metrics['blocked_attempts'] += 1
+        try:
+            # Verify transit token
+            is_valid, payload, error_reason = self._verify_advanced_jwt(
+                transit_token,
+                self.SECRET_KEY_2,
+                'routing-gateway'
+            )
+            
+            if not is_valid:
+                self.performance_metrics['security_violations'][error_reason] += 1
+                self.performance_metrics['blocked_attempts'] += 1
+                return {
+                    'success': False,
+                    'error': f"Transit token validation failed: {error_reason}",
+                    'processing_time_ms': (time.time() - start_time) * 1000,
+                    'stage': 'routing_failed',
+                    'security_violation': error_reason,
+                    'click_id': payload.get('sub') if payload else None
+                }
+            
+            # Get link configuration from database
+            link_config = self._get_link_configuration(payload['link_id'])
+            
+            if not link_config:
+                return {
+                    'success': False,
+                    'error': "Link configuration not found",
+                    'processing_time_ms': (time.time() - start_time) * 1000,
+                    'stage': 'routing_failed',
+                    'click_id': payload['sub']
+                }
+            
+            # Get original parameters from JWT payload
+            original_params = payload.get('original_params', {})
+            
+            # Merge original parameters with tracking parameters
+            all_params = {**(tracking_params or {}), **original_params}
+            
+            # Build final URL with ALL parameters (original + tracking)
+            final_url = self._build_final_url(
+                link_config['destination_url'],
+                payload['sub'],  # click_id
+                all_params  # Include original parameters
+            )
+            
+            # Update success metrics
+            self.performance_metrics['successful_redirects'] += 1
+            
             return {
-                'status': 'blocked',
-                'message': f"Validation failed at Transit stage: {reason}",
-                'processing_time': time.time() - start_time
+                'success': True,
+                'final_url': final_url,
+                'click_id': payload['sub'],
+                'processing_time_ms': (time.time() - start_time) * 1000,
+                'stage': 'routing_complete'
             }
             
-        # 2. Determine Final Destination (Placeholder logic)
-        # In a real application, this would involve database lookup for the link_id
-        # and applying geo-targeting, device-targeting, etc.
-        link_id = payload['link_id']
-        final_destination = f"https://www.final-destination.com/link/{link_id}"
-        
-        # 3. Issue Routing Token
-        routing_payload = {
-            'iss': 'routing-service',
-            'sub': payload['sub'],  # Click ID
-            'aud': 'final-redirect',
-            'link_id': link_id,
-            'stage': 'routing',
-            'destination': final_destination,
-            'original_params': payload['original_params']
-        }
-        
-        routing_token = self._create_advanced_jwt(routing_payload, self.SECRET_KEY_3, self.ROUTING_TOKEN_EXPIRY)
-        
-        # Construct the redirect URL to the final redirect service
-        redirect_url = f"/final-redirect?token={routing_token}"
-        
-        return {
-            'status': 'redirect',
-            'url': redirect_url,
-            'token': routing_token,
-            'processing_time': time.time() - start_time
-        }
-
-    def stage4_final_redirect(self, routing_token: str, user_ip: str, user_agent: str) -> Dict:
-        """
-        Stage 4: Final Redirect Processing
-        Verifies routing token and performs final redirect to destination
-        Target execution time: <50ms
-        """
-        start_time = time.time()
-        
-        # 1. Verify Routing Token
-        is_valid, payload, reason = self._verify_advanced_jwt(routing_token, self.SECRET_KEY_3, 'final-redirect')
-        
-        if not is_valid:
-            self.performance_metrics['security_violations'][reason] = self.performance_metrics['security_violations'].get(reason, 0) + 1
+        except Exception as e:
             self.performance_metrics['blocked_attempts'] += 1
             return {
-                'status': 'blocked',
-                'message': f"Validation failed at Routing stage: {reason}",
-                'processing_time': time.time() - start_time
+                'success': False,
+                'error': f"Routing stage failed: {str(e)}",
+                'processing_time_ms': (time.time() - start_time) * 1000,
+                'stage': 'routing_failed'
             }
-            
-        # 2. Final Destination
-        final_destination = payload['destination']
-        original_params = payload['original_params']
+
+    def _get_link_configuration(self, link_id: str) -> Optional[Dict]:
+        """Get link configuration from Neon database"""
+        try:
+            with self._get_db_connection() as conn:
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT target_url, short_code 
+                            FROM links 
+                            WHERE id = %s AND status = 'active'
+                        """, (link_id,))
+                        result = cursor.fetchone()
+                        if result:
+                            return {
+                                'destination_url': result[0],
+                                'short_code': result[1],
+                                'tracking_enabled': True
+                            }
+        except Exception as e:
+            print(f"Error fetching link configuration: {e}")
+        return None
+
+    def _build_final_url(self, base_url: str, click_id: str, additional_params: Dict) -> str:
+        """Build final URL with all tracking parameters - PRESERVING ORIGINAL PARAMETERS"""
+        # Parse existing URL
+        parsed = urlparse(base_url)
+        existing_params = parse_qs(parsed.query)
         
-        # Append original query parameters to the final destination
-        if original_params:
-            parsed_url = urlparse(final_destination)
-            query_params = parse_qs(parsed_url.query)
-            
-            # Merge original params, prioritizing existing ones in the destination
-            for key, value in original_params.items():
-                if key not in query_params:
-                    query_params[key] = value
-            
-            # Rebuild the query string
-            final_destination = parsed_url._replace(query=urlencode(query_params, doseq=True)).geturl()
-            
-        self.performance_metrics['successful_redirects'] += 1
+        # Add quantum tracking parameters (only if not overridden by original params)
+        quantum_params = {
+            'quantum_click_id': click_id,
+            'quantum_timestamp': str(int(time.time())),
+            'quantum_verified': 'true'
+        }
+        
+        # Start with quantum parameters as base
+        all_params = quantum_params.copy()
+        
+        # Add existing URL parameters (from destination URL)
+        for key, values in existing_params.items():
+            if values:
+                all_params[key] = values[0]
+        
+        # CRITICAL: Original parameters take HIGHEST PRIORITY
+        # This ensures user_id, email, campaign_id, pixel_id are preserved
+        if additional_params:
+            all_params.update(additional_params)
+        
+        # Build final URL
+        query_string = urlencode(all_params)
+        final_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+        if query_string:
+            final_url += f"?{query_string}"
+        
+        return final_url
+
+    def get_performance_metrics(self) -> Dict:
+        """Get comprehensive performance and security metrics"""
+        total_attempts = self.performance_metrics['total_redirects']
+        if total_attempts > 0:
+            success_rate = (self.performance_metrics['successful_redirects'] / total_attempts) * 100
+            block_rate = (self.performance_metrics['blocked_attempts'] / total_attempts) * 100
+        else:
+            success_rate = 0
+            block_rate = 0
         
         return {
-            'status': 'final_redirect',
-            'url': final_destination,
-            'processing_time': time.time() - start_time
+            **self.performance_metrics,
+            'success_rate_percentage': round(success_rate, 2),
+            'block_rate_percentage': round(block_rate, 2),
+            'security_effectiveness': round(block_rate, 2),
+            'system_health': 'excellent' if success_rate > 95 else 'good' if success_rate > 85 else 'needs_attention'
         }
 
-    def get_metrics(self) -> Dict:
-        """Return performance and security metrics"""
-        return self.performance_metrics
+    def analyze_security_threats(self) -> Dict:
+        """Analyze security threat patterns"""
+        violations = self.performance_metrics['security_violations']
+        total_violations = sum(violations.values())
+        
+        if total_violations == 0:
+            return {
+                'threat_level': 'minimal',
+                'primary_threats': [],
+                'recommendations': ['System is secure - continue monitoring'],
+                'total_violations': 0
+            }
+        
+        # Calculate threat percentages
+        threat_analysis = {}
+        for threat_type, count in violations.items():
+            if count > 0:
+                percentage = (count / total_violations) * 100
+                threat_analysis[threat_type] = {
+                    'count': count,
+                    'percentage': round(percentage, 2)
+                }
+        
+        # Determine primary threats
+        primary_threats = sorted(
+            threat_analysis.items(),
+            key=lambda x: x[1]['count'],
+            reverse=True
+        )[:3]
+        
+        # Generate recommendations
+        recommendations = []
+        for threat_type, data in primary_threats:
+            if threat_type == 'replay_attack':
+                recommendations.append("Implement stricter nonce validation and reduce token expiry times")
+            elif threat_type == 'ip_mismatch':
+                recommendations.append("Investigate potential token interception or proxy usage")
+            elif threat_type == 'ua_mismatch':
+                recommendations.append("Enhanced bot detection - possible automated traffic")
+            elif threat_type == 'expired_token':
+                recommendations.append("Users may be using cached/bookmarked links - consider education")
+        
+        # Determine overall threat level
+        if total_violations > 100:
+            threat_level = 'high'
+        elif total_violations > 50:
+            threat_level = 'medium'
+        else:
+            threat_level = 'low'
+        
+        return {
+            'threat_level': threat_level,
+            'total_violations': total_violations,
+            'threat_breakdown': threat_analysis,
+            'primary_threats': [{'type': t[0], **t[1]} for t in primary_threats],
+            'recommendations': recommendations
+        }
 
-# Initialize the system
+# Global quantum redirect system instance
 quantum_redirect = QuantumRedirectSystem()

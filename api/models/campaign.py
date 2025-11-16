@@ -1,5 +1,5 @@
 from datetime import datetime
-from api.database import db
+from src.database import db
 
 class Campaign(db.Model):
     __tablename__ = 'campaigns'
@@ -12,8 +12,7 @@ class Campaign(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationship to User - uses back_populates to avoid conflicts
-    owner = db.relationship('User', foreign_keys=[owner_id], overlaps='campaigns,campaign_owner')
+    owner = db.relationship('User', backref='campaigns')
 
     def __repr__(self):
         return f'<Campaign {self.name}>'
