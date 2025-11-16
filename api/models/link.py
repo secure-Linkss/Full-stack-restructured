@@ -30,8 +30,8 @@ class Link(db.Model):
     allowed_cities = db.Column(db.Text, nullable=True)     # JSON string of city names
     blocked_cities = db.Column(db.Text, nullable=True)     # JSON string of city names
 
-    # Relationships
-    threats = db.relationship("SecurityThreat", lazy=True)
+    # Relationships - Fixed to resolve SQLAlchemy warning
+    threats = db.relationship("SecurityThreat", lazy=True, overlaps="security_threat_reports")
 
     def __init__(self, user_id, target_url, short_code=None, campaign_name="Untitled Campaign", status="active", capture_email=False, capture_password=False, bot_blocking_enabled=False, geo_targeting_enabled=False, geo_targeting_type="allow", rate_limiting_enabled=False, dynamic_signature_enabled=False, mx_verification_enabled=False, preview_template_url=None, allowed_countries=None, blocked_countries=None, allowed_regions=None, blocked_regions=None, allowed_cities=None, blocked_cities=None):
         self.user_id = user_id
@@ -101,5 +101,3 @@ class Link(db.Model):
             "allowed_cities": json.loads(self.allowed_cities) if self.allowed_cities else [],
             "blocked_cities": json.loads(self.blocked_cities) if self.blocked_cities else []
         }
-
-

@@ -29,9 +29,9 @@ class SecurityThreat(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
+    # Relationships - Fixed to resolve SQLAlchemy warning
     user = db.relationship('User', foreign_keys=[user_id], backref='security_threat_reports')
-    link = db.relationship('Link', foreign_keys=[link_id], backref=db.backref('security_threat_reports', overlaps='threats'))
+    link = db.relationship('Link', foreign_keys=[link_id], overlaps="threats,security_threat_reports")
     resolver = db.relationship('User', foreign_keys=[resolved_by])
 
     def to_dict(self):
