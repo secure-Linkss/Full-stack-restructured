@@ -22,10 +22,13 @@ const Dashboard = () => {
   const fetchDashboardData = async (selectedPeriod) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/analytics/dashboard?period=${selectedPeriod}`);
+      const response = await fetch(`/api/analytics/dashboard?period=${selectedPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       const data = await response.json();
       
-      // Extract dashboard analytics data
       if (data) {
         const dashboardStats = {
           totalLinks: data.totalLinks || 0,
@@ -97,7 +100,6 @@ const Dashboard = () => {
     document.body.removeChild(link);
   };
 
-  // Calculate additional stats from live data
   const additionalStats = {
     realVisitors: stats.realVisitors || 0,
     capturedEmails: stats.capturedEmails || 0,
@@ -106,14 +108,12 @@ const Dashboard = () => {
     countries: topCountries.length || 0
   };
 
-  // Device breakdown data - will be populated from API
   const deviceData = [
     { name: 'Desktop', value: 0, percentage: 0, color: '#8b5cf6' },
     { name: 'Mobile', value: 0, percentage: 0, color: '#06b6d4' },
     { name: 'Tablet', value: 0, percentage: 0, color: '#10b981' }
   ];
 
-  // Performance over time data - use live data from API
   const performanceData = chartData.length > 0 ? chartData.map((item) => ({
     date: item.date,
     clicks: item.clicks || 0,
@@ -121,17 +121,12 @@ const Dashboard = () => {
     emails: item.emails || 0
   })) : [];
 
-  // Top countries data - use live data from API
   const countriesData = topCountries.length > 0 ? topCountries : [];
-
-  // Campaign performance data - use live data from API
   const campaignsData = topCampaigns.length > 0 ? topCampaigns : [];
-
-  // Recent captures data - use live data from API
   const capturesData = recentCaptures.length > 0 ? recentCaptures.slice(0, 5) : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="mb-8">
 	        <h1 className="text-3xl font-bold text-white mb-2">Advanced Analytics Dashboard</h1>
@@ -223,7 +218,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Compact Metric Cards Grid - Perfect 8-Grid Layout */}
+      {/* Compact Metric Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
         <Card className="hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
           <CardContent className="p-6">
@@ -232,7 +227,7 @@ const Dashboard = () => {
                 <p className="text-sm font-medium text-slate-400 mb-1">Total Links</p>
                 <Link className="h-4 w-4 text-blue-500" />
               </div>
-              <p className="text-3xl font-bold text-white">{stats.totalLinks || 6}</p>
+              <p className="text-3xl font-bold text-white">{stats.totalLinks || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -244,7 +239,7 @@ const Dashboard = () => {
                 <p className="text-sm font-medium text-slate-400 mb-1">Total Clicks</p>
                 <MousePointer className="h-4 w-4 text-green-500" />
               </div>
-              <p className="text-3xl font-bold text-white">{stats.totalClicks || 4}</p>
+              <p className="text-3xl font-bold text-white">{stats.totalClicks || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -320,27 +315,15 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Card className="hover:shadow-md transition-all cursor-pointer bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
-          <CardContent className="p-6">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-400 mb-1">Total Campaigns</p>
-                <BarChartIcon className="h-4 w-4 text-red-500" />
-              </div>
-              <p className="text-3xl font-bold text-white">{stats.totalLinks || 6}</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Charts Grid - Side by Side */}
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Performance Over Time Chart */}
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-slate-800 border-slate-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Performance Over Time</CardTitle>
-            <p className="text-xs text-muted-foreground">Clicks, visitors, and email captures</p>
+            <CardTitle className="text-lg font-semibold text-white">Performance Over Time</CardTitle>
+            <p className="text-xs text-slate-400">Clicks, visitors, and email captures</p>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <ResponsiveContainer width="100%" height={300}>
@@ -359,24 +342,27 @@ const Dashboard = () => {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
+                <CartesianGrid strokeDasharray="3 3" className="opacity-20" stroke="#334155" />
                 <XAxis 
                   dataKey="date" 
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
+                  stroke="#94a3b8"
                 />
                 <YAxis 
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
+                  stroke="#94a3b8"
                 />
                 <Tooltip 
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
+                    backgroundColor: '#1e293b',
+                    border: '1px solid #334155',
                     borderRadius: '8px',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    color: '#f8fafc'
                   }}
                 />
                 <Area
@@ -411,25 +397,25 @@ const Dashboard = () => {
             <div className="flex justify-center gap-4 mt-3">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                <span className="text-xs text-muted-foreground">Clicks</span>
+                <span className="text-xs text-slate-400">Clicks</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
-                <span className="text-xs text-muted-foreground">Visitors</span>
+                <span className="text-xs text-slate-400">Visitors</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-xs text-muted-foreground">Email Captures</span>
+                <span className="text-xs text-slate-400">Email Captures</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Device Breakdown Chart */}
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-slate-800 border-slate-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Device Breakdown</CardTitle>
-            <p className="text-xs text-muted-foreground">Traffic distribution by device type</p>
+            <CardTitle className="text-lg font-semibold text-white">Device Breakdown</CardTitle>
+            <p className="text-xs text-slate-400">Traffic distribution by device type</p>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <ResponsiveContainer width="100%" height={300}>
@@ -450,10 +436,11 @@ const Dashboard = () => {
                 <Tooltip 
                   formatter={(value, name) => [value.toLocaleString(), name]}
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
+                    backgroundColor: '#1e293b',
+                    border: '1px solid #334155',
                     borderRadius: '8px',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    color: '#f8fafc'
                   }}
                 />
               </PieChart>
@@ -465,7 +452,7 @@ const Dashboard = () => {
                     className="w-3 h-3 rounded-full" 
                     style={{ backgroundColor: item.color }}
                   ></div>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-slate-400">
                     {item.name}
                   </span>
                 </div>
@@ -478,27 +465,27 @@ const Dashboard = () => {
       {/* Bottom Three Large Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Top Countries Card */}
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-slate-800 border-slate-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Top Countries</CardTitle>
-            <p className="text-xs text-muted-foreground">Geographic distribution</p>
+            <CardTitle className="text-lg font-semibold text-white">Top Countries</CardTitle>
+            <p className="text-xs text-slate-400">Geographic distribution</p>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="space-y-3">
               {countriesData.map((country, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{country.flag}</span>
                     <div>
-                      <p className="text-sm font-medium">{country.country}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm font-medium text-white">{country.country}</p>
+                      <p className="text-xs text-slate-400">
                         {country.clicks} clicks • {country.emails} emails
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{country.percentage}%</p>
-                    <div className="w-16 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                    <p className="text-sm font-semibold text-white">{country.percentage}%</p>
+                    <div className="w-16 h-1.5 bg-slate-600 rounded-full mt-1 overflow-hidden">
                       <div 
                         className="h-full bg-blue-500 rounded-full transition-all"
                         style={{ width: `${country.percentage}%` }}
@@ -512,29 +499,29 @@ const Dashboard = () => {
         </Card>
 
         {/* Campaign Performance Card */}
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-slate-800 border-slate-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Campaign Performance</CardTitle>
-            <p className="text-xs text-muted-foreground">Top performing campaigns</p>
+            <CardTitle className="text-lg font-semibold text-white">Campaign Performance</CardTitle>
+            <p className="text-xs text-slate-400">Top performing campaigns</p>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="space-y-3">
               {campaignsData.map((campaign, index) => (
-                <div key={index} className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                <div key={index} className="p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="text-sm font-medium">{campaign.name}</p>
-                      <p className="text-xs text-muted-foreground">ID: {campaign.id}</p>
+                      <p className="text-sm font-medium text-white">{campaign.name}</p>
+                      <p className="text-xs text-slate-400">ID: {campaign.id}</p>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       campaign.status === 'active' 
-                        ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                        : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-gray-500/20 text-gray-400'
                     }`}>
                       {campaign.status}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>{campaign.clicks} clicks</span>
                     <span>{campaign.emails} emails</span>
                     <span className="font-medium">{campaign.conversion} conversion</span>
@@ -546,23 +533,23 @@ const Dashboard = () => {
         </Card>
 
         {/* Recent Captures Card */}
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-slate-800 border-slate-700">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Recent Captures</CardTitle>
-            <p className="text-xs text-muted-foreground">Latest email captures</p>
+            <CardTitle className="text-lg font-semibold text-white">Recent Captures</CardTitle>
+            <p className="text-xs text-slate-400">Latest email captures</p>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             {capturesData.length > 0 ? (
               <div className="space-y-3">
                 {capturesData.map((capture, index) => (
-                  <div key={index} className="p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div key={index} className="p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                        <Mail className="h-4 w-4 text-primary" />
+                      <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <Mail className="h-4 w-4 text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{capture.email}</p>
-                        <p className="text-xs text-muted-foreground">{capture.timestamp}</p>
+                        <p className="text-sm font-medium truncate text-white">{capture.email}</p>
+                        <p className="text-xs text-slate-400">{capture.timestamp}</p>
                       </div>
                     </div>
                   </div>
@@ -570,9 +557,9 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Mail className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                <p className="text-sm text-muted-foreground">No email captures yet</p>
-                <p className="text-xs text-muted-foreground mt-1">Captured emails will appear here</p>
+                <Mail className="h-12 w-12 text-slate-600 mb-3" />
+                <p className="text-sm text-slate-400">No email captures yet</p>
+                <p className="text-xs text-slate-500 mt-1">Captured emails will appear here</p>
               </div>
             )}
           </CardContent>
