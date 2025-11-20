@@ -8,7 +8,7 @@ import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
 import DataTable from './ui/DataTable';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 import { toast } from 'sonner';
 
 
@@ -40,8 +40,8 @@ const Geography = () => {
         metricsData,
         countries
       ] = await Promise.all([
-        fetchMockData('getGeographyMetrics'),
-        fetchMockData('getTopCountriesDetailed', days),
+        api.getGeographyMetrics(),
+        api.getTopCountriesDetailed(, days),
       ]);
 
       setMetrics(metricsData);

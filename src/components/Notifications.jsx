@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import { toast } from 'sonner';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 
 // --- Helper Components ---
 
@@ -112,8 +112,8 @@ const NotificationsAndSupport = () => {
     setLoading(true);
     try {
       const [notificationsData, ticketsData] = await Promise.all([
-        fetchMockData('getNotifications'),
-        fetchMockData('getSupportTickets'),
+        api.getNotifications(),
+        api.getSupportTickets(),
       ]);
       setNotifications(notificationsData);
       setTickets(ticketsData);

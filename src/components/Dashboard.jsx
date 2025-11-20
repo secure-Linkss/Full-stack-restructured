@@ -7,7 +7,7 @@ import FilterBar from './ui/FilterBar';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { RefreshCw, Download, Link, MousePointerClick, Users, Mail, CheckCircle, Globe, TrendingUp, DollarSign, Minus } from 'lucide-react';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -18,11 +18,53 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const mockData = await fetchMockData('getDashboardData');
-      setData(mockData);
+      // Fetch real data from API
+      const dashboardData = await api.dashboard.getMetrics(dateRange);
+      const performanceData = await api.dashboard.getPerformanceOverTime(parseInt(dateRange));
+      const deviceData = await api.dashboard.getDeviceBreakdown();
+      const countriesData = await api.dashboard.getTopCountries();
+      const campaignData = await api.dashboard.getCampaignPerformance();
+      const capturesData = await api.dashboard.getRecentCaptures();
+
+      setData({
+        metrics: dashboardData,
+        performance: performanceData,
+        deviceBreakdown: deviceData,
+        topCountries: countriesData,
+        campaignPerformance: campaignData,
+        recentCaptures: capturesData
+      });
+      
       toast.success('Dashboard data refreshed.');
     } catch (error) {
-      toast.error('Failed to load dashboard data.');
+      console.error('Dashboard fetch error:', error);
+      toast.error('Failed to load dashboard data: ' + error.message);
+      
+      // Set empty data structure to prevent crashes
+      setData({
+        metrics: {
+          totalLinks: 0,
+          totalClicks: 0,
+          realVisitors: 0,
+          capturedEmails: 0,
+          activeLinks: 0,
+          conversionRate: 0,
+          avgClicksPerLink: 0,
+          countries: 0,
+          totalLinksChange: 0,
+          totalClicksChange: 0,
+          realVisitorsChange: 0,
+          capturedEmailsChange: 0,
+          activeLinksChange: 0,
+          conversionRateChange: 0,
+          avgClicksPerLinkChange: 0
+        },
+        performance: { labels: [], clicks: [], visitors: [], emailCaptures: [] },
+        deviceBreakdown: { labels: [], data: [] },
+        topCountries: [],
+        campaignPerformance: [],
+        recentCaptures: []
+      });
     } finally {
       setLoading(false);
     }
@@ -36,9 +78,14 @@ const Dashboard = () => {
     fetchData();
   };
 
-  const handleExport = () => {
-    toast.info('Exporting dashboard data...');
-    // Mock export logic
+  const handleExport = async () => {
+    try {
+      toast.info('Exporting dashboard data...');
+      await api.analytics.exportData('csv');
+      toast.success('Dashboard data exported successfully.');
+    } catch (error) {
+      toast.error('Export failed: ' + error.message);
+    }
   };
 
   if (loading || !data) {
@@ -53,23 +100,23 @@ const Dashboard = () => {
 
   // --- Metric Cards Data ---
   const metricCardsData = [
-    { title: 'Total Links', value: metrics.totalLinks, icon: Link, change: metrics.totalLinksChange, unit: '', description: 'Total links created' },
-    { title: 'Total Clicks', value: metrics.totalClicks.toLocaleString(), icon: MousePointerClick, change: metrics.totalClicksChange, unit: '', description: 'All clicks recorded' },
-    { title: 'Real Visitors', value: metrics.realVisitors.toLocaleString(), icon: Users, change: metrics.realVisitorsChange, unit: '', description: 'Unique human visitors' },
-    { title: 'Captured Emails', value: metrics.capturedEmails.toLocaleString(), icon: Mail, change: metrics.capturedEmailsChange, unit: '', description: 'Emails collected via links' },
-    { title: 'Active Links', value: metrics.activeLinks, icon: CheckCircle, change: metrics.activeLinksChange, unit: '', description: 'Currently active links' },
-    { title: 'Conversion Rate', value: `${metrics.conversionRate}%`, icon: TrendingUp, change: metrics.conversionRateChange, unit: '', description: 'Click to capture conversion' },
-    { title: 'Avg Clicks/Link', value: metrics.avgClicksPerLink, icon: MousePointerClick, change: metrics.avgClicksPerLinkChange, unit: '', description: 'Average clicks per link' },
-    { title: 'Countries', value: metrics.countries, icon: Globe, change: 0, unit: '', description: 'Countries with traffic' },
+    { title: 'Total Links', value: metrics.totalLinks, icon: Link, change: metrics.totalLinksChange || 0, unit: '', description: 'Total links created' },
+    { title: 'Total Clicks', value: metrics.totalClicks?.toLocaleString() || '0', icon: MousePointerClick, change: metrics.totalClicksChange || 0, unit: '', description: 'All clicks recorded' },
+    { title: 'Real Visitors', value: metrics.realVisitors?.toLocaleString() || '0', icon: Users, change: metrics.realVisitorsChange || 0, unit: '', description: 'Unique human visitors' },
+    { title: 'Captured Emails', value: metrics.capturedEmails?.toLocaleString() || '0', icon: Mail, change: metrics.capturedEmailsChange || 0, unit: '', description: 'Emails collected via links' },
+    { title: 'Active Links', value: metrics.activeLinks || 0, icon: CheckCircle, change: metrics.activeLinksChange || 0, unit: '', description: 'Currently active links' },
+    { title: 'Conversion Rate', value: `${metrics.conversionRate || 0}%`, icon: TrendingUp, change: metrics.conversionRateChange || 0, unit: '', description: 'Click to capture conversion' },
+    { title: 'Avg Clicks/Link', value: metrics.avgClicksPerLink || 0, icon: MousePointerClick, change: metrics.avgClicksPerLinkChange || 0, unit: '', description: 'Average clicks per link' },
+    { title: 'Countries', value: metrics.countries || 0, icon: Globe, change: 0, unit: '', description: 'Countries with traffic' },
   ];
 
   // --- Chart Data for Performance Over Time ---
   const performanceChartData = {
-    labels: performance.labels,
+    labels: performance.labels || [],
     datasets: [
       {
         label: 'Clicks',
-        data: performance.clicks,
+        data: performance.clicks || [],
         borderColor: 'hsl(var(--primary))',
         backgroundColor: 'hsl(var(--primary) / 0.2)',
         fill: true,
@@ -77,7 +124,7 @@ const Dashboard = () => {
       },
       {
         label: 'Visitors',
-        data: performance.visitors,
+        data: performance.visitors || [],
         borderColor: 'hsl(var(--secondary))',
         backgroundColor: 'hsl(var(--secondary) / 0.2)',
         fill: true,
@@ -85,7 +132,7 @@ const Dashboard = () => {
       },
       {
         label: 'Email Captures',
-        data: performance.emailCaptures,
+        data: performance.emailCaptures || [],
         borderColor: 'hsl(var(--accent))',
         backgroundColor: 'hsl(var(--accent) / 0.2)',
         fill: true,
@@ -96,10 +143,10 @@ const Dashboard = () => {
 
   // --- Chart Data for Device Breakdown ---
   const deviceChartData = {
-    labels: deviceBreakdown.labels,
+    labels: deviceBreakdown.labels || [],
     datasets: [
       {
-        data: deviceBreakdown.data,
+        data: deviceBreakdown.data || [],
         backgroundColor: [
           'hsl(var(--primary))',
           'hsl(var(--secondary))',
@@ -168,7 +215,7 @@ const Dashboard = () => {
           <CardHeader><CardTitle>Top Countries</CardTitle></CardHeader>
           <CardContent>
             <ul className="space-y-4">
-              {topCountries.map((country, index) => (
+              {(topCountries || []).map((country, index) => (
                 <li key={index} className="flex flex-col">
                   <div className="flex justify-between items-center text-sm font-medium">
                     <span>{country.name}</span>
@@ -192,7 +239,7 @@ const Dashboard = () => {
           <CardHeader><CardTitle>Campaign Performance</CardTitle></CardHeader>
           <CardContent>
             <ul className="space-y-4">
-              {campaignPerformance.map((campaign, index) => (
+              {(campaignPerformance || []).map((campaign, index) => (
                 <li key={index} className="border-b border-border pb-3 last:border-b-0">
                   <div className="flex justify-between items-start">
                     <h4 className="font-semibold">{campaign.name}</h4>
@@ -216,7 +263,7 @@ const Dashboard = () => {
         <div className="lg:col-span-1">
           <AdvancedTable
             title="Recent Captures"
-            data={recentCaptures}
+            data={recentCaptures || []}
             columns={recentCapturesColumns}
             loading={false}
             pageSize={5}

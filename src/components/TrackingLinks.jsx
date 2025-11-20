@@ -6,7 +6,7 @@ import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
 import DataTable from './ui/DataTable';
 import ActionIconGroup from './ui/ActionIconGroup';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
@@ -94,8 +94,8 @@ const TrackingLinks = () => {
     setLoading(true);
     try {
       const [linksData, metricsData] = await Promise.all([
-        fetchMockData('getTrackingLinks'),
-        fetchMockData('getTrackingLinksMetrics'),
+        api.getTrackingLinks(),
+        api.getTrackingLinksMetrics(),
       ]);
       setLinks(linksData);
       setMetrics(metricsData);

@@ -6,7 +6,7 @@ import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
 import DataTable from './ui/DataTable';
 import ActionIconGroup from './ui/ActionIconGroup';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
@@ -25,8 +25,8 @@ const Campaigns = () => {
     setLoading(true);
     try {
       const [campaignsData, metricsData] = await Promise.all([
-        fetchMockData('getCampaigns'),
-        fetchMockData('getCampaignMetrics'),
+        api.getCampaigns(),
+        api.getCampaignMetrics(),
       ]);
       setCampaigns(campaignsData);
       setMetrics(metricsData);

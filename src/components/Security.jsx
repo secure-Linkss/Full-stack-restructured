@@ -5,7 +5,7 @@ import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
 import DataTable from './ui/DataTable';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 
@@ -25,8 +25,8 @@ const Security = () => {
         metricsData,
         logs
       ] = await Promise.all([
-        fetchMockData('getSecurityMetrics'),
-        fetchMockData('getSecurityLogs', days),
+        api.getSecurityMetrics(),
+        api.getSecurityLogs(, days),
       ]);
 
       setMetrics(metricsData);

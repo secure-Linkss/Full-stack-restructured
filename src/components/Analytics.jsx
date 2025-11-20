@@ -5,7 +5,7 @@ import { BarChart3, TrendingUp, Users, Mail, Link, Globe, RefreshCw, Filter } fr
 import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -74,9 +74,9 @@ const Analytics = () => {
         topLinks,
         conversionRate
       ] = await Promise.all([
-        fetchMockData('getAnalyticsMetrics'),
-        fetchMockData('getTopLinks', days),
-        fetchMockData('getConversionRateOverTime', days),
+        api.getAnalyticsMetrics(),
+        api.getTopLinks(, days),
+        api.getConversionRateOverTime(, days),
       ]);
 
       setMetrics(metricsData);

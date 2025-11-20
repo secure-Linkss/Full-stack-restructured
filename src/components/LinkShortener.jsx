@@ -6,7 +6,7 @@ import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
 import DataTable from './ui/DataTable';
 import ActionIconGroup from './ui/ActionIconGroup';
-import { fetchMockData } from '../services/mockApi';
+import api from '../services/api';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
@@ -26,8 +26,8 @@ const LinkShortener = () => {
     setLoading(true);
     try {
       const [linksData, metricsData] = await Promise.all([
-        fetchMockData('getShortenedLinks'),
-        fetchMockData('getShortenerMetrics'),
+        api.getShortenedLinks(),
+        api.getShortenerMetrics(),
       ]);
       setLinks(linksData);
       setMetrics(metricsData);
