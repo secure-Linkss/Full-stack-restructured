@@ -1,250 +1,203 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Label } from './ui/label'
-import { Badge } from './ui/badge'
-import { Link2, Copy, Trash2, ExternalLink, Loader, RefreshCw, Plus, BarChart3 } from 'lucide-react'
-import { toast } from 'sonner'
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Link, Plus, RefreshCw, Filter, Copy, BarChart3, Trash2, Edit } from 'lucide-react';
+import PageHeader from './ui/PageHeader';
+import FilterBar from './ui/FilterBar';
+import MetricCard from './ui/MetricCard';
+import DataTable from './ui/DataTable';
+import ActionIconGroup from './ui/ActionIconGroup';
+import { fetchMockData } from '../services/mockApi';
+import { toast } from 'sonner';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import CreateLinkForm from './forms/CreateLink'; // Reusing the form component
+
+// --- Main LinkShortener Component ---
 
 const LinkShortener = () => {
-  const [loading, setLoading] = useState(true)
-  const [shortLinks, setShortLinks] = useState([])
-  const [creating, setCreating] = useState(false)
-  const [newLink, setNewLink] = useState({
-    url: '',
-    custom_slug: ''
-  })
+  const [links, setLinks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [metrics, setMetrics] = useState({ totalLinks: 0, activeLinks: 0, totalClicks: 0 });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [linksData, metricsData] = await Promise.all([
+        fetchMockData('getShortenedLinks'),
+        fetchMockData('getShortenerMetrics'),
+      ]);
+      setLinks(linksData);
+      setMetrics(metricsData);
+      toast.success('Shortened links refreshed.');
+    } catch (error) {
+      console.error('Error fetching shortened links:', error);
+      toast.error('Failed to load shortened links.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchShortLinks()
-  }, [])
+    fetchData();
+  }, []);
 
-  const fetchShortLinks = async () => {
-    try {
-      setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/shortener/links', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+  const handleRefresh = () => {
+    fetchData();
+  };
 
-      if (response.ok) {
-        const data = await response.json()
-        setShortLinks(Array.isArray(data) ? data : data.links || [])
-      }
-    } catch (error) {
-      console.error('Error fetching short links:', error)
-      toast.error('Failed to load short links')
-    } finally {
-      setLoading(false)
+  const handleCreateNewLink = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleAction = (action, link) => {
+    if (action === 'Copy Link') {
+      navigator.clipboard.writeText(link.shortUrl);
+      toast.success('Link copied to clipboard!');
+    } else {
+      toast.info(`${action} action triggered for link: ${link.shortUrl}`);
     }
-  }
+    // Mock action logic
+  };
 
-  const handleCreateShortLink = async () => {
-    if (!newLink.url) {
-      toast.error('URL is required')
-      return
-    }
+  const filteredLinks = links.filter(link => {
+    const matchesFilter = filter === 'all' || link.status === filter;
+    const matchesSearch = !searchQuery ||
+      link.targetUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      link.shortUrl.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
-    try {
-      setCreating(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/shortener/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newLink)
-      })
+  const metricCards = [
+    { title: 'Total Links', value: metrics.totalLinks.toLocaleString(), icon: Link },
+    { title: 'Active Links', value: metrics.activeLinks.toLocaleString(), icon: Link },
+    { title: 'Total Clicks', value: metrics.totalClicks.toLocaleString(), icon: BarChart3 },
+  ];
 
-      if (!response.ok) throw new Error('Failed to create short link')
-      
-      const data = await response.json()
-      toast.success('Short link created successfully')
-      setNewLink({ url: '', custom_slug: '' })
-      fetchShortLinks()
-    } catch (error) {
-      console.error('Error creating short link:', error)
-      toast.error('Failed to create short link')
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleDeleteLink = async (linkId) => {
-    if (!window.confirm('Are you sure you want to delete this link?')) return
-
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/shortener/links/${linkId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-
-      if (!response.ok) throw new Error('Failed to delete link')
-      
-      toast.success('Link deleted successfully')
-      fetchShortLinks()
-    } catch (error) {
-      console.error('Error deleting link:', error)
-      toast.error('Failed to delete link')
-    }
-  }
-
-  const handleCopyLink = (url) => {
-    navigator.clipboard.writeText(url)
-    toast.success('Link copied to clipboard')
-  }
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6 bg-slate-950 min-h-screen flex items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-white">Loading Short Links...</span>
-      </div>
-    )
-  }
+  const columns = [
+    {
+      header: 'Short Link',
+      accessor: 'shortUrl',
+      sortable: true,
+      cell: (row) => (
+        <div className="font-medium">
+          <a href={row.shortUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            {row.shortUrl}
+          </a>
+          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+            row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+            row.status === 'expired' ? 'bg-red-500/20 text-red-400' :
+            'bg-yellow-500/20 text-yellow-400'
+          }`}>
+            {row.status}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: 'Target URL',
+      accessor: 'targetUrl',
+      cell: (row) => <span className="text-sm text-muted-foreground truncate max-w-xs block">{row.targetUrl}</span>,
+    },
+    {
+      header: 'Clicks',
+      accessor: 'clicks',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.clicks.toLocaleString()}</span>,
+    },
+    {
+      header: 'Created',
+      accessor: 'createdAt',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>,
+    },
+  ];
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Link Shortener</h1>
-        <p className="text-slate-400">Create and manage shortened URLs</p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Link Shortener"
+        description="Create, manage, and track your shortened links"
+        actions={
+          <Button onClick={handleCreateNewLink} className="bg-primary hover:bg-primary/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Link
+          </Button>
+        }
+      />
+
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {metricCards.map((card, index) => (
+          <MetricCard key={index} {...card} />
+        ))}
       </div>
 
-      <Card className="bg-slate-800 border-slate-700">
+      <FilterBar
+        searchPlaceholder="Search links by short URL or target URL..."
+        onSearch={setSearchQuery}
+        onRefresh={handleRefresh}
+        onExport={() => toast.info('Exporting shortened links...')}
+        filterOptions={[
+          { value: 'all', label: 'All' },
+          { value: 'active', label: 'Active' },
+          { value: 'paused', label: 'Paused' },
+          { value: 'expired', label: 'Expired' },
+        ]}
+        onFilterChange={setFilter}
+        dateRangeOptions={[]} // Not typically needed for this view
+        onDateRangeChange={() => {}}
+        extraButtons={[
+          <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        ]}
+      />
+
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">Create Short Link</CardTitle>
+          <CardTitle>Your Shortened Links</CardTitle>
+          <p className="text-sm text-muted-foreground">List of all links created with the shortener</p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-white">Long URL *</Label>
-              <Input
-                placeholder="https://example.com/very/long/url"
-                value={newLink.url}
-                onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
-
-            <div>
-              <Label className="text-white">Custom Slug (Optional)</Label>
-              <Input
-                placeholder="my-custom-slug"
-                value={newLink.custom_slug}
-                onChange={(e) => setNewLink(prev => ({ ...prev, custom_slug: e.target.value }))}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-              <p className="text-xs text-slate-500 mt-1">Leave empty for auto-generated slug</p>
-            </div>
-
-            <Button
-              onClick={handleCreateShortLink}
-              disabled={creating}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {creating ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              Create Short Link
-            </Button>
-          </div>
+          {loading ? (
+            <div className="text-center text-muted-foreground p-10">Loading Shortened Links...</div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={filteredLinks}
+              pageSize={10}
+              actions={(row) => (
+                <div className="flex space-x-1">
+                  <ActionIconGroup
+                    actions={[
+                      { icon: Copy, label: 'Copy Link', onClick: () => handleAction('Copy Link', row) },
+                      { icon: BarChart3, label: 'View Analytics', onClick: () => handleAction('View Analytics', row) },
+                      { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row) },
+                      { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row) },
+                    ]}
+                  />
+                </div>
+              )}
+            />
+          )}
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-white">Your Short Links</h2>
-        <Button onClick={fetchShortLinks} variant="outline" className="bg-slate-800 border-slate-700 text-white">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      <div className="space-y-4">
-        {shortLinks.length > 0 ? (
-          shortLinks.map((link) => (
-            <Card key={link.id} className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Link2 className="h-5 w-5 text-blue-400" />
-                        <h3 className="text-lg font-semibold text-white">{link.slug}</h3>
-                        <Badge className={link.is_active ? 'bg-green-600' : 'bg-slate-600'}>
-                          {link.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-slate-400 truncate">{link.original_url}</p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleCopyLink(link.short_url)}
-                        className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => window.open(link.short_url, '_blank')}
-                        className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleDeleteLink(link.id)}
-                        className="bg-red-900/20 border-red-700 text-red-400 hover:bg-red-900/40"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={link.short_url}
-                      readOnly
-                      className="bg-slate-700 border-slate-600 text-white font-mono text-sm"
-                    />
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => handleCopyLink(link.short_url)}
-                      className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-6 text-sm pt-3 border-t border-slate-700">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-blue-400" />
-                      <span className="text-slate-400">{link.clicks || 0} clicks</span>
-                    </div>
-                    <span className="text-slate-500">Created: {link.created_at}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-12 text-center">
-              <Link2 className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400 text-lg mb-2">No short links yet</p>
-              <p className="text-slate-500 text-sm">Create your first short link above!</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {/* Create New Link Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Create New Short Link</DialogTitle>
+          </DialogHeader>
+          <CreateLinkForm onClose={() => setIsCreateModalOpen(false)} onLinkCreated={fetchData} />
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-}
+  );
+};
 
-export default LinkShortener
+export default LinkShortener;

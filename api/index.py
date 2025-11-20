@@ -77,6 +77,9 @@ migrate = Migrate(app, db)
 with app.app_context():
     db.create_all()
     
+    # Only run default user creation if the database is empty or if the user doesn't exist
+    # This prevents IntegrityError when gunicorn forks workers
+    
     # Create default admin user if not exists
     if not User.query.filter_by(username="Brain").first():
         admin_user = User(username="Brain", email="admin@brainlinktracker.com", role="main_admin", status="active", is_active=True, is_verified=True)

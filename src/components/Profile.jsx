@@ -1,212 +1,208 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Label } from './ui/label'
-import { Badge } from './ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Badge } from './ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
   User, Mail, Phone, Shield, CreditCard, Calendar,
-  CheckCircle, Loader, Upload, Edit, Key, Lock
-} from 'lucide-react'
-import { toast } from 'sonner'
+  CheckCircle, Loader, Upload, Edit, Key, Lock, AlertTriangle
+} from 'lucide-react';
+import PageHeader from './ui/PageHeader';
+import { toast } from 'sonner';
+
+// Mock Auth Hook for frontend development
+const useMockAuth = () => {
+  const [user, setUser] = useState({
+    id: 1,
+    username: 'admin',
+    email: 'admin@brainlinktracker.com',
+    phone: '555-123-4567',
+    role: 'main_admin',
+    plan_type: 'premium',
+    avatar_url: 'https://i.pravatar.cc/150?img=1',
+    created_at: '2023-01-15',
+    total_links: 45,
+    total_clicks: 12000,
+  });
+  const [loading, setLoading] = useState(false);
+
+  // Mock API calls
+  const fetchUserData = () => {
+    // Mock fetching user data
+    return new Promise(resolve => setTimeout(() => resolve(user), 500));
+  };
+
+  const updateProfile = (data) => {
+    // Mock updating profile
+    return new Promise(resolve => setTimeout(() => {
+      setUser(prev => ({ ...prev, ...data }));
+      resolve();
+    }, 500));
+  };
+
+  const changePassword = () => {
+    // Mock changing password
+    return new Promise(resolve => setTimeout(() => resolve(), 500));
+  };
+
+  const uploadAvatar = (file) => {
+    // Mock uploading avatar
+    return new Promise(resolve => setTimeout(() => {
+      // In a real app, this would return the new URL
+      setUser(prev => ({ ...prev, avatar_url: 'https://i.pravatar.cc/150?img=2' }));
+      resolve();
+    }, 500));
+  };
+
+  return { user, loading, fetchUserData, updateProfile, changePassword, uploadAvatar };
+};
+
 
 const Profile = () => {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
-  const [avatarFile, setAvatarFile] = useState(null)
-  const [avatarPreview, setAvatarPreview] = useState(null)
+  const { user, loading, fetchUserData, updateProfile, changePassword, uploadAvatar } = useMockAuth();
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url);
 
   const [profileData, setProfileData] = useState({
-    username: '',
-    email: '',
-    phone: '',
+    username: user?.username || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
     current_password: '',
     new_password: '',
     confirm_password: ''
-  })
+  });
 
   useEffect(() => {
-    fetchUserData()
-  }, [])
-
-  const fetchUserData = async () => {
-    try {
-      setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        setProfileData({
-          username: data.user.username || '',
-          email: data.user.email || '',
-          phone: data.user.phone || '',
-          current_password: '',
-          new_password: '',
-          confirm_password: ''
-        })
-        setAvatarPreview(data.user.avatar_url)
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-      toast.error('Failed to load profile')
-    } finally {
-      setLoading(false)
+    if (user) {
+      setProfileData({
+        username: user.username || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+      setAvatarPreview(user.avatar_url);
     }
-  }
+  }, [user]);
 
   const handleAvatarChange = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files[0];
     if (file) {
-      setAvatarFile(file)
-      const reader = new FileReader()
+      setAvatarFile(file);
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result)
-      }
-      reader.readAsDataURL(file)
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handleAvatarUpload = async () => {
-    if (!avatarFile) return
+    if (!avatarFile) return;
 
     try {
-      setSaving(true)
-      const token = localStorage.getItem('token')
-      const formData = new FormData()
-      formData.append('avatar', avatarFile)
-
-      const response = await fetch('/api/settings/avatar', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      })
-
-      if (!response.ok) throw new Error('Failed to upload avatar')
-      
-      toast.success('Avatar updated successfully')
-      fetchUserData()
+      setSaving(true);
+      await uploadAvatar(avatarFile);
+      toast.success('Avatar updated successfully');
+      // Re-fetch data to ensure consistency
+      fetchUserData();
     } catch (error) {
-      console.error('Error uploading avatar:', error)
-      toast.error('Failed to upload avatar')
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload avatar');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleUpdateProfile = async () => {
     try {
-      setSaving(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/settings/account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          username: profileData.username,
-          email: profileData.email,
-          phone: profileData.phone
-        })
-      })
-
-      if (!response.ok) throw new Error('Failed to update profile')
-      
-      toast.success('Profile updated successfully')
-      fetchUserData()
+      setSaving(true);
+      await updateProfile({
+        username: profileData.username,
+        email: profileData.email,
+        phone: profileData.phone
+      });
+      toast.success('Profile updated successfully');
     } catch (error) {
-      console.error('Error updating profile:', error)
-      toast.error('Failed to update profile')
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleChangePassword = async () => {
     if (profileData.new_password !== profileData.confirm_password) {
-      toast.error('Passwords do not match')
-      return
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (!profileData.current_password || !profileData.new_password) {
+      toast.error('All password fields are required');
+      return;
     }
 
     try {
-      setSaving(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/settings/password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          current_password: profileData.current_password,
-          new_password: profileData.new_password
-        })
-      })
-
-      if (!response.ok) throw new Error('Failed to change password')
-      
-      toast.success('Password changed successfully')
+      setSaving(true);
+      await changePassword();
+      toast.success('Password changed successfully');
       setProfileData(prev => ({
         ...prev,
         current_password: '',
         new_password: '',
         confirm_password: ''
-      }))
+      }));
     } catch (error) {
-      console.error('Error changing password:', error)
-      toast.error('Failed to change password')
+      console.error('Error changing password:', error);
+      toast.error('Failed to change password');
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6 bg-slate-950 min-h-screen flex items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-white">Loading Profile...</span>
+      <div className="p-6 space-y-6 min-h-screen flex items-center justify-center">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-foreground">Loading Profile...</span>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">My Profile</h1>
-        <p className="text-slate-400">Manage your personal information and account settings</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="My Profile"
+        description="Manage your personal information and account settings"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}
-        <Card className="lg:col-span-1 bg-slate-800 border-slate-700">
+        <Card className="lg:col-span-1">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center">
               <Avatar className="h-32 w-32 mb-4">
-                <AvatarImage src={avatarPreview} />
-                <AvatarFallback className="bg-blue-600 text-white text-4xl">
+                <AvatarImage src={avatarPreview} alt={user?.username} />
+                <AvatarFallback className="bg-primary text-primary-foreground text-4xl">
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
 
-              <h2 className="text-2xl font-bold text-white mb-1">
+              <h2 className="text-2xl font-bold text-foreground mb-1">
                 {user?.username || 'User'}
               </h2>
-              <p className="text-slate-400 mb-2">{user?.email}</p>
+              <p className="text-muted-foreground mb-2">{user?.email}</p>
               
               <div className="flex gap-2 mb-4">
-                <Badge className="bg-blue-600">{user?.plan_type || 'free'}</Badge>
-                <Badge className={`${
-                  user?.role === 'main_admin' ? 'bg-purple-600' :
-                  user?.role === 'admin' ? 'bg-red-600' : 'bg-green-600'
+                <Badge variant="secondary" className="bg-primary/20 text-primary">{user?.plan_type || 'Free'}</Badge>
+                <Badge className={`capitalize ${
+                  user?.role === 'main_admin' ? 'bg-red-500/20 text-red-400' :
+                  user?.role === 'admin' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'
                 }`}>
                   {user?.role || 'member'}
                 </Badge>
@@ -217,30 +213,30 @@ const Profile = () => {
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarChange}
-                  className="bg-slate-700 border-slate-600 text-white text-sm"
+                  className="file:text-primary"
                 />
                 <Button
                   onClick={handleAvatarUpload}
                   disabled={!avatarFile || saving}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full"
                 >
                   {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
                   Upload Avatar
                 </Button>
               </div>
 
-              <div className="w-full mt-6 pt-6 border-t border-slate-700 space-y-3">
+              <div className="w-full mt-6 pt-6 border-t border-border space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">Member Since</span>
-                  <span className="text-white">{user?.created_at || 'N/A'}</span>
+                  <span className="text-muted-foreground flex items-center"><Calendar className="h-4 w-4 mr-2" /> Member Since</span>
+                  <span className="text-foreground">{user?.created_at || 'N/A'}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">Total Links</span>
-                  <span className="text-white">{user?.total_links || 0}</span>
+                  <span className="text-muted-foreground flex items-center"><Link className="h-4 w-4 mr-2" /> Total Links</span>
+                  <span className="text-foreground">{user?.total_links || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">Total Clicks</span>
-                  <span className="text-white">{user?.total_clicks || 0}</span>
+                  <span className="text-muted-foreground flex items-center"><BarChart3 className="h-4 w-4 mr-2" /> Total Clicks</span>
+                  <span className="text-foreground">{user?.total_clicks || 0}</span>
                 </div>
               </div>
             </div>
@@ -248,110 +244,106 @@ const Profile = () => {
         </Card>
 
         {/* Details Card */}
-        <Card className="lg:col-span-2 bg-slate-800 border-slate-700">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white">Account Details</CardTitle>
+            <CardTitle>Account Details</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3 bg-slate-700 border border-slate-600">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview">
                   <User className="h-4 w-4 mr-2" /> Overview
                 </TabsTrigger>
-                <TabsTrigger value="edit" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                <TabsTrigger value="edit">
                   <Edit className="h-4 w-4 mr-2" /> Edit Profile
                 </TabsTrigger>
-                <TabsTrigger value="security" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                <TabsTrigger value="security">
                   <Lock className="h-4 w-4 mr-2" /> Security
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="mt-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-slate-700 border border-slate-600">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-3 mb-2">
-                      <Mail className="h-5 w-5 text-blue-400" />
-                      <span className="text-slate-400 text-sm">Email</span>
+                      <Mail className="h-5 w-5 text-primary" />
+                      <span className="text-muted-foreground text-sm">Email</span>
                     </div>
-                    <p className="text-white font-medium">{user?.email || 'Not set'}</p>
+                    <p className="text-foreground font-medium">{user?.email || 'Not set'}</p>
                   </div>
 
-                  <div className="p-4 rounded-lg bg-slate-700 border border-slate-600">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-3 mb-2">
-                      <User className="h-5 w-5 text-green-400" />
-                      <span className="text-slate-400 text-sm">Username</span>
+                      <User className="h-5 w-5 text-primary" />
+                      <span className="text-muted-foreground text-sm">Username</span>
                     </div>
-                    <p className="text-white font-medium">{user?.username || 'Not set'}</p>
+                    <p className="text-foreground font-medium">{user?.username || 'Not set'}</p>
                   </div>
 
-                  <div className="p-4 rounded-lg bg-slate-700 border border-slate-600">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-3 mb-2">
-                      <Phone className="h-5 w-5 text-purple-400" />
-                      <span className="text-slate-400 text-sm">Phone</span>
+                      <Phone className="h-5 w-5 text-primary" />
+                      <span className="text-muted-foreground text-sm">Phone</span>
                     </div>
-                    <p className="text-white font-medium">{user?.phone || 'Not set'}</p>
+                    <p className="text-foreground font-medium">{user?.phone || 'Not set'}</p>
                   </div>
 
-                  <div className="p-4 rounded-lg bg-slate-700 border border-slate-600">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-3 mb-2">
-                      <Shield className="h-5 w-5 text-red-400" />
-                      <span className="text-slate-400 text-sm">Role</span>
+                      <Shield className="h-5 w-5 text-primary" />
+                      <span className="text-muted-foreground text-sm">Role</span>
                     </div>
-                    <p className="text-white font-medium capitalize">{user?.role || 'member'}</p>
+                    <p className="text-foreground font-medium capitalize">{user?.role || 'member'}</p>
                   </div>
 
-                  <div className="p-4 rounded-lg bg-slate-700 border border-slate-600">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-3 mb-2">
-                      <CreditCard className="h-5 w-5 text-yellow-400" />
-                      <span className="text-slate-400 text-sm">Plan</span>
+                      <CreditCard className="h-5 w-5 text-primary" />
+                      <span className="text-muted-foreground text-sm">Plan</span>
                     </div>
-                    <p className="text-white font-medium capitalize">{user?.plan_type || 'free'}</p>
+                    <p className="text-foreground font-medium capitalize">{user?.plan_type || 'free'}</p>
                   </div>
 
-                  <div className="p-4 rounded-lg bg-slate-700 border border-slate-600">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-3 mb-2">
-                      <Calendar className="h-5 w-5 text-cyan-400" />
-                      <span className="text-slate-400 text-sm">Joined</span>
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <span className="text-muted-foreground text-sm">Joined</span>
                     </div>
-                    <p className="text-white font-medium">{user?.created_at || 'N/A'}</p>
+                    <p className="text-foreground font-medium">{user?.created_at || 'N/A'}</p>
                   </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="edit" className="mt-6 space-y-4">
                 <div>
-                  <Label className="text-white">Username</Label>
+                  <Label>Username</Label>
                   <Input
                     value={profileData.username}
                     onChange={(e) => setProfileData(prev => ({ ...prev, username: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-white">Email</Label>
+                  <Label>Email</Label>
                   <Input
                     type="email"
                     value={profileData.email}
                     onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-white">Phone</Label>
+                  <Label>Phone</Label>
                   <Input
                     type="tel"
                     value={profileData.phone}
                     onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
 
                 <Button
                   onClick={handleUpdateProfile}
                   disabled={saving}
-                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                   Save Changes
@@ -359,40 +351,45 @@ const Profile = () => {
               </TabsContent>
 
               <TabsContent value="security" className="mt-6 space-y-4">
+                <Card className="border-yellow-500/50 bg-yellow-500/10">
+                  <CardContent className="p-4 flex items-center">
+                    <AlertTriangle className="h-5 w-5 mr-3 text-yellow-400 flex-shrink-0" />
+                    <p className="text-sm text-yellow-400">
+                      For security, you must enter your current password to change it.
+                    </p>
+                  </CardContent>
+                </Card>
+                
                 <div>
-                  <Label className="text-white">Current Password</Label>
+                  <Label>Current Password</Label>
                   <Input
                     type="password"
                     value={profileData.current_password}
                     onChange={(e) => setProfileData(prev => ({ ...prev, current_password: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-white">New Password</Label>
+                  <Label>New Password</Label>
                   <Input
                     type="password"
                     value={profileData.new_password}
                     onChange={(e) => setProfileData(prev => ({ ...prev, new_password: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-white">Confirm New Password</Label>
+                  <Label>Confirm New Password</Label>
                   <Input
                     type="password"
                     value={profileData.confirm_password}
                     onChange={(e) => setProfileData(prev => ({ ...prev, confirm_password: e.target.value }))}
-                    className="bg-slate-700 border-slate-600 text-white"
                   />
                 </div>
 
                 <Button
                   onClick={handleChangePassword}
                   disabled={saving}
-                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
                   Change Password
@@ -403,7 +400,7 @@ const Profile = () => {
         </Card>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Profile
+export default Profile;

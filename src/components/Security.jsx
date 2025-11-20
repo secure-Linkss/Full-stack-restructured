@@ -1,162 +1,180 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { Button } from './ui/button'
-import { Badge } from './ui/badge'
-import { Shield, AlertTriangle, CheckCircle, XCircle, Loader, RefreshCw, Eye } from 'lucide-react'
-import { toast } from 'sonner'
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Shield, ShieldAlert, CheckCircle, XCircle, RefreshCw, Filter, Settings, AlertTriangle } from 'lucide-react';
+import PageHeader from './ui/PageHeader';
+import FilterBar from './ui/FilterBar';
+import MetricCard from './ui/MetricCard';
+import DataTable from './ui/DataTable';
+import { fetchMockData } from '../services/mockApi';
+import { toast } from 'sonner';
+import { Button } from './ui/button';
+
+// --- Main Security Component ---
 
 const Security = () => {
-  const [loading, setLoading] = useState(true)
-  const [securityData, setSecurityData] = useState({
-    threats_blocked: 0,
-    suspicious_activities: 0,
-    security_score: 0,
-    recent_threats: [],
-    security_events: []
-  })
+  const [metrics, setMetrics] = useState({});
+  const [securityLogs, setSecurityLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState('7d');
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
+      const [
+        metricsData,
+        logs
+      ] = await Promise.all([
+        fetchMockData('getSecurityMetrics'),
+        fetchMockData('getSecurityLogs', days),
+      ]);
+
+      setMetrics(metricsData);
+      setSecurityLogs(logs);
+      toast.success('Security data refreshed successfully.');
+    } catch (error) {
+      console.error('Error fetching security data:', error);
+      toast.error('Failed to load security data.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchSecurityData()
-  }, [])
+    fetchData();
+  }, [dateRange]);
 
-  const fetchSecurityData = async () => {
-    try {
-      setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/security/overview', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+  const handleRefresh = () => {
+    fetchData();
+  };
 
-      if (response.ok) {
-        const data = await response.json()
-        setSecurityData(data)
-      }
-    } catch (error) {
-      console.error('Error fetching security data:', error)
-      toast.error('Failed to load security data')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
+  };
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6 bg-slate-950 min-h-screen flex items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-white">Loading Security Data...</span>
-      </div>
-    )
-  }
+  const handleExport = () => {
+    toast.info('Exporting security logs...');
+    // Mock export logic
+  };
+
+  const metricCards = [
+    { title: 'Total Blocks', value: metrics.totalBlocks?.toLocaleString(), icon: ShieldAlert, change: 1.5 },
+    { title: 'Bot Traffic %', value: `${metrics.botTrafficPercentage}%`, icon: Shield, change: -0.5 },
+    { title: 'Rate Limit Hits', value: metrics.rateLimitHits?.toLocaleString(), icon: AlertTriangle, change: 3.1 },
+  ];
+
+  const columns = [
+    {
+      header: 'Timestamp',
+      accessor: 'timestamp',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{new Date(row.timestamp).toLocaleString()}</span>,
+    },
+    {
+      header: 'Event Type',
+      accessor: 'eventType',
+      sortable: true,
+      cell: (row) => (
+        <span className={`font-medium ${
+          row.eventType === 'Bot Block' ? 'text-red-500' :
+          row.eventType === 'Rate Limit' ? 'text-yellow-500' :
+          'text-green-500'
+        }`}>
+          {row.eventType}
+        </span>
+      ),
+    },
+    {
+      header: 'IP Address',
+      accessor: 'ipAddress',
+      cell: (row) => <code className="text-sm">{row.ipAddress}</code>,
+    },
+    {
+      header: 'Link/Campaign',
+      accessor: 'linkName',
+      cell: (row) => <span className="text-sm">{row.linkName}</span>,
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      sortable: true,
+      cell: (row) => (
+        <div className="flex items-center">
+          {row.status === 'Blocked' ? (
+            <XCircle className="h-4 w-4 mr-1 text-red-500" />
+          ) : (
+            <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+          )}
+          <span className="text-sm">{row.status}</span>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Security Overview</h1>
-          <p className="text-slate-400">Monitor threats and security events</p>
-        </div>
-        <Button onClick={fetchSecurityData} variant="outline" className="bg-slate-800 border-slate-700 text-white">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Security Center"
+        description="Monitor and manage link security, bot blocking, and rate limiting"
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-400 uppercase">Security Score</p>
-                <p className="text-3xl font-bold text-white mt-1">{securityData.security_score}/100</p>
-              </div>
-              <Shield className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
+      <FilterBar
+        searchPlaceholder="Search IP, link, or event type..."
+        onSearch={() => {}}
+        onRefresh={handleRefresh}
+        onExport={handleExport}
+        dateRangeOptions={['7d', '30d', '90d']}
+        onDateRangeChange={handleDateRangeChange}
+        selectedDateRange={dateRange}
+        extraButtons={[
+          <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        ]}
+      />
 
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-400 uppercase">Threats Blocked</p>
-                <p className="text-3xl font-bold text-white mt-1">{securityData.threats_blocked}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-500" />
-            </div>
-          </CardContent>
-        </Card>
+      {loading ? (
+        <div className="text-center text-muted-foreground p-10">Loading Security Data...</div>
+      ) : (
+        <>
+          {/* Metric Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {metricCards.map((card, index) => (
+              <MetricCard key={index} {...card} />
+            ))}
+          </div>
 
-        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-400 uppercase">Suspicious Activities</p>
-                <p className="text-3xl font-bold text-white mt-1">{securityData.suspicious_activities}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Security Logs Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Security Event Logs</CardTitle>
+              <p className="text-sm text-muted-foreground">Detailed log of all security-related events</p>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={columns}
+                data={securityLogs}
+                pageSize={10}
+              />
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Recent Threats</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {securityData.recent_threats.map((threat, index) => (
-                <div key={index} className="p-4 rounded-lg bg-slate-700 border border-slate-600">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-red-400" />
-                      <div>
-                        <p className="text-white font-medium">{threat.type}</p>
-                        <p className="text-sm text-slate-400">{threat.description}</p>
-                      </div>
-                    </div>
-                    <Badge className={
-                      threat.severity === 'high' ? 'bg-red-600' :
-                      threat.severity === 'medium' ? 'bg-yellow-600' : 'bg-blue-600'
-                    }>
-                      {threat.severity}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
-                    <span>{threat.ip_address}</span>
-                    <span>{threat.timestamp}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white">Security Events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {securityData.security_events.map((event, index) => (
-                <div key={index} className="p-4 rounded-lg bg-slate-700 border border-slate-600">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-400 mt-1" />
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{event.action}</p>
-                      <p className="text-sm text-slate-400">{event.details}</p>
-                      <p className="text-xs text-slate-500 mt-1">{event.timestamp}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Configuration Card (Placeholder) */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Global Security Configuration</CardTitle>
+              <p className="text-sm text-muted-foreground">Manage default settings for all new links</p>
+            </CardHeader>
+            <CardContent className="h-40 flex items-center justify-center text-muted-foreground">
+              <Settings className="h-8 w-8 mr-2" />
+              [Placeholder for Security Settings Form]
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
-  )
-}
+  );
+};
 
-export default Security
+export default Security;

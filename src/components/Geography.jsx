@@ -1,279 +1,200 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { Button } from './ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { Badge } from './ui/badge'
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet'
-import { Globe, MapPin, TrendingUp, Users, Loader, RefreshCw, Eye } from 'lucide-react'
-import { toast } from 'sonner'
-import 'leaflet/dist/leaflet.css'
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Globe, MapPin, RefreshCw, Filter } from 'lucide-react';
+import InteractiveMap from './ui/InteractiveMap';
 
-// Component to update map view when data changes
-const MapUpdater = ({ center, zoom }) => {
-  const map = useMap()
-  useEffect(() => {
-    if (center) {
-      map.setView(center, zoom)
-    }
-  }, [center, zoom, map])
-  return null
-}
+import PageHeader from './ui/PageHeader';
+import FilterBar from './ui/FilterBar';
+import MetricCard from './ui/MetricCard';
+import DataTable from './ui/DataTable';
+import { fetchMockData } from '../services/mockApi';
+import { toast } from 'sonner';
+
+
+
+// --- Map Component ---
+const WorldMap = () => {
+  return (
+    <Card className="col-span-1 lg:col-span-2">
+      <CardContent className="h-[600px] p-0">
+        <InteractiveMap />
+      </CardContent>
+    </Card>
+  );
+};
+
+// --- Main Geography Component ---
 
 const Geography = () => {
-  const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState('7d')
-  const [mapCenter, setMapCenter] = useState([20, 0])
-  const [mapZoom, setMapZoom] = useState(2)
-  const [geoData, setGeoData] = useState({
-    countries: [],
-    cities: [],
-    regions: [],
-    mapPoints: []
-  })
+  const [metrics, setMetrics] = useState({});
+  const [countryData, setCountryData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState('30d');
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
+      const [
+        metricsData,
+        countries
+      ] = await Promise.all([
+        fetchMockData('getGeographyMetrics'),
+        fetchMockData('getTopCountriesDetailed', days),
+      ]);
+
+      setMetrics(metricsData);
+      setCountryData(countries);
+      toast.success('Geography data refreshed successfully.');
+    } catch (error) {
+      console.error('Error fetching geography data:', error);
+      toast.error('Failed to load geography data.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchGeoData()
-  }, [period])
+    fetchData();
+  }, [dateRange]);
 
-  const fetchGeoData = async () => {
-    try {
-      setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/analytics/geography?period=${period}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+  const handleRefresh = () => {
+    fetchData();
+  };
 
-      if (response.ok) {
-        const data = await response.json()
-        setGeoData({
-          countries: data.countries || [],
-          cities: data.cities || [],
-          regions: data.regions || [],
-          mapPoints: data.mapPoints || []
-        })
-      }
-    } catch (error) {
-      console.error('Error fetching geography data:', error)
-      toast.error('Failed to load geography data')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
+  };
 
-  const handleCountryClick = (country) => {
-    if (country.coordinates) {
-      setMapCenter(country.coordinates)
-      setMapZoom(5)
-    }
-  }
+  const handleExport = () => {
+    toast.info('Exporting geography data...');
+    // Mock export logic
+  };
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6 bg-slate-950 min-h-screen flex items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-white">Loading Geography Data...</span>
-      </div>
-    )
-  }
+  const metricCards = [
+    { title: 'Total Countries', value: metrics.totalCountries, icon: Globe, change: 0.0 },
+    { title: 'Top Country Clicks', value: metrics.topCountryClicks?.toLocaleString(), icon: MapPin, change: 1.2 },
+    { title: 'Top Country Visitors', value: metrics.topCountryVisitors?.toLocaleString(), icon: MapPin, change: 0.8 },
+  ];
+
+  const columns = [
+    {
+      header: 'Country',
+      accessor: 'country',
+      sortable: true,
+      cell: (row) => (
+        <div className="flex items-center">
+          <span className="mr-2 text-lg">{row.flag}</span>
+          <span className="font-medium">{row.country}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Clicks',
+      accessor: 'clicks',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.clicks.toLocaleString()}</span>,
+    },
+    {
+      header: 'Visitors',
+      accessor: 'visitors',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.visitors.toLocaleString()}</span>,
+    },
+    {
+      header: 'Emails Captured',
+      accessor: 'emailsCaptured',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.emailsCaptured.toLocaleString()}</span>,
+    },
+    {
+      header: 'Conversion Rate',
+      accessor: 'conversionRate',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{Math.round(row.conversionRate * 100)}%</span>,
+    },
+  ];
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Geographic Analytics</h1>
-        <p className="text-slate-400">Track visitor locations and regional performance with interactive map</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Geography Analytics"
+        description="Analyze traffic distribution and performance by geographic location"
+      />
 
-      {/* Controls */}
-      <div className="flex items-center gap-4 mb-6">
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700 text-white">
-            <SelectItem value="24h">Last 24 Hours</SelectItem>
-            <SelectItem value="7d">Last 7 Days</SelectItem>
-            <SelectItem value="30d">Last 30 Days</SelectItem>
-            <SelectItem value="90d">Last 90 Days</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button onClick={fetchGeoData} variant="outline" className="bg-slate-800 border-slate-700 text-white">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
+      <FilterBar
+        searchPlaceholder="Search country or city..."
+        onSearch={() => {}}
+        onRefresh={handleRefresh}
+        onExport={handleExport}
+        dateRangeOptions={['7d', '30d', '90d']}
+        onDateRangeChange={handleDateRangeChange}
+        selectedDateRange={dateRange}
+        extraButtons={[
+          <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </Button>
+        ]}
+      />
 
-      {/* Interactive Map */}
-      <Card className="bg-slate-800 border-slate-700 mb-6">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <Globe className="h-5 w-5 mr-2 text-blue-400" />
-            Interactive World Map
-            <Badge className="ml-3 bg-blue-600">{geoData.mapPoints.length} locations</Badge>
-          </CardTitle>
-          <p className="text-sm text-slate-400">Click on markers to see detailed location information</p>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg overflow-hidden border border-slate-700" style={{ height: '500px' }}>
-            <MapContainer
-              center={mapCenter}
-              zoom={mapZoom}
-              style={{ height: '100%', width: '100%' }}
-              className="z-0"
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="/images/Map.jpg"
-              />
-              <MapUpdater center={mapCenter} zoom={mapZoom} />
-              
-              {geoData.mapPoints.map((point, index) => (
-                <CircleMarker
-                  key={index}
-                  center={[point.lat, point.lng]}
-                  radius={Math.min(point.clicks / 10 + 5, 20)}
-                  fillColor="#3b82f6"
-                  color="#60a5fa"
-                  weight={2}
-                  opacity={0.8}
-                  fillOpacity={0.6}
-                >
-                  <Popup>
-                    <div className="p-2">
-                      <h3 className="font-bold text-sm mb-1">{point.city}, {point.country}</h3>
-                      <p className="text-xs text-slate-600">Clicks: {point.clicks}</p>
-                      <p className="text-xs text-slate-600">Visitors: {point.visitors}</p>
-                      <p className="text-xs text-slate-600">Emails: {point.emails}</p>
-                    </div>
-                  </Popup>
-                </CircleMarker>
-              ))}
-            </MapContainer>
+      {loading ? (
+        <div className="text-center text-muted-foreground p-10">Loading Geography Data...</div>
+      ) : (
+        <>
+          {/* Metric Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {metricCards.map((card, index) => (
+              <MetricCard key={index} {...card} />
+            ))}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Data Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Top Countries */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Globe className="h-5 w-5 mr-2 text-blue-400" />
-              Top Countries
-            </CardTitle>
-            <p className="text-sm text-slate-400">Click to zoom on map</p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {geoData.countries.length > 0 ? (
-                geoData.countries.map((country, index) => (
-                  <div
-                    key={index}
-                    onClick={() => handleCountryClick(country)}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{country.flag || '🌍'}</span>
-                      <div>
-                        <p className="text-sm font-medium text-white">{country.name}</p>
-                        <p className="text-xs text-slate-400">
-                          {country.clicks} clicks • {country.emails || 0} emails
-                        </p>
+          {/* Map and Top Countries Table */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <WorldMap data={countryData} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Top 5 Countries</CardTitle>
+                <p className="text-sm text-muted-foreground">Highest performing locations</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  {countryData.slice(0, 5).map((country, index) => (
+                    <li key={index} className="flex justify-between items-center border-b border-border pb-2 last:border-b-0">
+                      <div className="flex items-center">
+                        <span className="mr-2 text-lg">{country.flag}</span>
+                        <span className="font-medium">{country.country}</span>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-white">{country.percentage}%</p>
-                      <div className="w-16 h-1.5 bg-slate-600 rounded-full mt-1 overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-500 rounded-full transition-all"
-                          style={{ width: `${country.percentage}%` }}
-                        ></div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">{country.clicks.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{Math.round(country.conversionRate * 100)}% CR</p>
                       </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <Globe className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-400">No country data available</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Top Cities */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <MapPin className="h-5 w-5 mr-2 text-green-400" />
-              Top Cities
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {geoData.cities.length > 0 ? (
-                geoData.cities.map((city, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-white">{city.name}</p>
-                      <p className="text-xs text-slate-400">{city.country}</p>
-                      {city.postal_code && (
-                        <p className="text-xs text-slate-500">Postal: {city.postal_code}</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-white">{city.clicks}</p>
-                      <p className="text-xs text-slate-400">clicks</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <MapPin className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-400">No city data available</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Regions */}
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-purple-400" />
-              Top Regions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {geoData.regions.length > 0 ? (
-                geoData.regions.map((region, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-white">{region.name}</p>
-                      <p className="text-xs text-slate-400">{region.country}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-white">{region.clicks}</p>
-                      <p className="text-xs text-slate-400">clicks</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-400">No region data available</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Detailed Country Data Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Detailed Geographic Data</CardTitle>
+              <p className="text-sm text-muted-foreground">All tracked countries and their metrics</p>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={columns}
+                data={countryData}
+                pageSize={10}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
-  )
-}
+  );
+};
 
-export default Geography
+export default Geography;

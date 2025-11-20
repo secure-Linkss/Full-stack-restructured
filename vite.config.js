@@ -35,8 +35,15 @@ export default defineConfig({
 
   // Development server configuration
   server: {
-    port: 3000,
+    port: 3001,
     host: true,
+    hmr: {
+      host: '3001-i0g5i0w6vdbp6stgz6oi8-bfde8959.manus.computer',
+      protocol: 'wss',
+    },
+    allowedHosts: [
+      '3001-i0g5i0w6vdbp6stgz6oi8-bfde8959.manus.computer',
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
@@ -57,6 +64,7 @@ export default defineConfig({
       }
     }
   },
+
 
   // Path resolution
   resolve: {
