@@ -1,0 +1,481 @@
+// Real API Service for Brain Link Tracker
+// Replaces mockApi.js with actual backend API calls
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Helper function to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
+
+// Helper function to make authenticated requests
+const fetchWithAuth = async (url, options = {}) => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+};
+
+// API Service Object
+const api = {
+  // ==================== AUTH APIs ====================
+  auth: {
+    login: (credentials) => fetchWithAuth(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    }),
+    register: (userData) => fetchWithAuth(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+    logout: () => fetchWithAuth(`${API_BASE_URL}/auth/logout`, { method: 'POST' }),
+    getCurrentUser: () => fetchWithAuth(`${API_BASE_URL}/user/profile`),
+  },
+
+  // ==================== DASHBOARD APIs ====================
+  dashboard: {
+    getMetrics: (dateRange = '7d') => fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?range=${dateRange}`),
+    getPerformanceOverTime: (days = 30) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?days=${days}`),
+    getDeviceBreakdown: () => fetchWithAuth(`${API_BASE_URL}/analytics/devices`),
+    getTopCountries: () => fetchWithAuth(`${API_BASE_URL}/analytics/countries?limit=10`),
+    getCampaignPerformance: () => fetchWithAuth(`${API_BASE_URL}/campaigns/performance`),
+    getRecentCaptures: () => fetchWithAuth(`${API_BASE_URL}/analytics/recent-captures?limit=10`),
+  },
+
+  // ==================== TRACKING LINKS APIs ====================
+  links: {
+    getAll: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/links?${params}`);
+    },
+    getById: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`),
+    create: (linkData) => fetchWithAuth(`${API_BASE_URL}/links`, {
+      method: 'POST',
+      body: JSON.stringify(linkData),
+    }),
+    update: (id, linkData) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(linkData),
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
+    getAnalytics: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/analytics`),
+    bulkDelete: (ids) => fetchWithAuth(`${API_BASE_URL}/links/bulk-delete`, {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
+  },
+
+  // ==================== ANALYTICS APIs ====================
+  analytics: {
+    getOverview: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/overview?range=${dateRange}`),
+    getClicksOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/clicks-over-time?range=${dateRange}`),
+    getVisitorsOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/visitors-over-time?range=${dateRange}`),
+    getGeography: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography`),
+    getDevices: () => fetchWithAuth(`${API_BASE_URL}/analytics/devices`),
+    getBrowsers: () => fetchWithAuth(`${API_BASE_URL}/analytics/browsers`),
+    getOperatingSystems: () => fetchWithAuth(`${API_BASE_URL}/analytics/operating-systems`),
+    exportData: (format = 'csv') => fetchWithAuth(`${API_BASE_URL}/analytics/export?format=${format}`),
+  },
+
+  // ==================== CAMPAIGNS APIs ====================
+  campaigns: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/campaigns`),
+    getById: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}`),
+    create: (campaignData) => fetchWithAuth(`${API_BASE_URL}/campaigns`, {
+      method: 'POST',
+      body: JSON.stringify(campaignData),
+    }),
+    update: (id, campaignData) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(campaignData),
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}`, { method: 'DELETE' }),
+    getPerformance: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}/performance`),
+  },
+
+  // ==================== LIVE ACTIVITY APIs ====================
+  liveActivity: {
+    getEvents: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/events/live?${params}`);
+    },
+    getEventDetails: (eventId) => fetchWithAuth(`${API_BASE_URL}/events/${eventId}`),
+    blockIP: (ip) => fetchWithAuth(`${API_BASE_URL}/security/block-ip`, {
+      method: 'POST',
+      body: JSON.stringify({ ip }),
+    }),
+  },
+
+  // ==================== GEOGRAPHY APIs ====================
+  geography: {
+    getCountries: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography/countries`),
+    getRegions: (country) => fetchWithAuth(`${API_BASE_URL}/analytics/geography/regions?country=${country}`),
+    getCities: (country, region) => fetchWithAuth(`${API_BASE_URL}/analytics/geography/cities?country=${country}&region=${region}`),
+    getGeoFencing: (linkId) => fetchWithAuth(`${API_BASE_URL}/links/${linkId}/geo-fencing`),
+    updateGeoFencing: (linkId, settings) => fetchWithAuth(`${API_BASE_URL}/links/${linkId}/geo-fencing`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+  },
+
+  // ==================== SECURITY APIs ====================
+  security: {
+    getSettings: () => fetchWithAuth(`${API_BASE_URL}/security/settings`),
+    updateSettings: (settings) => fetchWithAuth(`${API_BASE_URL}/security/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+    enable2FA: () => fetchWithAuth(`${API_BASE_URL}/security/2fa/enable`, { method: 'POST' }),
+    disable2FA: (code) => fetchWithAuth(`${API_BASE_URL}/security/2fa/disable`, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+    getSessions: () => fetchWithAuth(`${API_BASE_URL}/security/sessions`),
+    revokeSession: (sessionId) => fetchWithAuth(`${API_BASE_URL}/security/sessions/${sessionId}`, {
+      method: 'DELETE',
+    }),
+    getLoginHistory: () => fetchWithAuth(`${API_BASE_URL}/security/login-history`),
+    getThreats: () => fetchWithAuth(`${API_BASE_URL}/security/threats`),
+  },
+
+  // ==================== PROFILE APIs ====================
+  profile: {
+    get: () => fetchWithAuth(`${API_BASE_URL}/user/profile`),
+    update: (profileData) => fetchWithAuth(`${API_BASE_URL}/user/profile`, {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    }),
+    uploadAvatar: (formData) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/user/avatar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      }).then(res => res.json());
+    },
+    changePassword: (passwordData) => fetchWithAuth(`${API_BASE_URL}/user/change-password`, {
+      method: 'POST',
+      body: JSON.stringify(passwordData),
+    }),
+  },
+
+  // ==================== NOTIFICATIONS APIs ====================
+  notifications: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/notifications`),
+    markAsRead: (id) => fetchWithAuth(`${API_BASE_URL}/notifications/${id}/read`, {
+      method: 'PUT',
+    }),
+    markAllAsRead: () => fetchWithAuth(`${API_BASE_URL}/notifications/mark-all-read`, {
+      method: 'PUT',
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/notifications/${id}`, {
+      method: 'DELETE',
+    }),
+  },
+
+  // ==================== SETTINGS APIs ====================
+  settings: {
+    get: () => fetchWithAuth(`${API_BASE_URL}/settings`),
+    update: (settings) => fetchWithAuth(`${API_BASE_URL}/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+    getApiKeys: () => fetchWithAuth(`${API_BASE_URL}/settings/api-keys`),
+    createApiKey: (name) => fetchWithAuth(`${API_BASE_URL}/settings/api-keys`, {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+    deleteApiKey: (id) => fetchWithAuth(`${API_BASE_URL}/settings/api-keys/${id}`, {
+      method: 'DELETE',
+    }),
+  },
+
+  // ==================== ADMIN - DASHBOARD APIs ====================
+  admin: {
+    getDashboard: () => fetchWithAuth(`${API_BASE_URL}/admin/dashboard`),
+    getMetrics: () => fetchWithAuth(`${API_BASE_URL}/admin/metrics`),
+    getUsersGraph: (days = 30) => fetchWithAuth(`${API_BASE_URL}/admin/users/graph?days=${days}`),
+    getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),
+  },
+
+  // ==================== ADMIN - USER MANAGEMENT APIs ====================
+  adminUsers: {
+    getAll: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/admin/users?${params}`);
+    },
+    getById: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`),
+    create: (userData) => fetchWithAuth(`${API_BASE_URL}/admin/users`, {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+    update: (id, userData) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'DELETE',
+    }),
+    suspend: (id, reason) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/suspend`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+    activate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/activate`, {
+      method: 'POST',
+    }),
+    impersonate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/impersonate`, {
+      method: 'POST',
+    }),
+    resetPassword: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/reset-password`, {
+      method: 'POST',
+    }),
+    getPending: () => fetchWithAuth(`${API_BASE_URL}/admin/pending-users`),
+    approvePending: (id) => fetchWithAuth(`${API_BASE_URL}/admin/pending-users/${id}/approve`, {
+      method: 'POST',
+    }),
+    rejectPending: (id, reason) => fetchWithAuth(`${API_BASE_URL}/admin/pending-users/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+  },
+
+  // ==================== ADMIN - CAMPAIGNS APIs ====================
+  adminCampaigns: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/campaigns`),
+    suspend: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}/suspend`, {
+      method: 'POST',
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, {
+      method: 'DELETE',
+    }),
+  },
+
+  // ==================== ADMIN - PAYMENTS APIs ====================
+  adminPayments: {
+    getSubscriptions: () => fetchWithAuth(`${API_BASE_URL}/admin/subscriptions`),
+    getInvoices: () => fetchWithAuth(`${API_BASE_URL}/admin/invoices`),
+    getTransactions: () => fetchWithAuth(`${API_BASE_URL}/admin/transactions`),
+    getPlans: () => fetchWithAuth(`${API_BASE_URL}/admin/subscription-plans`),
+    createPlan: (planData) => fetchWithAuth(`${API_BASE_URL}/admin/subscription-plans`, {
+      method: 'POST',
+      body: JSON.stringify(planData),
+    }),
+    updatePlan: (id, planData) => fetchWithAuth(`${API_BASE_URL}/admin/subscription-plans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(planData),
+    }),
+    getCryptoPayments: () => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments`),
+    verifyCryptoPayment: (id, verified) => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/${id}/verify`, {
+      method: 'POST',
+      body: JSON.stringify({ verified }),
+    }),
+  },
+
+  // ==================== ADMIN - SUPPORT TICKETS APIs ====================
+  adminTickets: {
+    getAll: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/admin/support-tickets?${params}`);
+    },
+    getById: (id) => fetchWithAuth(`${API_BASE_URL}/admin/support-tickets/${id}`),
+    update: (id, data) => fetchWithAuth(`${API_BASE_URL}/admin/support-tickets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    reply: (id, message) => fetchWithAuth(`${API_BASE_URL}/admin/support-tickets/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+    assign: (id, adminId) => fetchWithAuth(`${API_BASE_URL}/admin/support-tickets/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ adminId }),
+    }),
+    close: (id) => fetchWithAuth(`${API_BASE_URL}/admin/support-tickets/${id}/close`, {
+      method: 'POST',
+    }),
+  },
+
+  // ==================== ADMIN - AUDIT LOGS APIs ====================
+  adminLogs: {
+    getAll: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/admin/audit-logs?${params}`);
+    },
+    export: (format = 'csv') => fetchWithAuth(`${API_BASE_URL}/admin/audit-logs/export?format=${format}`),
+  },
+
+  // ==================== ADMIN - SECURITY APIs ====================
+  adminSecurity: {
+    getThreats: () => fetchWithAuth(`${API_BASE_URL}/admin/security/threats`),
+    getThreatDetails: (id) => fetchWithAuth(`${API_BASE_URL}/admin/security/threats/${id}`),
+    blockIP: (ip, reason) => fetchWithAuth(`${API_BASE_URL}/admin/security/block-ip`, {
+      method: 'POST',
+      body: JSON.stringify({ ip, reason }),
+    }),
+    unblockIP: (ip) => fetchWithAuth(`${API_BASE_URL}/admin/security/unblock-ip`, {
+      method: 'POST',
+      body: JSON.stringify({ ip }),
+    }),
+    quarantineLink: (linkId) => fetchWithAuth(`${API_BASE_URL}/admin/security/quarantine-link`, {
+      method: 'POST',
+      body: JSON.stringify({ linkId }),
+    }),
+  },
+
+  // ==================== ADMIN - SETTINGS APIs ====================
+  adminSettings: {
+    get: () => fetchWithAuth(`${API_BASE_URL}/admin/settings`),
+    update: (settings) => fetchWithAuth(`${API_BASE_URL}/admin/settings`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+    getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/crypto-wallets`),
+    addCryptoWallet: (walletData) => fetchWithAuth(`${API_BASE_URL}/admin/settings/crypto-wallets`, {
+      method: 'POST',
+      body: JSON.stringify(walletData),
+    }),
+    updateCryptoWallet: (id, walletData) => fetchWithAuth(`${API_BASE_URL}/admin/settings/crypto-wallets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(walletData),
+    }),
+    deleteCryptoWallet: (id) => fetchWithAuth(`${API_BASE_URL}/admin/settings/crypto-wallets/${id}`, {
+      method: 'DELETE',
+    }),
+    getStripeSettings: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/stripe`),
+    updateStripeSettings: (settings) => fetchWithAuth(`${API_BASE_URL}/admin/settings/stripe`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+    testStripeConnection: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/stripe/test`, {
+      method: 'POST',
+    }),
+    getDomains: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/domains`),
+    addDomain: (domainData) => fetchWithAuth(`${API_BASE_URL}/admin/settings/domains`, {
+      method: 'POST',
+      body: JSON.stringify(domainData),
+    }),
+    updateDomain: (id, domainData) => fetchWithAuth(`${API_BASE_URL}/admin/settings/domains/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(domainData),
+    }),
+    deleteDomain: (id) => fetchWithAuth(`${API_BASE_URL}/admin/settings/domains/${id}`, {
+      method: 'DELETE',
+    }),
+    getTelegramSettings: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/telegram`),
+    updateTelegramSettings: (settings) => fetchWithAuth(`${API_BASE_URL}/admin/settings/telegram`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+    testTelegram: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/telegram/test`, {
+      method: 'POST',
+    }),
+    getSMTPSettings: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/smtp`),
+    updateSMTPSettings: (settings) => fetchWithAuth(`${API_BASE_URL}/admin/settings/smtp`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+    testSMTP: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/smtp/test`, {
+      method: 'POST',
+    }),
+  },
+
+  // ==================== QUANTUM REDIRECT APIs ====================
+  quantum: {
+    getMetrics: () => fetchWithAuth(`${API_BASE_URL}/quantum/metrics`),
+    getSecurityDashboard: () => fetchWithAuth(`${API_BASE_URL}/quantum/security-dashboard`),
+    testRedirect: () => fetchWithAuth(`${API_BASE_URL}/quantum/test-redirect`),
+  },
+
+  // ==================== LINK SHORTENER APIs ====================
+  shortener: {
+    shorten: (url, options = {}) => fetchWithAuth(`${API_BASE_URL}/shorten`, {
+      method: 'POST',
+      body: JSON.stringify({ url, ...options }),
+    }),
+    generateQR: (shortCode) => fetchWithAuth(`${API_BASE_URL}/shorten/${shortCode}/qr`),
+  },
+
+  // ==================== DOMAINS APIs ====================
+  domains: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/domains`),
+    getAvailable: () => fetchWithAuth(`${API_BASE_URL}/domains/available`),
+  },
+
+  // ==================== PAYMENTS APIs ====================
+  payments: {
+    getPlans: () => fetchWithAuth(`${API_BASE_URL}/payments/plans`),
+    createCheckoutSession: (planId) => fetchWithAuth(`${API_BASE_URL}/payments/create-checkout-session`, {
+      method: 'POST',
+      body: JSON.stringify({ planId }),
+    }),
+    submitCryptoPayment: (paymentData) => fetchWithAuth(`${API_BASE_URL}/crypto-payments/submit`, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    }),
+    getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/crypto-payments/wallets`),
+  },
+
+  // ==================== SUPPORT TICKETS APIs (User) ====================
+  tickets: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/support-tickets`),
+    getById: (id) => fetchWithAuth(`${API_BASE_URL}/support-tickets/${id}`),
+    create: (ticketData) => fetchWithAuth(`${API_BASE_URL}/support-tickets`, {
+      method: 'POST',
+      body: JSON.stringify(ticketData),
+    }),
+    reply: (id, message) => fetchWithAuth(`${API_BASE_URL}/support-tickets/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+    close: (id) => fetchWithAuth(`${API_BASE_URL}/support-tickets/${id}/close`, {
+      method: 'POST',
+    }),
+  },
+};
+
+export default api;
+
+// Export individual modules for convenience
+export const {
+  auth,
+  dashboard,
+  links,
+  analytics,
+  campaigns,
+  liveActivity,
+  geography,
+  security,
+  profile,
+  notifications,
+  settings,
+  admin,
+  adminUsers,
+  adminCampaigns,
+  adminPayments,
+  adminTickets,
+  adminLogs,
+  adminSecurity,
+  adminSettings,
+  quantum,
+  shortener,
+  domains,
+  payments,
+  tickets,
+} = api;
