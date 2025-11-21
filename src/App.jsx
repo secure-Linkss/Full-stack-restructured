@@ -22,7 +22,7 @@ import Security from './components/Security';
 import LinkShortener from './components/LinkShortener';
 import LiveActivity from './components/LiveActivity';
 import Profile from './components/Profile';
-import SupportTickets from './components/SupportTickets'; // New component
+import SupportTickets from './components/SupportTickets';
 import { Toaster, toast } from 'sonner';
 
 // Auth Context/Hook (Simplified for frontend focus)
@@ -93,7 +93,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-const App = () => {
+const AppContent = () => {
   const { user, loading, login, logout } = useAuth();
   const location = useLocation();
 
@@ -111,7 +111,7 @@ const App = () => {
       case '/admin': return 'Admin Panel';
       case '/profile': return 'User Profile';
       case '/notifications': return 'Notifications';
-      case '/tickets': return 'Support Tickets'; // New route
+      case '/tickets': return 'Support Tickets';
       default: return 'Dashboard';
     }
   };
@@ -136,48 +136,54 @@ const App = () => {
   return (
     <div className="theme-dark">
       <Toaster richColors position="top-right" />
-      <Router>
-        <Routes>
-          {/* Public Routes (Not to be touched) */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms" element={<TermsOfServicePage />} />
-          <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={login} />} />
-          <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsOfServicePage />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={login} />} />
+        <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
 
-          {/* Protected Routes (User Dashboard) */}
-          <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-          <Route path="/tracking-links" element={<ProtectedLayout><TrackingLinks /></ProtectedLayout>} />
-          <Route path="/live-activity" element={<ProtectedLayout><LiveActivity /></ProtectedLayout>} />
-          <Route path="/campaigns" element={<ProtectedLayout><Campaigns /></ProtectedLayout>} />
-          <Route path="/analytics" element={<ProtectedLayout><Analytics /></ProtectedLayout>} />
-          <Route path="/geography" element={<ProtectedLayout><Geography /></ProtectedLayout>} />
-          <Route path="/security" element={<ProtectedLayout><Security /></ProtectedLayout>} />
-          <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
-          <Route path="/link-shortener" element={<ProtectedLayout><LinkShortener /></ProtectedLayout>} />
-          <Route path="/profile" element={<ProtectedLayout><Profile user={user} /></ProtectedLayout>} />
-          <Route path="/notifications" element={<ProtectedLayout><Notifications /></ProtectedLayout>} />
-          <Route path="/tickets" element={<ProtectedLayout><SupportTickets /></ProtectedLayout>} /> {/* New route */}
+        {/* Protected Routes (User Dashboard) */}
+        <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+        <Route path="/tracking-links" element={<ProtectedLayout><TrackingLinks /></ProtectedLayout>} />
+        <Route path="/live-activity" element={<ProtectedLayout><LiveActivity /></ProtectedLayout>} />
+        <Route path="/campaigns" element={<ProtectedLayout><Campaigns /></ProtectedLayout>} />
+        <Route path="/analytics" element={<ProtectedLayout><Analytics /></ProtectedLayout>} />
+        <Route path="/geography" element={<ProtectedLayout><Geography /></ProtectedLayout>} />
+        <Route path="/security" element={<ProtectedLayout><Security /></ProtectedLayout>} />
+        <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+        <Route path="/link-shortener" element={<ProtectedLayout><LinkShortener /></ProtectedLayout>} />
+        <Route path="/profile" element={<ProtectedLayout><Profile user={user} /></ProtectedLayout>} />
+        <Route path="/notifications" element={<ProtectedLayout><Notifications /></ProtectedLayout>} />
+        <Route path="/tickets" element={<ProtectedLayout><SupportTickets /></ProtectedLayout>} />
 
-          {/* Admin Protected Routes */}
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedLayout allowedRoles={['main_admin', 'admin']}>
-                <AdminPanel />
-              </ProtectedLayout>
-            } 
-          />
-          
-          {/* Fallback for unknown routes */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+        {/* Admin Protected Routes */}
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedLayout allowedRoles={['main_admin', 'admin']}>
+              <AdminPanel />
+            </ProtectedLayout>
+          } 
+        />
+        
+        {/* Fallback for unknown routes */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
   );
 };
 
