@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import DataTable from '../ui/DataTable';
 import FilterBar from '../ui/FilterBar';
-import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 
 const AdminSystemLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -16,10 +16,21 @@ const AdminSystemLogs = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const logsData = await fetchMockData('getAdminSystemLogs');
-      setLogs(logsData);
+      const logsData = await api.adminLogs.getAll();
+      
+      // Map backend data to frontend structure
+      const mappedLogs = logsData.map(log => ({
+        ...log,
+        timestamp: log.created_at, // Map created_at to timestamp
+        level: 'info', // Default level as backend might not return it yet
+        source: log.target_type || 'system',
+        message: log.action
+      }));
+      
+      setLogs(mappedLogs);
       toast.success('System logs refreshed.');
     } catch (error) {
+      console.error('Fetch logs error:', error);
       toast.error('Failed to load system logs.');
     } finally {
       setLoading(false);
@@ -32,8 +43,8 @@ const AdminSystemLogs = () => {
 
   const filteredLogs = logs.filter(log => {
     const matchesSearch = !searchQuery ||
-      log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.source.toLowerCase().includes(searchQuery.toLowerCase());
+      (log.message && log.message.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (log.source && log.source.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesLevel = filterLevel === 'all' || log.level === filterLevel;
     return matchesSearch && matchesLevel;
   });
@@ -43,7 +54,7 @@ const AdminSystemLogs = () => {
       header: 'Timestamp',
       accessor: 'timestamp',
       sortable: true,
-      cell: (row) => <span className="text-sm">{new Date(row.timestamp).toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{row.timestamp ? new Date(row.timestamp).toLocaleString() : 'Unknown'}</span>,
     },
     {
       header: 'Level',
