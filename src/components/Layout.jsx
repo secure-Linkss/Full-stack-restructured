@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import Footer from './Footer';
 import { Toaster } from 'sonner';
 
 const Layout = ({ children, user, logout, pageTitle }) => {
