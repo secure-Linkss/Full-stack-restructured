@@ -51,12 +51,12 @@ const api = {
 
   // ==================== DASHBOARD APIs ====================
   dashboard: {
-    getMetrics: (dateRange = '7d') => fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?range=${dateRange}`),
-    getPerformanceOverTime: (days = 30) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?days=${days}`),
-    getDeviceBreakdown: () => fetchWithAuth(`${API_BASE_URL}/analytics/devices`),
-    getTopCountries: () => fetchWithAuth(`${API_BASE_URL}/analytics/countries?limit=10`),
-    getCampaignPerformance: () => fetchWithAuth(`${API_BASE_URL}/campaigns/performance`),
-    getRecentCaptures: () => fetchWithAuth(`${API_BASE_URL}/analytics/recent-captures?limit=10`),
+    getMetrics: (dateRange = '7d') => fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${dateRange}`),
+    getPerformanceOverTime: (days = 30) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${days}`),
+    getDeviceBreakdown: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview?period=30`).then(data => ({ labels: data.devices.map(d => d.name), data: data.devices.map(d => d.value) })),
+    getTopCountries: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography?period=30`).then(data => data.countries.slice(0, 10)),
+    getCampaignPerformance: () => fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=30`).then(data => data.campaignPerformance),
+    getRecentCaptures: () => fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=30`).then(data => data.recentCaptures),
   },
 
   // ==================== TRACKING LINKS APIs ====================
@@ -84,13 +84,13 @@ const api = {
 
   // ==================== ANALYTICS APIs ====================
   analytics: {
-    getOverview: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/overview?range=${dateRange}`),
-    getClicksOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/clicks-over-time?range=${dateRange}`),
-    getVisitorsOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/visitors-over-time?range=${dateRange}`),
+    getOverview: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/overview?period=${dateRange}`),
+    getClicksOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${dateRange}`),
+    getVisitorsOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${dateRange}`),
     getGeography: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography`),
-    getDevices: () => fetchWithAuth(`${API_BASE_URL}/analytics/devices`),
-    getBrowsers: () => fetchWithAuth(`${API_BASE_URL}/analytics/browsers`),
-    getOperatingSystems: () => fetchWithAuth(`${API_BASE_URL}/analytics/operating-systems`),
+    getDevices: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview`).then(data => data.devices),
+    getBrowsers: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview`), // Placeholder
+    getOperatingSystems: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview`), // Placeholder
     exportData: (format = 'csv') => fetchWithAuth(`${API_BASE_URL}/analytics/export?format=${format}`),
   },
 
@@ -125,9 +125,9 @@ const api = {
 
   // ==================== GEOGRAPHY APIs ====================
   geography: {
-    getCountries: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography/countries`),
-    getRegions: (country) => fetchWithAuth(`${API_BASE_URL}/analytics/geography/regions?country=${country}`),
-    getCities: (country, region) => fetchWithAuth(`${API_BASE_URL}/analytics/geography/cities?country=${country}&region=${region}`),
+    getCountries: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography`).then(data => data.countries),
+    getRegions: (country) => fetchWithAuth(`${API_BASE_URL}/analytics/geography`), // Placeholder
+    getCities: (country, region) => fetchWithAuth(`${API_BASE_URL}/analytics/geography`).then(data => data.cities),
     getGeoFencing: (linkId) => fetchWithAuth(`${API_BASE_URL}/links/${linkId}/geo-fencing`),
     updateGeoFencing: (linkId, settings) => fetchWithAuth(`${API_BASE_URL}/links/${linkId}/geo-fencing`, {
       method: 'PUT',
@@ -209,7 +209,7 @@ const api = {
 
   // ==================== ADMIN - DASHBOARD APIs ====================
   admin: {
-    getDashboard: () => fetchWithAuth(`${API_BASE_URL}/admin/dashboard`),
+    getDashboard: () => fetchWithAuth(`${API_BASE_URL}/admin/dashboard/stats`),
     getMetrics: () => fetchWithAuth(`${API_BASE_URL}/admin/metrics`),
     getUsersGraph: (days = 30) => fetchWithAuth(`${API_BASE_URL}/admin/users/graph?days=${days}`),
     getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),
@@ -227,17 +227,17 @@ const api = {
       body: JSON.stringify(userData),
     }),
     update: (id, userData) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(userData),
     }),
-    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, {
-      method: 'DELETE',
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/delete`, {
+      method: 'POST',
     }),
     suspend: (id, reason) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/suspend`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
+      method: 'PATCH',
+      body: JSON.stringify({ suspend: true, reason }),
     }),
-    activate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/activate`, {
+    activate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/approve`, {
       method: 'POST',
     }),
     impersonate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/impersonate`, {
@@ -245,6 +245,7 @@ const api = {
     }),
     resetPassword: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/reset-password`, {
       method: 'POST',
+      body: JSON.stringify({ new_password: 'Password123!' }), // Default password for reset
     }),
     getPending: () => fetchWithAuth(`${API_BASE_URL}/admin/pending-users`),
     approvePending: (id) => fetchWithAuth(`${API_BASE_URL}/admin/pending-users/${id}/approve`, {
@@ -265,6 +266,12 @@ const api = {
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, {
       method: 'DELETE',
     }),
+  },
+
+  // ==================== ADMIN - LINKS APIs ====================
+  adminLinks: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/links`),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
   },
 
   // ==================== ADMIN - PAYMENTS APIs ====================
@@ -468,6 +475,7 @@ export const {
   admin,
   adminUsers,
   adminCampaigns,
+  adminLinks,
   adminPayments,
   adminTickets,
   adminLogs,
