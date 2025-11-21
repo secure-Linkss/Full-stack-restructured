@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import DataTable from '../ui/DataTable';
 import FilterBar from '../ui/FilterBar';
 import ActionIconGroup from '../ui/ActionIconGroup';
-import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 
 const AdminCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -17,10 +17,20 @@ const AdminCampaigns = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const campaignsData = await fetchMockData('getAdminCampaigns');
-      setCampaigns(campaignsData);
+      const campaignsData = await api.adminCampaigns.getAll();
+      
+      // Map backend data to frontend structure
+      const mappedCampaigns = campaignsData.map(c => ({
+        ...c,
+        linkCount: c.links_count || 0, // Fallback
+        totalClicks: c.total_clicks || 0, // Fallback
+        createdAt: c.created_at // Map created_at
+      }));
+      
+      setCampaigns(mappedCampaigns);
       toast.success('All campaigns refreshed.');
     } catch (error) {
+      console.error('Fetch campaigns error:', error);
       toast.error('Failed to load all campaigns.');
     } finally {
       setLoading(false);
@@ -31,15 +41,26 @@ const AdminCampaigns = () => {
     fetchData();
   }, []);
 
-  const handleAction = (action, campaign) => {
-    toast.info(`${action} action triggered for campaign: ${campaign.name}`);
-    // Mock action logic
+  const handleAction = async (action, campaign) => {
+    try {
+      if (action === 'Delete Campaign') {
+        if (window.confirm(`Are you sure you want to delete campaign ${campaign.name}?`)) {
+          await api.adminCampaigns.delete(campaign.id);
+          toast.success('Campaign deleted successfully');
+          fetchData();
+        }
+      } else {
+        toast.info(`${action} action triggered for campaign: ${campaign.name}`);
+      }
+    } catch (error) {
+      toast.error(`Action failed: ${error.message}`);
+    }
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = !searchQuery ||
-      campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.owner.toLowerCase().includes(searchQuery.toLowerCase());
+      (campaign.name && campaign.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (campaign.owner && campaign.owner.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || campaign.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -72,19 +93,19 @@ const AdminCampaigns = () => {
       header: 'Links',
       accessor: 'linkCount',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.linkCount.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{row.linkCount?.toLocaleString() || 0}</span>,
     },
     {
       header: 'Clicks',
       accessor: 'totalClicks',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.totalClicks.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{row.totalClicks?.toLocaleString() || 0}</span>,
     },
     {
       header: 'Created',
       accessor: 'createdAt',
       sortable: true,
-      cell: (row) => <span className="text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>,
+      cell: (row) => <span className="text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'Unknown'}</span>,
     },
   ];
 
