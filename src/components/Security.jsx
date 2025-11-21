@@ -26,7 +26,7 @@ const Security = () => {
         logs
       ] = await Promise.all([
         api.getSecurityMetrics(),
-        api.getSecurityLogs(, days),
+        api.getSecurityLogs(days),
       ]);
 
       setMetrics(metricsData);
