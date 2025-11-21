@@ -69,23 +69,38 @@ const Analytics = () => {
     setLoading(true);
     try {
       const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
-      const [
-        metricsData,
-        topLinks,
-        conversionRate
-      ] = await Promise.all([
-        api.getAnalyticsMetrics(),
-        api.getTopLinks(, days),
-        api.getConversionRateOverTime(, days),
-      ]);
-
-      setMetrics(metricsData);
-      setTopLinksData(topLinks);
-      setConversionData(conversionRate);
+      
+      // Fetch analytics overview data
+      const overviewData = await api.analytics.getOverview(dateRange);
+      
+      setMetrics({
+        totalClicks: overviewData.totalClicks || 0,
+        uniqueVisitors: overviewData.uniqueVisitors || 0,
+        capturedEmails: overviewData.capturedEmails || 0,
+        conversionRate: overviewData.conversionRate || 0,
+        activeLinks: overviewData.activeLinks || 0,
+        countriesTracked: overviewData.countriesTracked || 0,
+      });
+      
+      // Set placeholder data for charts
+      setTopLinksData(overviewData.topLinks || []);
+      setConversionData(overviewData.conversionTrend || []);
+      
       toast.success('Analytics data refreshed successfully.');
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       toast.error('Failed to load analytics data.');
+      // Set default empty data on error
+      setMetrics({
+        totalClicks: 0,
+        uniqueVisitors: 0,
+        capturedEmails: 0,
+        conversionRate: 0,
+        activeLinks: 0,
+        countriesTracked: 0,
+      });
+      setTopLinksData([]);
+      setConversionData([]);
     } finally {
       setLoading(false);
     }
@@ -112,7 +127,7 @@ const Analytics = () => {
     { title: 'Total Clicks', value: metrics.totalClicks?.toLocaleString(), icon: TrendingUp, change: 1.5 },
     { title: 'Unique Visitors', value: metrics.uniqueVisitors?.toLocaleString(), icon: Users, change: 0.8 },
     { title: 'Captured Emails', value: metrics.capturedEmails?.toLocaleString(), icon: Mail, change: 2.1 },
-    { title: 'Conversion Rate', value: `${Math.round(metrics.conversionRate * 100)}%`, icon: BarChart3, change: -0.2 },
+    { title: 'Conversion Rate', value: `${Math.round((metrics.conversionRate || 0) * 100)}%`, icon: BarChart3, change: -0.2 },
     { title: 'Active Links', value: metrics.activeLinks, icon: Link, change: 0.0 },
     { title: 'Countries Tracked', value: metrics.countriesTracked, icon: Globe, change: 0.0 },
   ];
