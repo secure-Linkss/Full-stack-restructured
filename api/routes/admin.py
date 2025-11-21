@@ -316,6 +316,23 @@ def delete_user_action(current_user, user_id):
     
     return jsonify({"message": f"User {user_username} deleted successfully"})
 
+# Link Management Endpoints (Added for Admin Panel)
+@admin_bp.route("/api/admin/links", methods=["GET"])
+@admin_required
+def get_all_links(current_user):
+    """Get all links (Main Admin: all, Admin: all)"""
+    links = Link.query.order_by(Link.created_at.desc()).all()
+    
+    # Enrich with owner info
+    result = []
+    for link in links:
+        link_dict = link.to_dict()
+        owner = User.query.get(link.user_id)
+        link_dict['owner'] = owner.username if owner else "Unknown"
+        link_dict['owner_email'] = owner.email if owner else "Unknown"
+        result.append(link_dict)
+        
+    return jsonify(result)
 
 # Campaign Management Endpoints
 @admin_bp.route("/api/admin/campaigns", methods=["GET"])
@@ -323,7 +340,13 @@ def delete_user_action(current_user, user_id):
 def get_campaigns(current_user):
     """Get all campaigns"""
     campaigns = Campaign.query.all()
-    return jsonify([campaign.to_dict() for campaign in campaigns])
+    result = []
+    for campaign in campaigns:
+        camp_dict = campaign.to_dict()
+        owner = User.query.get(campaign.owner_id)
+        camp_dict['owner'] = owner.username if owner else "Unknown"
+        result.append(camp_dict)
+    return jsonify(result)
 
 @admin_bp.route("/api/admin/campaigns/<int:campaign_id>", methods=["GET"])
 @admin_required
@@ -802,4 +825,3 @@ def get_domains_stats(current_user):
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
