@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Users, Link, BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
 import MetricCard from '../ui/MetricCard';
-import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -59,17 +59,42 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [statsData, growthData, healthData] = await Promise.all([
-          fetchMockData('getAdminStats'),
-          fetchMockData('getAdminUserGrowth'),
-          fetchMockData('getAdminSystemHealth'),
-        ]);
-        setStats(statsData);
-        setUserGrowth(growthData);
-        setSystemHealth(healthData);
+        // Fetch real data from API
+        const dashboardStats = await api.admin.getDashboard();
+        
+        // Map backend response to frontend expectation
+        setStats({
+          totalUsers: dashboardStats.users.total,
+          totalLinks: dashboardStats.links.total,
+          totalClicks: 0, // TODO: Add to backend
+          totalRevenue: 0 // TODO: Add to backend
+        });
+
+        // Mock growth data for now (Backend implementation pending)
+        const mockGrowth = Array.from({ length: 30 }, (_, i) => ({
+          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          newUsers: Math.floor(Math.random() * 10) + 1
+        }));
+        setUserGrowth(mockGrowth);
+
+        // Mock system health (Backend implementation pending)
+        setSystemHealth({
+          database: 'Operational',
+          api_gateway: 'Operational',
+          redis_cache: 'Operational',
+          email_service: 'Operational',
+          quantum_engine: 'Operational'
+        });
+
         toast.success('Admin dashboard data loaded.');
       } catch (error) {
+        console.error('Admin dashboard error:', error);
         toast.error('Failed to load admin dashboard data.');
+        
+        // Fallback to prevent crash
+        setStats({ totalUsers: 0, totalLinks: 0, totalClicks: 0, totalRevenue: 0 });
+        setUserGrowth([]);
+        setSystemHealth({});
       } finally {
         setLoading(false);
       }
@@ -78,10 +103,10 @@ const AdminDashboard = () => {
   }, []);
 
   const metricCards = [
-    { title: 'Total Users', value: stats.totalUsers?.toLocaleString(), icon: Users, change: 5.2 },
-    { title: 'Total Links', value: stats.totalLinks?.toLocaleString(), icon: Link, change: 10.1 },
-    { title: 'Total Clicks', value: stats.totalClicks?.toLocaleString(), icon: BarChart3, change: 15.8 },
-    { title: 'Total Revenue', value: `$${stats.totalRevenue?.toLocaleString()}`, icon: TrendingUp, change: 3.4 },
+    { title: 'Total Users', value: stats.totalUsers?.toLocaleString() || '0', icon: Users, change: 0 },
+    { title: 'Total Links', value: stats.totalLinks?.toLocaleString() || '0', icon: Link, change: 0 },
+    { title: 'Total Clicks', value: stats.totalClicks?.toLocaleString() || '0', icon: BarChart3, change: 0 },
+    { title: 'Total Revenue', value: `$${stats.totalRevenue?.toLocaleString() || '0'}`, icon: TrendingUp, change: 0 },
   ];
 
   if (loading) {
