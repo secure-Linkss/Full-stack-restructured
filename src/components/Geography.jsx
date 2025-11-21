@@ -36,20 +36,31 @@ const Geography = () => {
     setLoading(true);
     try {
       const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
-      const [
-        metricsData,
-        countries
-      ] = await Promise.all([
-        api.getGeographyMetrics(),
-        api.getTopCountriesDetailed(, days),
-      ]);
-
-      setMetrics(metricsData);
-      setCountryData(countries);
+      
+      // Fetch geography data from API
+      const geoData = await api.geography.getCountries();
+      
+      // Process the data
+      const processedCountries = geoData.countries || [];
+      
+      // Calculate metrics
+      const totalCountries = processedCountries.length;
+      const topCountry = processedCountries[0] || {};
+      
+      setMetrics({
+        totalCountries,
+        topCountryClicks: topCountry.clicks || 0,
+        topCountryVisitors: topCountry.visitors || 0,
+      });
+      
+      setCountryData(processedCountries);
       toast.success('Geography data refreshed successfully.');
     } catch (error) {
       console.error('Error fetching geography data:', error);
       toast.error('Failed to load geography data.');
+      // Set default empty data on error
+      setMetrics({ totalCountries: 0, topCountryClicks: 0, topCountryVisitors: 0 });
+      setCountryData([]);
     } finally {
       setLoading(false);
     }
@@ -85,8 +96,8 @@ const Geography = () => {
       sortable: true,
       cell: (row) => (
         <div className="flex items-center">
-          <span className="mr-2 text-lg">{row.flag}</span>
-          <span className="font-medium">{row.country}</span>
+          <span className="mr-2 text-lg">{row.flag || '🌍'}</span>
+          <span className="font-medium">{row.country || row.name}</span>
         </div>
       ),
     },
@@ -94,25 +105,25 @@ const Geography = () => {
       header: 'Clicks',
       accessor: 'clicks',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.clicks.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{(row.clicks || 0).toLocaleString()}</span>,
     },
     {
       header: 'Visitors',
       accessor: 'visitors',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.visitors.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{(row.visitors || 0).toLocaleString()}</span>,
     },
     {
       header: 'Emails Captured',
       accessor: 'emailsCaptured',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.emailsCaptured.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{(row.emailsCaptured || 0).toLocaleString()}</span>,
     },
     {
       header: 'Conversion Rate',
       accessor: 'conversionRate',
       sortable: true,
-      cell: (row) => <span className="text-sm">{Math.round(row.conversionRate * 100)}%</span>,
+      cell: (row) => <span className="text-sm">{Math.round((row.conversionRate || 0) * 100)}%</span>,
     },
   ];
 
@@ -163,12 +174,12 @@ const Geography = () => {
                   {countryData.slice(0, 5).map((country, index) => (
                     <li key={index} className="flex justify-between items-center border-b border-border pb-2 last:border-b-0">
                       <div className="flex items-center">
-                        <span className="mr-2 text-lg">{country.flag}</span>
-                        <span className="font-medium">{country.country}</span>
+                        <span className="mr-2 text-lg">{country.flag || '🌍'}</span>
+                        <span className="font-medium">{country.country || country.name}</span>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold">{country.clicks.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">{Math.round(country.conversionRate * 100)}% CR</p>
+                        <p className="text-sm font-bold">{(country.clicks || 0).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{Math.round((country.conversionRate || 0) * 100)}% CR</p>
                       </div>
                     </li>
                   ))}
