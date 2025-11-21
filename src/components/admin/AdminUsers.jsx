@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import DataTable from '../ui/DataTable';
 import FilterBar from '../ui/FilterBar';
 import ActionIconGroup from '../ui/ActionIconGroup';
-import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -17,10 +17,19 @@ const AdminUsers = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const usersData = await fetchMockData('getAdminUsers');
-      setUsers(usersData);
+      const usersData = await api.adminUsers.getAll();
+      
+      // Map backend data to frontend structure
+      const mappedUsers = usersData.map(u => ({
+        ...u,
+        linkCount: u.links_count || 0, // Fallback if not provided
+        lastLogin: u.last_login_at || u.created_at // Fallback
+      }));
+      
+      setUsers(mappedUsers);
       toast.success('User list refreshed.');
     } catch (error) {
+      console.error('Fetch users error:', error);
       toast.error('Failed to load user list.');
     } finally {
       setLoading(false);
@@ -31,15 +40,29 @@ const AdminUsers = () => {
     fetchData();
   }, []);
 
-  const handleAction = (action, user) => {
-    toast.info(`${action} action triggered for user: ${user.email}`);
-    // Mock action logic: Edit, Delete, Reset Password, Send Email
+  const handleAction = async (action, user) => {
+    try {
+      if (action === 'Delete User') {
+        if (window.confirm(`Are you sure you want to delete user ${user.username}?`)) {
+          await api.adminUsers.delete(user.id);
+          toast.success(`User ${user.username} deleted.`);
+          fetchData();
+        }
+      } else if (action === 'Reset Password') {
+        await api.adminUsers.resetPassword(user.id);
+        toast.success(`Password reset for ${user.username}.`);
+      } else {
+        toast.info(`${action} action triggered for user: ${user.email}`);
+      }
+    } catch (error) {
+      toast.error(`Action failed: ${error.message}`);
+    }
   };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = !searchQuery ||
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      (user.username && user.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesRole = filterRole === 'all' || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
@@ -74,13 +97,13 @@ const AdminUsers = () => {
       header: 'Links',
       accessor: 'linkCount',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.linkCount.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{row.linkCount?.toLocaleString() || 0}</span>,
     },
     {
       header: 'Last Login',
       accessor: 'lastLogin',
       sortable: true,
-      cell: (row) => <span className="text-sm">{new Date(row.lastLogin).toLocaleDateString()}</span>,
+      cell: (row) => <span className="text-sm">{row.lastLogin ? new Date(row.lastLogin).toLocaleDateString() : 'Never'}</span>,
     },
   ];
 
@@ -101,13 +124,13 @@ const AdminUsers = () => {
               { value: 'all', label: 'All Roles' },
               { value: 'main_admin', label: 'Main Admin' },
               { value: 'admin', label: 'Admin' },
-              { value: 'user', label: 'User' },
+              { value: 'member', label: 'Member' },
             ]}
             onFilterChange={setFilterRole}
             dateRangeOptions={[]}
             onDateRangeChange={() => {}}
             extraButtons={[
-              <Button key="add" size="sm" onClick={() => handleAction('Add New User', {})}>
+              <Button key="add" size="sm" onClick={() => toast.info('Use registration page to add users')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add User
               </Button>
