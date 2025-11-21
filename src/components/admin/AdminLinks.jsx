@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import DataTable from '../ui/DataTable';
 import FilterBar from '../ui/FilterBar';
 import ActionIconGroup from '../ui/ActionIconGroup';
-import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 
 const AdminLinks = () => {
   const [links, setLinks] = useState([]);
@@ -17,10 +17,21 @@ const AdminLinks = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const linksData = await fetchMockData('getAdminLinks');
-      setLinks(linksData);
+      const linksData = await api.adminLinks.getAll();
+      
+      // Map backend data to frontend structure
+      const mappedLinks = linksData.map(l => ({
+        ...l,
+        shortUrl: l.short_code, // Map short_code to shortUrl
+        targetUrl: l.target_url, // Map target_url to targetUrl
+        clicks: l.total_clicks, // Map total_clicks to clicks
+        createdAt: l.created_at // Map created_at to createdAt
+      }));
+      
+      setLinks(mappedLinks);
       toast.success('All links refreshed.');
     } catch (error) {
+      console.error('Fetch links error:', error);
       toast.error('Failed to load all links.');
     } finally {
       setLoading(false);
@@ -31,16 +42,31 @@ const AdminLinks = () => {
     fetchData();
   }, []);
 
-  const handleAction = (action, link) => {
-    toast.info(`${action} action triggered for link: ${link.shortUrl}`);
-    // Mock action logic
+  const handleAction = async (action, link) => {
+    try {
+      if (action === 'Delete Link') {
+        if (window.confirm(`Are you sure you want to delete link ${link.shortUrl}?`)) {
+          await api.adminLinks.delete(link.id);
+          toast.success('Link deleted successfully');
+          fetchData();
+        }
+      } else if (action === 'Copy Link') {
+        const url = `${window.location.origin}/t/${link.shortUrl}`;
+        navigator.clipboard.writeText(url);
+        toast.success('Link copied to clipboard');
+      } else {
+        toast.info(`${action} action triggered for link: ${link.shortUrl}`);
+      }
+    } catch (error) {
+      toast.error(`Action failed: ${error.message}`);
+    }
   };
 
   const filteredLinks = links.filter(link => {
     const matchesSearch = !searchQuery ||
-      link.targetUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      link.shortUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      link.owner.toLowerCase().includes(searchQuery.toLowerCase());
+      (link.targetUrl && link.targetUrl.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (link.shortUrl && link.shortUrl.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (link.owner && link.owner.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || link.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -52,7 +78,7 @@ const AdminLinks = () => {
       sortable: true,
       cell: (row) => (
         <div className="font-medium">
-          <a href={row.shortUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+          <a href={`/t/${row.shortUrl}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
             {row.shortUrl}
           </a>
           <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
@@ -75,13 +101,13 @@ const AdminLinks = () => {
       header: 'Clicks',
       accessor: 'clicks',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.clicks.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{row.clicks?.toLocaleString() || 0}</span>,
     },
     {
       header: 'Created',
       accessor: 'createdAt',
       sortable: true,
-      cell: (row) => <span className="text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>,
+      cell: (row) => <span className="text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'Unknown'}</span>,
     },
   ];
 
