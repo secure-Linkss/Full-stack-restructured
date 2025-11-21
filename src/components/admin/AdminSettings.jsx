@@ -7,7 +7,7 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { toast } from 'sonner';
-import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 
 // --- Sub-Components for Settings Tabs ---
 
@@ -18,11 +18,11 @@ const GeneralSettings = ({ settings, setSettings, saving, handleSave }) => (
       <CardContent className="space-y-4">
         <div>
           <Label htmlFor="companyName">Company Name</Label>
-          <Input id="companyName" value={settings.companyName} onChange={(e) => setSettings('companyName', e.target.value)} />
+          <Input id="companyName" value={settings.companyName || ''} onChange={(e) => setSettings('companyName', e.target.value)} />
         </div>
         <div>
           <Label htmlFor="companyLogoUrl">Company Logo URL</Label>
-          <Input id="companyLogoUrl" value={settings.companyLogoUrl} onChange={(e) => setSettings('companyLogoUrl', e.target.value)} />
+          <Input id="companyLogoUrl" value={settings.companyLogoUrl || ''} onChange={(e) => setSettings('companyLogoUrl', e.target.value)} />
         </div>
       </CardContent>
     </Card>
@@ -34,7 +34,7 @@ const GeneralSettings = ({ settings, setSettings, saving, handleSave }) => (
           <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
           <Switch
             id="maintenanceMode"
-            checked={settings.maintenanceMode}
+            checked={settings.maintenanceMode || false}
             onCheckedChange={(checked) => setSettings('maintenanceMode', checked)}
           />
         </div>
@@ -42,7 +42,7 @@ const GeneralSettings = ({ settings, setSettings, saving, handleSave }) => (
           <Label htmlFor="enableRegistrations">Enable New Registrations</Label>
           <Switch
             id="enableRegistrations"
-            checked={settings.enableRegistrations}
+            checked={settings.enableRegistrations !== false}
             onCheckedChange={(checked) => setSettings('enableRegistrations', checked)}
           />
         </div>
@@ -67,31 +67,31 @@ const EmailSettings = ({ settings, setSettings, saving, handleSave }) => (
           <Label htmlFor="smtpEnabled">Enable SMTP</Label>
           <Switch
             id="smtpEnabled"
-            checked={settings.smtpEnabled}
+            checked={settings.smtpEnabled || false}
             onCheckedChange={(checked) => setSettings('smtpEnabled', checked)}
           />
         </div>
         <div>
           <Label htmlFor="smtpHost">SMTP Host</Label>
-          <Input id="smtpHost" value={settings.smtpHost} onChange={(e) => setSettings('smtpHost', e.target.value)} />
+          <Input id="smtpHost" value={settings.smtpHost || ''} onChange={(e) => setSettings('smtpHost', e.target.value)} />
         </div>
         <div>
           <Label htmlFor="smtpPort">SMTP Port</Label>
-          <Input id="smtpPort" type="number" value={settings.smtpPort} onChange={(e) => setSettings('smtpPort', e.target.value)} />
+          <Input id="smtpPort" type="number" value={settings.smtpPort || 587} onChange={(e) => setSettings('smtpPort', e.target.value)} />
         </div>
         <div>
           <Label htmlFor="smtpUser">SMTP Username</Label>
-          <Input id="smtpUser" value={settings.smtpUser} onChange={(e) => setSettings('smtpUser', e.target.value)} />
+          <Input id="smtpUser" value={settings.smtpUser || ''} onChange={(e) => setSettings('smtpUser', e.target.value)} />
         </div>
         <div>
           <Label htmlFor="smtpPassword">SMTP Password</Label>
-          <Input id="smtpPassword" type="password" value={settings.smtpPassword} onChange={(e) => setSettings('smtpPassword', e.target.value)} />
+          <Input id="smtpPassword" type="password" value={settings.smtpPassword || ''} onChange={(e) => setSettings('smtpPassword', e.target.value)} placeholder="••••••••" />
         </div>
       </CardContent>
     </Card>
 
     <div className="flex justify-end space-x-3">
-      <Button variant="outline" onClick={() => toast.info('Test email sent (Mock)')}>Test SMTP</Button>
+      <Button variant="outline" onClick={() => toast.info('Test email feature coming soon')}>Test SMTP</Button>
       <Button onClick={() => handleSave('email')} disabled={saving}>
         {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
         Save Email Settings
@@ -109,17 +109,17 @@ const PaymentSettings = ({ settings, setSettings, saving, handleSave }) => (
           <Label htmlFor="stripeEnabled">Enable Stripe</Label>
           <Switch
             id="stripeEnabled"
-            checked={settings.stripeEnabled}
+            checked={settings.stripeEnabled || false}
             onCheckedChange={(checked) => setSettings('stripeEnabled', checked)}
           />
         </div>
         <div>
           <Label htmlFor="stripePublishableKey">Stripe Publishable Key</Label>
-          <Input id="stripePublishableKey" type="password" value={settings.stripePublishableKey} onChange={(e) => setSettings('stripePublishableKey', e.target.value)} />
+          <Input id="stripePublishableKey" type="password" value={settings.stripePublishableKey || ''} onChange={(e) => setSettings('stripePublishableKey', e.target.value)} placeholder="pk_..." />
         </div>
         <div>
           <Label htmlFor="stripeSecretKey">Stripe Secret Key</Label>
-          <Input id="stripeSecretKey" type="password" value={settings.stripeSecretKey} onChange={(e) => setSettings('stripeSecretKey', e.target.value)} />
+          <Input id="stripeSecretKey" type="password" value={settings.stripeSecretKey || ''} onChange={(e) => setSettings('stripeSecretKey', e.target.value)} placeholder="sk_..." />
         </div>
       </CardContent>
     </Card>
@@ -131,17 +131,17 @@ const PaymentSettings = ({ settings, setSettings, saving, handleSave }) => (
           <Label htmlFor="paypalEnabled">Enable PayPal</Label>
           <Switch
             id="paypalEnabled"
-            checked={settings.paypalEnabled}
+            checked={settings.paypalEnabled || false}
             onCheckedChange={(checked) => setSettings('paypalEnabled', checked)}
           />
         </div>
         <div>
           <Label htmlFor="paypalClientId">PayPal Client ID</Label>
-          <Input id="paypalClientId" type="password" value={settings.paypalClientId} onChange={(e) => setSettings('paypalClientId', e.target.value)} />
+          <Input id="paypalClientId" type="password" value={settings.paypalClientId || ''} onChange={(e) => setSettings('paypalClientId', e.target.value)} placeholder="AZY..." />
         </div>
         <div>
           <Label htmlFor="paypalSecret">PayPal Secret</Label>
-          <Input id="paypalSecret" type="password" value={settings.paypalSecret} onChange={(e) => setSettings('paypalSecret', e.target.value)} />
+          <Input id="paypalSecret" type="password" value={settings.paypalSecret || ''} onChange={(e) => setSettings('paypalSecret', e.target.value)} placeholder="EGH..." />
         </div>
       </CardContent>
     </Card>
@@ -164,25 +164,25 @@ const CDNStorageSettings = ({ settings, setSettings, saving, handleSave }) => (
           <Label htmlFor="s3Enabled">Enable S3 Storage</Label>
           <Switch
             id="s3Enabled"
-            checked={settings.s3Enabled}
+            checked={settings.s3Enabled || false}
             onCheckedChange={(checked) => setSettings('s3Enabled', checked)}
           />
         </div>
         <div>
           <Label htmlFor="s3BucketName">S3 Bucket Name</Label>
-          <Input id="s3BucketName" value={settings.s3BucketName} onChange={(e) => setSettings('s3BucketName', e.target.value)} />
+          <Input id="s3BucketName" value={settings.s3BucketName || ''} onChange={(e) => setSettings('s3BucketName', e.target.value)} />
         </div>
         <div>
           <Label htmlFor="s3Region">S3 Region</Label>
-          <Input id="s3Region" value={settings.s3Region} onChange={(e) => setSettings('s3Region', e.target.value)} />
+          <Input id="s3Region" value={settings.s3Region || ''} onChange={(e) => setSettings('s3Region', e.target.value)} placeholder="us-east-1" />
         </div>
         <div>
           <Label htmlFor="s3AccessKeyId">S3 Access Key ID</Label>
-          <Input id="s3AccessKeyId" type="password" value={settings.s3AccessKeyId} onChange={(e) => setSettings('s3AccessKeyId', e.target.value)} />
+          <Input id="s3AccessKeyId" type="password" value={settings.s3AccessKeyId || ''} onChange={(e) => setSettings('s3AccessKeyId', e.target.value)} placeholder="AKIA..." />
         </div>
         <div>
           <Label htmlFor="s3SecretAccessKey">S3 Secret Access Key</Label>
-          <Input id="s3SecretAccessKey" type="password" value={settings.s3SecretAccessKey} onChange={(e) => setSettings('s3SecretAccessKey', e.target.value)} />
+          <Input id="s3SecretAccessKey" type="password" value={settings.s3SecretAccessKey || ''} onChange={(e) => setSettings('s3SecretAccessKey', e.target.value)} placeholder="wJalr..." />
         </div>
       </CardContent>
     </Card>
@@ -205,23 +205,23 @@ const APISettings = ({ settings, setSettings, saving, handleSave }) => (
           <Label htmlFor="telegramEnabled">Enable Telegram Notifications</Label>
           <Switch
             id="telegramEnabled"
-            checked={settings.telegramEnabled}
+            checked={settings.telegramEnabled || false}
             onCheckedChange={(checked) => setSettings('telegramEnabled', checked)}
           />
         </div>
         <div>
           <Label htmlFor="telegramBotToken">Telegram Bot Token</Label>
-          <Input id="telegramBotToken" type="password" value={settings.telegramBotToken} onChange={(e) => setSettings('telegramBotToken', e.target.value)} />
+          <Input id="telegramBotToken" type="password" value={settings.telegramBotToken || ''} onChange={(e) => setSettings('telegramBotToken', e.target.value)} placeholder="123456:ABC-DEF..." />
         </div>
         <div>
           <Label htmlFor="telegramChatId">Default Chat ID</Label>
-          <Input id="telegramChatId" value={settings.telegramChatId} onChange={(e) => setSettings('telegramChatId', e.target.value)} />
+          <Input id="telegramChatId" value={settings.telegramChatId || ''} onChange={(e) => setSettings('telegramChatId', e.target.value)} placeholder="-100123456789" />
         </div>
       </CardContent>
     </Card>
 
     <div className="flex justify-end space-x-3">
-      <Button variant="outline" onClick={() => toast.info('Test Telegram message sent (Mock)')}>Test Telegram</Button>
+      <Button variant="outline" onClick={() => toast.info('Test Telegram feature coming soon')}>Test Telegram</Button>
       <Button onClick={() => handleSave('api')} disabled={saving}>
         {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
         Save API Settings
@@ -237,53 +237,48 @@ const AdminSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const initialSettings = {
-    // General
-    companyName: 'Brain Link Tracker Pro',
-    companyLogoUrl: 'https://example.com/logo.png',
-    maintenanceMode: false,
-    enableRegistrations: true,
-    // Email
-    smtpEnabled: false,
-    smtpHost: 'smtp.example.com',
-    smtpPort: 587,
-    smtpUser: 'user@example.com',
-    smtpPassword: 'password123',
-    // Payment
-    stripeEnabled: false,
-    stripePublishableKey: 'pk_test_...',
-    stripeSecretKey: 'sk_test_...',
-    paypalEnabled: false,
-    paypalClientId: 'AZY...',
-    paypalSecret: 'EGH...',
-    // CDN/Storage
-    s3Enabled: false,
-    s3BucketName: 'brainlink-assets',
-    s3Region: 'us-east-1',
-    s3AccessKeyId: 'AKIA...',
-    s3SecretAccessKey: 'wJalr...',
-    // API
-    telegramEnabled: false,
-    telegramBotToken: '123456:ABC-DEF...',
-    telegramChatId: '-100123456789',
-  };
-
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Mock fetching settings from API
-        const fetchedSettings = await fetchMockData('getAdminSettings');
-        setSettings({ ...initialSettings, ...fetchedSettings });
-      } catch (error) {
-        toast.error('Failed to load admin settings.');
-        setSettings(initialSettings);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/admin/settings');
+      setSettings(response.data || {});
+    } catch (error) {
+      console.error('Failed to load admin settings:', error);
+      toast.error('Failed to load system settings. Using defaults.');
+      // Set default settings on error
+      setSettings({
+        companyName: 'Brain Link Tracker Pro',
+        companyLogoUrl: '',
+        maintenanceMode: false,
+        enableRegistrations: true,
+        smtpEnabled: false,
+        smtpHost: '',
+        smtpPort: 587,
+        smtpUser: '',
+        smtpPassword: '',
+        stripeEnabled: false,
+        stripePublishableKey: '',
+        stripeSecretKey: '',
+        paypalEnabled: false,
+        paypalClientId: '',
+        paypalSecret: '',
+        s3Enabled: false,
+        s3BucketName: '',
+        s3Region: 'us-east-1',
+        s3AccessKeyId: '',
+        s3SecretAccessKey: '',
+        telegramEnabled: false,
+        telegramBotToken: '',
+        telegramChatId: '',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateSetting = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -292,11 +287,11 @@ const AdminSettings = () => {
   const handleSave = async (section) => {
     setSaving(true);
     try {
-      // Mock API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success(`${section.toUpperCase()} settings saved successfully (Mock).`);
+      await api.put('/api/admin/settings', settings);
+      toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully.`);
     } catch (error) {
-      toast.error(`Failed to save ${section} settings (Mock).`);
+      console.error(`Failed to save ${section} settings:`, error);
+      toast.error(`Failed to save ${section} settings. Please try again.`);
     } finally {
       setSaving(false);
     }
