@@ -1,194 +1,370 @@
-# Brain Link Tracker - Vercel Deployment Guide
-
-## ✅ Pre-Deployment Checklist Completed
-
-### 1. ✅ Frontend Rebuilt
-- Old dist folder deleted
-- New frontend built with latest payment UI
-- All components included:
-  - Payment transaction hash submission form
-  - Plan selection logic and UI
-  - Crypto payment flow components
-  - Updated pricing section
-
-### 2. ✅ Database Connection Verified
-- PostgreSQL (Neon) connection: **WORKING**
-- Database URL: Corrected and tested
-- Tables found: 29 tables
-- PostgreSQL version: 17.5
-
-### 3. ✅ Environment Configuration
-- `.env` file updated with all credentials
-- Redis configuration added
-- CORS origins configured
-- Rate limiting enabled
-
-### 4. ✅ GitHub Repository Updated
-- Latest changes committed
-- Pushed to master branch
-- Pushed to main branch
-- Repository: https://github.com/secure-Linkss/Full-stack-restructured.git
+# Brain Link Tracker - Deployment Guide
+**Date:** November 22, 2025  
+**Version:** 1.0.0
 
 ---
 
-## 🚀 Vercel Deployment Instructions
+## Pre-Deployment Checklist
 
-### Option 1: Deploy via Vercel Dashboard (RECOMMENDED)
+✅ All code changes committed to master branch  
+✅ Phase 1: Frontend fixes complete  
+✅ Phase 2: Backend fixes complete  
+✅ Phase 3: Admin settings complete  
+✅ Implementation summary documented  
 
-1. **Go to Vercel Dashboard**
-   - Visit: https://vercel.com/dashboard
-   - Login with your account
+---
 
-2. **Import Project**
-   - Click "Add New..." → "Project"
-   - Select "Import Git Repository"
-   - Choose: `secure-Linkss/Full-stack-restructured`
+## Deployment Steps
 
-3. **Configure Project**
-   - Framework Preset: **Other**
-   - Root Directory: `./` (leave as default)
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Install Command: `npm install --legacy-peer-deps`
-
-4. **Set Environment Variables** (CRITICAL)
-   Add these in Vercel project settings:
-
-   ```
-   SECRET_KEY=ej5B3Amppi4gjpbC65te6rJuvJzgVCWW_xfB-ZLR1TE
-   DATABASE_URL=postgresql://neondb_owner:npg_7CcKbPRm2GDw@ep-odd-thunder-ade4ip4a-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-   SHORTIO_API_KEY=sk_DbGGlUHPN7Z9VotL
-   SHORTIO_DOMAIN=Secure-links.short.gy
-   FLASK_ENV=production
-   FLASK_APP=api/index.py
-   REDIS_HOST=redis-15183.c16.us-east-1-3.ec2.cloud.redislabs.com
-   REDIS_PORT=15183
-   REDIS_PASSWORD=8tOWUOOILVmYZ4ZemXDuQooBNFa5hVFm
-   REDIS_URL=redis://:8tOWUOOILVmYZ4ZemXDuQooBNFa5hVFm@redis-15183.c16.us-east-1-3.ec2.cloud.redislabs.com:15183/0
-   RATELIMIT_ENABLED=True
-   RATELIMIT_STORAGE_URL=redis://:8tOWUOOILVmYZ4ZemXDuQooBNFa5hVFm@redis-15183.c16.us-east-1-3.ec2.cloud.redislabs.com:15183/0
-   ALLOWED_ORIGINS=https://brain-link-tracker.vercel.app,https://www.brainlinktracker.com
-   ```
-
-5. **Deploy**
-   - Click "Deploy"
-   - Wait for build to complete
-   - Your app will be live at: `https://brain-link-tracker.vercel.app`
-
-### Option 2: Deploy via Vercel CLI
+### Step 1: Pull Latest Changes
 
 ```bash
-# Install Vercel CLI locally (in project directory)
-npm install vercel
+cd /path/to/Full-stack-restructured
+git pull origin master
+```
 
-# Login to Vercel
-npx vercel login
+**Expected Output:**
+```
+From https://github.com/secure-Linkss/Full-stack-restructured
+ * branch            master     -> FETCH_HEAD
+Already up to date. (or showing new commits)
+```
 
-# Deploy to production
-npx vercel --prod
+### Step 2: Verify Changes
 
-# Follow the prompts and set environment variables when asked
+```bash
+git log --oneline -5
+```
+
+**You should see these recent commits:**
+- Complete Implementation Summary
+- Phase 3: Admin Settings Domain Management Routes
+- Phase 2: Backend Fixes - User Model & Settings
+- Phase 1: Critical Frontend Fixes
+
+### Step 3: Install Frontend Dependencies
+
+```bash
+npm install --legacy-peer-deps
+```
+
+**Expected:** Dependencies should install without errors (warnings are okay)
+
+### Step 4: Build Frontend
+
+```bash
+npm run build
+```
+
+**Expected:** 
+- Build should complete in 2-5 minutes
+- Creates `dist/` folder with built assets
+- Output shows asset file sizes
+
+**If build hangs or fails:**
+```bash
+# Clear cache and try again
+rm -rf node_modules/.vite
+npm run build
+```
+
+### Step 5: Install Backend Dependencies
+
+```bash
+# If using virtualenv
+source venv/bin/activate
+
+# Install/update requirements
+pip install -r requirements.txt
+```
+
+### Step 6: Run Database Migration
+
+**CRITICAL: This adds new user fields to the database**
+
+```bash
+python3 api/migrations/add_user_fields_migration.py
+```
+
+**Expected Output:**
+```
+Starting migration: Adding new user fields...
+✓ Added column: phone
+✓ Added column: country
+✓ Added column: bio
+✓ Added column: timezone
+✓ Added column: language
+✓ Added column: theme
+✓ Added column: two_factor_enabled
+✓ Added column: two_factor_secret
+✓ Added column: backup_codes
+✓ Added column: last_activity_at
+✓ Added column: session_count
+
+✓ Migration completed successfully!
+```
+
+**If columns already exist:**
+```
+- Column already exists: phone
+- Column already exists: country
+...
+✓ Migration completed successfully!
+```
+
+### Step 7: Restart Backend Services
+
+#### Option A: Using Systemd
+```bash
+sudo systemctl restart brainlinktracker
+sudo systemctl status brainlinktracker
+```
+
+#### Option B: Using PM2
+```bash
+pm2 restart brainlinktracker
+pm2 logs brainlinktracker
+```
+
+#### Option C: Using Gunicorn Directly
+```bash
+# Stop existing process
+pkill gunicorn
+
+# Start new process
+gunicorn -w 4 -b 0.0.0.0:5000 api.index:app --daemon
+```
+
+### Step 8: Verify Deployment
+
+#### 8.1 Check Application is Running
+```bash
+curl http://localhost:5000/api/user/profile
+```
+
+**Expected:** Should return authentication error (means API is responding)
+
+#### 8.2 Check Frontend Assets
+```bash
+ls -lh dist/assets/
+```
+
+**Expected:** Should see multiple JS and CSS files
+
+#### 8.3 Access Application
+Open browser and navigate to your domain. Test these pages:
+
+1. **Dashboard** - `/`
+   - Should load without "Failed to Load" errors
+   - Metrics should display with numbers
+   - Charts should render
+
+2. **Admin Users** - `/admin/users`
+   - Should show 11 columns in table
+   - "All Users" and "Pending Approvals" tabs visible
+   - "Add User" button should open modal
+
+3. **Admin Settings > Domains Tab** - `/admin/settings`
+   - Should see 6 tabs now (added Domains)
+   - Domains tab should display domain table
+   - "Add Domain" button should work
+
+4. **User Settings > Notifications** - `/settings`
+   - Should see Telegram integration section
+   - Toggle switches should work
+   - Fields should save properly
+
+---
+
+## Post-Deployment Verification
+
+### Test New Features
+
+#### 1. Create User Workflow
+```
+1. Go to Admin Users
+2. Click "Add User"
+3. Fill form and submit
+4. Verify user appears in table
+```
+
+#### 2. Pending Users Approval
+```
+1. Go to Admin Users > Pending Approvals tab
+2. Should see pending users (if any)
+3. Test Approve/Reject buttons
+```
+
+#### 3. Domain Management
+```
+1. Go to Admin Settings > Domains tab
+2. Click "Add Domain"
+3. Enter domain name and type
+4. Save and verify it appears in table
+```
+
+#### 4. Telegram Notifications
+```
+1. Go to User Settings
+2. Enable Telegram notifications
+3. Enter bot token and chat ID
+4. Click "Test Notification" button
 ```
 
 ---
 
-## 📋 Post-Deployment Verification
+## Rollback Procedure
 
-### 1. Test Homepage
-- Visit your Vercel URL
-- Verify homepage loads correctly
-- Check pricing section is visible
+If issues occur during deployment:
 
-### 2. Test User Registration
-- Navigate to registration page
-- Select a plan
-- Complete registration form
-- Verify plan selection is saved
+### Step 1: Revert Git Changes
+```bash
+git log --oneline -10  # Find previous stable commit
+git reset --hard <commit-hash>
+```
 
-### 3. Test Payment Flow
-- Go to payment page
-- Verify crypto payment form displays
-- Test transaction hash submission
-- Check form validation
+### Step 2: Rebuild Frontend
+```bash
+npm run build
+```
 
-### 4. Test Admin Login
-**Main Admin:**
-- Username: `Brain`
-- Password: `Mayflower1!!`
+### Step 3: Restart Backend
+```bash
+sudo systemctl restart brainlinktracker
+# or
+pm2 restart brainlinktracker
+```
 
-**Admin:**
-- Username: `7thbrain`
-- Password: `Mayflower1!`
+### Step 4: Database Rollback (if needed)
+**Note:** Migration adds columns only, doesn't modify existing data. 
+If rollback needed, manually remove columns (use with caution):
 
-### 5. Test API Endpoints
-- Check `/api/health` endpoint
-- Verify database connections work
-- Test authentication endpoints
-- Confirm Redis caching works
+```sql
+-- SQLite
+ALTER TABLE users DROP COLUMN phone;
+ALTER TABLE users DROP COLUMN country;
+-- ... etc for other columns
 
-### 6. Test All Action Buttons
-- Create link button
-- Payment submission button
-- Admin approval buttons
-- User management buttons
+-- PostgreSQL
+ALTER TABLE users DROP COLUMN IF EXISTS phone;
+ALTER TABLE users DROP COLUMN IF EXISTS country;
+-- ... etc for other columns
+```
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
-### Build Fails
-- Check environment variables are set correctly
-- Verify `package.json` scripts are correct
-- Check build logs in Vercel dashboard
+### Issue: "Failed to Load" on Dashboard
 
-### Database Connection Issues
-- Verify DATABASE_URL is correct
-- Check Neon database is accessible
-- Ensure SSL mode is enabled
+**Solution:**
+1. Check browser console for errors
+2. Verify API is running: `curl http://localhost:5000/api/analytics/dashboard?period=7d`
+3. Check backend logs for errors
+4. Verify database connection
 
-### Redis Connection Issues
-- Verify Redis credentials
-- Check Redis endpoint is accessible
-- Ensure port 15183 is not blocked
+### Issue: Build Hangs During `npm run build`
 
-### Frontend Not Loading
-- Check dist folder was built correctly
-- Verify static files are served properly
-- Check browser console for errors
+**Solution:**
+```bash
+# Clear Vite cache
+rm -rf node_modules/.vite
 
----
+# Clear node_modules and reinstall
+rm -rf node_modules
+npm install --legacy-peer-deps
 
-## 📊 Current Status
+# Try build again
+npm run build
+```
 
-✅ **Frontend**: Rebuilt with latest payment UI  
-✅ **Backend**: Flask API ready  
-✅ **Database**: PostgreSQL connected (29 tables)  
-✅ **Redis**: Configured for caching  
-✅ **GitHub**: Code pushed to master and main  
-⏳ **Vercel**: Ready for deployment  
+### Issue: Missing Database Columns
 
----
+**Solution:**
+```bash
+# Re-run migration
+python3 api/migrations/add_user_fields_migration.py
 
-## 🎯 Next Steps
+# Check if columns exist
+sqlite3 src/database/app.db ".schema users"
+# or for PostgreSQL
+psql $DATABASE_URL -c "\d users"
+```
 
-1. Deploy to Vercel using Option 1 (Dashboard) - RECOMMENDED
-2. Set all environment variables in Vercel
-3. Test the deployed application
-4. Verify all features work correctly
-5. Monitor logs for any errors
+### Issue: 404 on New API Endpoints
 
----
+**Solution:**
+1. Verify blueprint is registered in `api/index.py`
+2. Check route definitions in blueprint files
+3. Restart backend service
+4. Check logs: `pm2 logs` or `journalctl -u brainlinktracker`
 
-## 📞 Support
+### Issue: Telegram Notifications Not Working
 
-If you encounter any issues:
-- Check Vercel deployment logs
-- Review browser console errors
-- Verify all environment variables are set
-- Test database and Redis connections
+**Note:** Telegram API integration is not fully implemented yet. The UI is ready, but actual message sending needs implementation. This is documented in IMPLEMENTATION_SUMMARY.md as a future improvement.
 
 ---
 
-**Deployment Date**: November 12, 2025  
-**Repository**: https://github.com/secure-Linkss/Full-stack-restructured.git  
-**Status**: Ready for Production Deployment
+## Environment Variables
+
+Ensure these environment variables are set:
+
+```bash
+# Required
+DATABASE_URL=postgresql://user:pass@host:5432/dbname  # or SQLite path
+SECRET_KEY=your-secret-key-here
+
+# Optional (for future Telegram integration)
+TELEGRAM_BOT_TOKEN=your-bot-token
+TELEGRAM_CHAT_ID=your-chat-id
+
+# Optional (for email)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-email
+SMTP_PASSWORD=your-password
+```
+
+---
+
+## Performance Monitoring
+
+After deployment, monitor these metrics:
+
+1. **Page Load Time** - Should be < 3 seconds
+2. **API Response Time** - Should be < 500ms
+3. **Database Query Time** - Should be < 100ms
+4. **Memory Usage** - Monitor for leaks
+5. **Error Logs** - Check for recurring errors
+
+---
+
+## Support & Issues
+
+If you encounter issues not covered in this guide:
+
+1. Check `IMPLEMENTATION_SUMMARY.md` for details on changes
+2. Review commit messages: `git log --oneline -20`
+3. Check application logs
+4. Verify all dependencies are installed
+5. Ensure database migration ran successfully
+
+---
+
+## Next Steps (Future Improvements)
+
+After successful deployment, consider implementing:
+
+1. **Telegram API Integration** - Complete the notification sending logic
+2. **Domain Verification** - Implement DNS verification workflow
+3. **2FA Implementation** - Enable two-factor authentication
+4. **Email Integration** - Set up SMTP for email notifications
+5. **Performance Optimizations** - Add database indexes, implement caching
+
+See IMPLEMENTATION_SUMMARY.md section "Known Issues & Future Improvements" for details.
+
+---
+
+**Last Updated:** November 22, 2025  
+**Status:** Ready for Deployment  
+**Tested:** Syntax validation passed, Git push successful
