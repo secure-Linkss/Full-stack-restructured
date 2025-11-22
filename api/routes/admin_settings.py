@@ -3,6 +3,7 @@ from functools import wraps
 from api.database import db
 from api.models.user import User
 from api.models.audit_log import AuditLog
+from api.models.domain import Domain
 
 admin_settings_bp = Blueprint('admin_settings', __name__)
 
@@ -109,4 +110,137 @@ def update_profile(current_user):
 def get_profile(current_user):
     """Get user's profile"""
     return jsonify(current_user.to_dict(include_sensitive=True))
+
+# ==================== DOMAIN MANAGEMENT ROUTES ====================
+
+@admin_settings_bp.route('/domains', methods=['GET'])
+@login_required
+def get_domains(current_user):
+    """Get all domains"""
+    if not current_user.is_admin():
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        domains = Domain.query.all()
+        return jsonify([domain.to_dict() for domain in domains]), 200
+    except Exception as e:
+        print(f'Error fetching domains: {e}')
+        return jsonify({'error': 'Failed to fetch domains'}), 500
+
+@admin_settings_bp.route('/domains', methods=['POST'])
+@login_required
+def add_domain(current_user):
+    """Add a new domain"""
+    if not current_user.is_admin():
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('domain'):
+            return jsonify({'error': 'Domain name is required'}), 400
+        
+        # Check if domain already exists
+        existing = Domain.query.filter_by(domain=data['domain']).first()
+        if existing:
+            return jsonify({'error': 'Domain already exists'}), 400
+        
+        # Create new domain
+        domain = Domain(
+            domain=data['domain'],
+            domain_type=data.get('domain_type', 'custom'),
+            description=data.get('description', ''),
+            is_active=data.get('is_active', True),
+            api_key=data.get('api_key', ''),
+            api_secret=data.get('api_secret', '')
+        )
+        
+        db.session.add(domain)
+        db.session.commit()
+        
+        # Log action
+        log_admin_action(current_user.id, f"Added domain: {domain.domain}", domain.id, 'domain')
+        
+        return jsonify(domain.to_dict()), 201
+    except Exception as e:
+        print(f'Error adding domain: {e}')
+        db.session.rollback()
+        return jsonify({'error': 'Failed to add domain'}), 500
+
+@admin_settings_bp.route('/domains/<int:domain_id>', methods=['PUT'])
+@login_required
+def update_domain(current_user, domain_id):
+    """Update a domain"""
+    if not current_user.is_admin():
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        domain = Domain.query.get(domain_id)
+        if not domain:
+            return jsonify({'error': 'Domain not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update fields
+        if 'domain' in data:
+            # Check if new domain name already exists
+            existing = Domain.query.filter(
+                Domain.domain == data['domain'],
+                Domain.id != domain_id
+            ).first()
+            if existing:
+                return jsonify({'error': 'Domain already exists'}), 400
+            domain.domain = data['domain']
+        
+        if 'domain_type' in data:
+            domain.domain_type = data['domain_type']
+        if 'description' in data:
+            domain.description = data['description']
+        if 'is_active' in data:
+            domain.is_active = data['is_active']
+        if 'api_key' in data:
+            domain.api_key = data['api_key']
+        if 'api_secret' in data:
+            domain.api_secret = data['api_secret']
+        
+        db.session.commit()
+        
+        # Log action
+        log_admin_action(current_user.id, f"Updated domain: {domain.domain}", domain.id, 'domain')
+        
+        return jsonify(domain.to_dict()), 200
+    except Exception as e:
+        print(f'Error updating domain: {e}')
+        db.session.rollback()
+        return jsonify({'error': 'Failed to update domain'}), 500
+
+@admin_settings_bp.route('/domains/<int:domain_id>', methods=['DELETE'])
+@login_required
+def delete_domain(current_user, domain_id):
+    """Delete a domain"""
+    if not current_user.is_admin():
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        domain = Domain.query.get(domain_id)
+        if not domain:
+            return jsonify({'error': 'Domain not found'}), 404
+        
+        domain_name = domain.domain
+        
+        # Check if domain has active links
+        # TODO: Add check for active links using this domain
+        
+        db.session.delete(domain)
+        db.session.commit()
+        
+        # Log action
+        log_admin_action(current_user.id, f"Deleted domain: {domain_name}", domain_id, 'domain')
+        
+        return jsonify({'message': 'Domain deleted successfully'}), 200
+    except Exception as e:
+        print(f'Error deleting domain: {e}')
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete domain'}), 500
 
