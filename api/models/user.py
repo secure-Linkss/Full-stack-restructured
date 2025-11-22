@@ -51,6 +51,23 @@ class User(db.Model):
     reset_token = db.Column(db.String(255), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
     
+    # Profile information fields
+    phone = db.Column(db.String(20), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
+    timezone = db.Column(db.String(50), default='UTC')
+    language = db.Column(db.String(10), default='en')
+    theme = db.Column(db.String(20), default='dark')  # dark, light, auto
+    
+    # Security fields
+    two_factor_enabled = db.Column(db.Boolean, default=False)
+    two_factor_secret = db.Column(db.String(255), nullable=True)
+    backup_codes = db.Column(db.Text, nullable=True)  # JSON string
+    
+    # Activity tracking
+    last_activity_at = db.Column(db.DateTime, nullable=True)
+    session_count = db.Column(db.Integer, default=0)
+    
     # Subscription fields (enhanced)
     subscription_plan = db.Column(db.String(50), nullable=True)  # free, pro, enterprise
     subscription_status = db.Column(db.String(50), default='active')  # active, cancelled, expired

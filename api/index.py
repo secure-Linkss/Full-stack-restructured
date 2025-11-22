@@ -33,6 +33,7 @@ from api.routes.events import events_bp
 from api.routes.analytics import analytics_bp
 from api.routes.campaigns import campaigns_bp
 from api.routes.settings import settings_bp
+from api.routes.user_settings import user_settings_bp
 from api.routes.admin import admin_bp
 from api.routes.admin_complete import admin_complete_bp
 from api.routes.admin_settings import admin_settings_bp
@@ -121,6 +122,7 @@ app.register_blueprint(links_bp, url_prefix='/api')
 app.register_blueprint(analytics_bp, url_prefix='/api')
 app.register_blueprint(campaigns_bp)  # Already has /api in routes
 app.register_blueprint(settings_bp)  # Already has /api in routes
+app.register_blueprint(user_settings_bp, url_prefix='/api/user/settings')
 app.register_blueprint(admin_bp)  # Already has /api in routes - CRITICAL FIX
 app.register_blueprint(admin_complete_bp)  # Already has /api in routes - CRITICAL FIX
 app.register_blueprint(admin_settings_bp, url_prefix='/api')
