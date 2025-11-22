@@ -54,6 +54,7 @@ from api.routes.support_tickets import support_tickets_bp
 from api.routes.admin_missing import admin_missing_bp
 from api.routes.user_missing import user_missing_bp
 from api.routes.missing_api_routes import missing_routes_bp
+from api.utils.migration_helper import check_and_add_missing_columns, safe_create_default_admin
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ej5B3Amppi4gjpbC65te6rJuvJzgVCWW_xfB-ZLR1TE')
@@ -76,27 +77,17 @@ db.init_app(app)
 migrate = Migrate(app, db)
 
 with app.app_context():
+    # Step 1: Run migration to add missing columns BEFORE create_all
+    print("Running database migration...")
+    check_and_add_missing_columns(db)
+    
+    # Step 2: Create tables (won't fail now that columns exist)
+    print("Creating database tables...")
     db.create_all()
     
-    # Only run default user creation if the database is empty or if the user doesn't exist
-    # This prevents IntegrityError when gunicorn forks workers
-    
-    # Create default admin user if not exists
-    if not User.query.filter_by(username="Brain").first():
-        admin_user = User(username="Brain", email="admin@brainlinktracker.com", role="main_admin", status="active", is_active=True, is_verified=True)
-        admin_user.set_password("Mayflower1!!")
-        db.session.add(admin_user)
-        db.session.commit()
-        print("Default admin user \"Brain\" created.")
-    else:
-        # Update existing admin user to active status
-        admin_user = User.query.filter_by(username="Brain").first()
-        if admin_user.status != "active":
-            admin_user.status = "active"
-            admin_user.is_active = True
-            admin_user.is_verified = True
-            db.session.commit()
-            print("Default admin user \"Brain\" updated to active status.")
+    # Step 3: Safely create default admin user
+    print("Setting up default admin user...")
+    safe_create_default_admin(db, User)
     
     # Create default admin user "7thbrain" if not exists
     if not User.query.filter_by(username="7thbrain").first():
