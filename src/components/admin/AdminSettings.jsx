@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { toast } from 'sonner';
+import DomainManagementTab from './DomainManagementTab';
 import api from '../../services/api';
 
 // --- Sub-Components for Settings Tabs ---
@@ -316,12 +317,13 @@ const AdminSettings = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="general"><Settings className="h-4 w-4 mr-2" /> General</TabsTrigger>
             <TabsTrigger value="email"><Mail className="h-4 w-4 mr-2" /> Email</TabsTrigger>
             <TabsTrigger value="payment"><CreditCard className="h-4 w-4 mr-2" /> Payment</TabsTrigger>
             <TabsTrigger value="cdn"><Globe className="h-4 w-4 mr-2" /> CDN/Storage</TabsTrigger>
             <TabsTrigger value="api"><Code className="h-4 w-4 mr-2" /> API/Integrations</TabsTrigger>
+            <TabsTrigger value="domains"><Globe className="h-4 w-4 mr-2" /> Domains</TabsTrigger>
           </TabsList>
 
           <div className="mt-6">
@@ -339,6 +341,9 @@ const AdminSettings = () => {
             </TabsContent>
             <TabsContent value="api">
               <APISettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+            </TabsContent>
+            <TabsContent value="domains">
+              <DomainManagementTab />
             </TabsContent>
           </div>
         </Tabs>
