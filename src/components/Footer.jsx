@@ -11,7 +11,9 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               {/* Logo and Copyright */}
             <div className="flex items-center space-x-4">
-              <Logo size="sm" showText={false} />
+              <Link to="/" className="hover:opacity-80 transition-opacity">
+                <Logo size="sm" showText={false} />
+              </Link>
               <div className="text-sm text-muted-foreground">
                 © {currentYear} Brain Link Tracker. All rights reserved.
               </div>
