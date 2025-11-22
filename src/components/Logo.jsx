@@ -1,5 +1,6 @@
 import React from 'react';
-import logoImage from '../assets/logo.png'; // Import the new logo image
+// import logoImage from '../assets/logo.png'; // Logo is now in the public folder
+const logoImage = '/logo.png';
 
 const Logo = ({ size = 'md', showText = true, className = '' }) => {
   const sizes = {
