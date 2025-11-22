@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Settings as SettingsIcon, User, Lock, CreditCard, Bell, Code, Trash2 } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Switch } from './ui/switch';
 import { toast } from 'sonner';
+import api from '../services/api';
 
 // --- Placeholder Components for Settings Sections ---
 
