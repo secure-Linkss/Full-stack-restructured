@@ -5,12 +5,17 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  if (!token) {
+    console.warn('[API] No authentication token found in storage');
+  }
+  return token;
 };
 
 // Helper function to make authenticated requests
 const fetchWithAuth = async (url, options = {}) => {
   const token = getAuthToken();
+  
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -18,34 +23,90 @@ const fetchWithAuth = async (url, options = {}) => {
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+    console.log('[API] Request with token:', url);
+  } else {
+    console.warn('[API] Request WITHOUT token:', url);
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include', // Include cookies for session-based auth
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    console.log(`[API] Response status for ${url}:`, response.status);
+
+    // Handle 401 Unauthorized
+    if (response.status === 401) {
+      console.error('[API] 401 Unauthorized - Authentication failed');
+      console.error('[API] Token in storage:', token ? 'EXISTS' : 'MISSING');
+      console.error('[API] Request URL:', url);
+      
+      // Clear invalid token
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      
+      // Redirect to login if not already there
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+        console.log('[API] Redirecting to login...');
+        window.location.href = '/login';
+      }
+      
+      throw new Error('Authentication required. Please log in again.');
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ 
+        message: `HTTP ${response.status}: ${response.statusText}` 
+      }));
+      console.error('[API] Request failed:', error);
+      throw new Error(error.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('[API] Request successful:', url);
+    return data;
+  } catch (error) {
+    console.error('[API] Request error:', error.message);
+    throw error;
   }
-
-  return response.json();
 };
 
 // API Service Object
 const api = {
   // ==================== AUTH APIs ====================
   auth: {
-    login: (credentials) => fetchWithAuth(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
+    login: async (credentials) => {
+      console.log('[API] Login attempt for:', credentials.username);
+      const response = await fetchWithAuth(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      });
+      
+      // Store token if present in response
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+        console.log('[API] Token stored successfully');
+      } else if (response.access_token) {
+        localStorage.setItem('token', response.access_token);
+        console.log('[API] Access token stored successfully');
+      } else {
+        console.warn('[API] No token in login response:', Object.keys(response));
+      }
+      
+      return response;
+    },
     register: (userData) => fetchWithAuth(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       body: JSON.stringify(userData),
     }),
-    logout: () => fetchWithAuth(`${API_BASE_URL}/auth/logout`, { method: 'POST' }),
+    logout: () => {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      console.log('[API] Token cleared on logout');
+      return fetchWithAuth(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
+    },
     getCurrentUser: () => fetchWithAuth(`${API_BASE_URL}/user/profile`),
   },
 
@@ -127,47 +188,28 @@ const api = {
     },
   },
 
-	  // ==================== GENERIC HTTP METHODS ====================
-	  get: (path, options) => fetchWithAuth(`${API_BASE_URL}${path}`, options),
-	  post: (path, body, options) => fetchWithAuth(`${API_BASE_URL}${path}`, {
-	    method: 'POST',
-	    body: JSON.stringify(body),
-	    ...options,
-	  }),
-	  put: (path, body, options) => fetchWithAuth(`${API_BASE_URL}${path}`, {
-	    method: 'PUT',
-	    body: JSON.stringify(body),
-	    ...options,
-	  }),
-	  delete: (path, options) => fetchWithAuth(`${API_BASE_URL}${path}`, {
-	    method: 'DELETE',
-	    ...options,
-	  }),
-	
-	  // ==================== TRACKING LINKS APIs ====================
-	  links: {
-	    getAll: (filters = {}) => {
-	      const params = new URLSearchParams(filters);
-	      return api.get(`/links?${params}`);
-	    },
-	    getById: (id) => api.get(`/links/${id}`),
-	    create: (linkData) => api.post('/links', linkData),
-	    update: (id, linkData) => api.put(`/links/${id}`, linkData),
-	    delete: (id) => api.delete(`/links/${id}`),
-	    regenerate: (id) => api.post(`/links/regenerate/${id}`), // Added regenerate
-	    getAnalytics: (id) => api.get(`/links/${id}/analytics`),
-	    bulkDelete: (ids) => api.post('/links/bulk-delete', { ids }),
-	  },
-	
-	  // ==================== LINK SHORTENER APIs ====================
-	  shorten: {
-	    getAll: (filters = {}) => {
-	      const params = new URLSearchParams(filters);
-	      return api.get(`/shorten?${params}`); // Assuming a /shorten endpoint
-	    },
-	    create: (linkData) => api.post('/shorten', linkData), // Used in CreateLink.jsx
-	    delete: (id) => api.delete(`/shorten/${id}`),
-	  },
+  // ==================== TRACKING LINKS APIs ====================
+  links: {
+    getAll: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/links?${params}`);
+    },
+    getById: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`),
+    create: (linkData) => fetchWithAuth(`${API_BASE_URL}/links`, {
+      method: 'POST',
+      body: JSON.stringify(linkData),
+    }),
+    update: (id, linkData) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(linkData),
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
+    getAnalytics: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/analytics`),
+    bulkDelete: (ids) => fetchWithAuth(`${API_BASE_URL}/links/bulk-delete`, {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
+  },
 
   // ==================== ANALYTICS APIs ====================
   analytics: {
@@ -299,7 +341,32 @@ const api = {
     getDashboard: () => fetchWithAuth(`${API_BASE_URL}/admin/dashboard/stats`),
     getMetrics: () => fetchWithAuth(`${API_BASE_URL}/admin/metrics`),
     getUsersGraph: (days = 30) => fetchWithAuth(`${API_BASE_URL}/admin/users/graph?days=${days}`),
-    getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),vate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/approve`, {
+    getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),
+  },
+
+  // ==================== ADMIN - USER MANAGEMENT APIs ====================
+  adminUsers: {
+    getAll: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/admin/users?${params}`);
+    },
+    getById: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`),
+    create: (userData) => fetchWithAuth(`${API_BASE_URL}/admin/users`, {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+    update: (id, userData) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(userData),
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/delete`, {
+      method: 'POST',
+    }),
+    suspend: (id, reason) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/suspend`, {
+      method: 'PATCH',
+      body: JSON.stringify({ suspend: true, reason }),
+    }),
+    activate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/approve`, {
       method: 'POST',
     }),
     impersonate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/impersonate`, {

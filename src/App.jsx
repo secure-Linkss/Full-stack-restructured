@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { auth } from './services/api.js';
 import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
@@ -25,47 +26,54 @@ import Profile from './components/Profile';
 import SupportTickets from './components/SupportTickets';
 import { Toaster, toast } from 'sonner';
 
-// Auth Context/Hook (Simplified for frontend focus)
+// Auth Context/Hook (Real API Integration)
 const useAuth = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock user data for frontend development
-    const mockUser = {
-      id: 1,
-      username: 'admin',
-      email: 'admin@brainlinktracker.com',
-      role: 'main_admin', // Use 'user' for non-admin
-      avatar_url: 'https://i.pravatar.cc/150?img=1',
+    const checkAuth = async () => {
+      // Check for existing token on mount
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (token) {
+        try {
+          const userProfile = await auth.getCurrentUser();
+          setUser(userProfile);
+        } catch (error) {
+          // Token is invalid or expired, log out user
+          console.error('Token validation failed:', error);
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+        }
+      }
+      setLoading(false);
     };
-
-    const token = localStorage.getItem('token');
-    if (token) {
-      // In a real app, this would verify the token
-      setUser(mockUser);
-    }
-    setLoading(false);
+    checkAuth();
   }, []);
 
   const login = async (username, password) => {
-    // Mock login success
-    localStorage.setItem('token', 'mock-token');
-    setUser({
-      id: 1,
-      username: 'admin',
-      email: 'admin@brainlinktracker.com',
-      role: 'main_admin',
-      avatar_url: 'https://i.pravatar.cc/150?img=1',
-    });
-    toast.success('Login successful! (Mock)');
-    return true;
+    try {
+      const response = await auth.login({ username, password });
+      // After successful login, fetch the user profile
+      const userProfile = await auth.getCurrentUser();
+      setUser(userProfile);
+      toast.success('Login successful!');
+      return true;
+    } catch (error) {
+      toast.error(error.message || 'Login failed. Please check your credentials.');
+      return false;
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    toast.info('Logged out');
+  const logout = async () => {
+    try {
+      await auth.logout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      setUser(null);
+      toast.info('Logged out');
+    }
   };
 
   return { user, loading, login, logout };
