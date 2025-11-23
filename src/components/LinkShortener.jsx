@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import CreateLinkForm from './forms/CreateLink'; // Reusing the form component
+import { LinkDetails } from './TrackingLinks'; // Reusing the LinkDetails component for consistency
 
 // --- Main LinkShortener Component ---
 
@@ -101,8 +102,8 @@ const LinkShortener = () => {
     { title: 'Total Clicks', value: metrics.totalClicks.toLocaleString(), icon: BarChart3 },
   ];
 
-  const columns = [
-    {
+	  const columns = [
+	    {
 	      header: 'Short Link',
 	      accessor: 'shortUrl',
 	      sortable: true,
@@ -121,24 +122,37 @@ const LinkShortener = () => {
 	        </div>
 	      ),
 	    },
-    {
-      header: 'Target URL',
-      accessor: 'targetUrl',
-      cell: (row) => <span className="text-sm text-muted-foreground truncate max-w-xs block">{row.targetUrl}</span>,
-    },
-    {
-      header: 'Clicks',
-      accessor: 'clicks',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{row.clicks.toLocaleString()}</span>,
-    },
-    {
-      header: 'Created',
-      accessor: 'createdAt',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>,
-    },
-  ];
+	    {
+	      header: 'Target URL',
+	      accessor: 'targetUrl',
+	      cell: (row) => <span className="text-sm text-muted-foreground truncate max-w-xs block">{row.targetUrl}</span>,
+	    },
+	    {
+	      header: 'Clicks',
+	      accessor: 'clicks',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm">{row.clicks.toLocaleString()}</span>,
+	    },
+	    {
+	      header: 'Created',
+	      accessor: 'createdAt',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>,
+	    },
+	    {
+	      header: 'Actions',
+	      id: 'actions',
+	      cell: ({ row }) => (
+	        <ActionIconGroup
+	          actions={[
+	            { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row.original) },
+	            { icon: Copy, label: 'Copy Link', onClick: () => handleAction('Copy Link', row.original) },
+	            { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row.original) },
+	          ]}
+	        />
+	      ),
+	    },
+	  ];
 
   return (
     <div className="space-y-6">
@@ -191,36 +205,40 @@ const LinkShortener = () => {
           {loading ? (
             <div className="text-center text-muted-foreground p-10">Loading Shortened Links...</div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={filteredLinks}
-              pageSize={10}
-              actions={(row) => (
-                <div className="flex space-x-1">
-                  <ActionIconGroup
-                    actions={[
-                      { icon: Copy, label: 'Copy Link', onClick: () => handleAction('Copy Link', row) },
-                      { icon: BarChart3, label: 'View Analytics', onClick: () => handleAction('View Analytics', row) },
-	                      { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row) },
-	                      { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row) },
-                    ]}
-                  />
-                </div>
-              )}
-            />
+		            <DataTable
+		              columns={columns}
+		              data={filteredLinks}
+		              pageSize={10}
+		              actions={(row) => (
+		                <div className="flex space-x-1">
+		                  <ActionIconGroup
+		                    actions={[
+		                      { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row) },
+		                      { icon: Copy, label: 'Copy Link', onClick: () => handleAction('Copy Link', row) },
+		                      { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row) },
+		                    ]}
+		                  />
+		                </div>
+		              )}
+		              expandedContent={(row) => <LinkDetails link={{ trackingUrl: row.shortUrl }} handleAction={handleAction} />}
+			            />
           )}
         </CardContent>
       </Card>
 
       {/* Create New Link Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-card border-border">
-          <DialogHeader>
-	          <DialogTitle className="text-foreground">Create New Link</DialogTitle>
+	        <DialogContent className="sm:max-w-[600px] bg-card border-border">
+	          <DialogHeader>
+		            <DialogTitle className="text-foreground">Create New Short Link</DialogTitle>
           </DialogHeader>
-	          <CreateLinkForm onClose={() => setIsCreateModalOpen(false)} onLinkCreated={fetchData} type="shortener" />
-        </DialogContent>
-      </Dialog>
+	          	          <CreateLinkForm 
+	            onClose={() => setIsCreateModalOpen(false)} 
+	            onLinkCreated={fetchData} 
+	            type="shortener" // Explicitly set type to shortener
+	          />
+	        </DialogContent>
+		      </Dialog>
     </div>
   );
 };

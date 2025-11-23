@@ -177,7 +177,7 @@ const Dashboard = () => {
         onSearch={() => {}}
         onRefresh={handleRefresh}
         onExport={handleExport}
-        dateRangeOptions={['7d', '30d', '90d']}
+	        dateRangeOptions={['24h', '2d', '7d', '30d', '90d', '180d', '365d']}
         onDateRangeChange={setDateRange}
         selectedDateRange={dateRange}
       />
@@ -259,17 +259,75 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Captures Table */}
-        <div className="lg:col-span-1">
-          <AdvancedTable
-            title="Recent Captures"
-            data={recentCaptures || []}
-            columns={recentCapturesColumns}
-            loading={false}
-            pageSize={5}
-          />
-        </div>
-      </div>
+	        {/* Recent Captures Table */}
+	        <div className="lg:col-span-1">
+	          <AdvancedTable
+	            title="Recent Captures"
+	            data={recentCaptures || []}
+	            columns={recentCapturesColumns}
+	            loading={false}
+	            pageSize={5}
+	          />
+	        </div>
+	      </div>
+
+	      {/* A/B Testing and API Generation Sections */}
+	      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+	        {/* A/B Testing Overview */}
+	        <Card>
+	          <CardHeader>
+	            <CardTitle>A/B Testing Overview</CardTitle>
+	          </CardHeader>
+	          <CardContent>
+	            <p className="text-muted-foreground mb-4">
+	              Monitor the performance of your A/B tests across different link variations.
+	            </p>
+	            <AdvancedTable
+	              title="Active Tests"
+	              data={[]} // Placeholder for A/B test data
+	              columns={[
+	                { key: 'testName', header: 'Test Name', sortable: true },
+	                { key: 'status', header: 'Status', sortable: true },
+	                { key: 'conversionRate', header: 'Conversion Rate', sortable: true },
+	                { key: 'winner', header: 'Winner', sortable: true },
+	              ]}
+	              loading={false}
+	              pageSize={5}
+	            />
+	            <Button variant="link" className="mt-2 p-0">View All A/B Tests</Button>
+	          </CardContent>
+	        </Card>
+
+	        {/* API Generation and Integration */}
+	        <Card>
+	          <CardHeader>
+	            <CardTitle>API Generation & Integration</CardTitle>
+	          </CardHeader>
+	          <CardContent>
+	            <p className="text-muted-foreground mb-4">
+	              Generate API keys and view documentation for seamless integration with external systems.
+	            </p>
+	            <div className="space-y-4">
+	              <div className="flex justify-between items-center border-b pb-2">
+	                <span className="font-medium">Current API Key:</span>
+	                <Badge variant="secondary" className="font-mono">********************</Badge>
+	              </div>
+	              <div className="flex justify-between items-center">
+	                <Button variant="default">Generate New Key</Button>
+	                <Button variant="outline">View Documentation</Button>
+	              </div>
+	            </div>
+	            <div className="mt-4">
+	              <h4 className="font-semibold mb-2">API Usage (Last 30 Days)</h4>
+	              <ul className="text-sm text-muted-foreground space-y-1">
+	                <li>Total Requests: 1,245</li>
+	                <li>Successful Requests: 1,230</li>
+	                <li>Rate Limit Errors: 15</li>
+	              </ul>
+	            </div>
+	          </CardContent>
+	        </Card>
+	      </div>
     </div>
   );
 };

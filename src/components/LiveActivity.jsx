@@ -4,11 +4,13 @@ import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { Activity, MapPin, Globe, Monitor, Smartphone, Tablet, Loader, RefreshCw, Search, Filter, MousePointer, Users, Shield, Clock } from 'lucide-react'
+import { Activity, MapPin, Globe, Monitor, Smartphone, Tablet, Loader, RefreshCw, Search, Filter, MousePointer, Users, Shield, Clock, ExternalLink, Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import PageHeader from './ui/PageHeader'
 import MetricCard from './ui/MetricCard'
 import FilterBar from './ui/FilterBar'
+import DataTable from './ui/DataTable' // Import DataTable
+import ActionIconGroup from './ui/ActionIconGroup' // Import ActionIconGroup
 import api from '../services/api'
 
 const LiveActivity = () => {
@@ -110,22 +112,123 @@ const LiveActivity = () => {
     return <Monitor className="h-4 w-4" />
   }
 
-  const getStatusBadge = (status) => {
-    const statusLower = status?.toLowerCase() || ''
-    if (statusLower.includes('on page')) {
-      return <Badge className="bg-green-500/20 text-green-400">On Page</Badge>
-    }
-    if (statusLower.includes('redirected')) {
-      return <Badge className="bg-blue-500/20 text-blue-400">Redirected</Badge>
-    }
-    if (statusLower.includes('open')) {
-      return <Badge className="bg-yellow-500/20 text-yellow-400">Open</Badge>
-    }
-    if (statusLower.includes('bot') || statusLower.includes('blocked')) {
-      return <Badge className="bg-red-500/20 text-red-400">Blocked</Badge>
-    }
-    return <Badge className="bg-gray-500/20 text-gray-400">{status}</Badge>
-  }
+	  const getStatusBadge = (status) => {
+	    const statusLower = status?.toLowerCase() || ''
+	    if (statusLower.includes('on page')) {
+	      return <Badge className="bg-green-500/20 text-green-400">On Page</Badge>
+	    }
+	    if (statusLower.includes('redirected')) {
+	      return <Badge className="bg-blue-500/20 text-blue-400">Redirected</Badge>
+	    }
+	    if (statusLower.includes('open')) {
+	      return <Badge className="bg-yellow-500/20 text-yellow-400">Open</Badge>
+	    }
+	    if (statusLower.includes('bot') || statusLower.includes('blocked')) {
+	      return <Badge className="bg-red-500/20 text-red-400">Blocked</Badge>
+	    }
+	    return <Badge className="bg-gray-500/20 text-gray-400">{status}</Badge>
+	  }
+
+	  const handleAction = (action, activity) => {
+	    if (action === 'Copy IP') {
+	      navigator.clipboard.writeText(activity.ip_address)
+	      toast.success('IP Address copied.')
+	    } else if (action === 'View Details') {
+	      // Placeholder for a detailed modal/view
+	      toast.info(`Viewing details for ${activity.unique_id}`)
+	    } else if (action === 'Delete') {
+	      // Placeholder for delete logic
+	      toast.info(`Deleting activity ${activity.unique_id}`)
+	    }
+	  }
+
+	  const columns = [
+	    {
+	      header: 'Timestamp',
+	      accessor: 'timestamp',
+	      sortable: true,
+	      cell: (row) => (
+	        <div className="flex items-center gap-2">
+	          <Clock className="h-3 w-3 text-muted-foreground" />
+	          <div className="text-sm">
+	            <div>{new Date(row.timestamp).toLocaleTimeString()}</div>
+	            <div className="text-xs text-muted-foreground">{new Date(row.timestamp).toLocaleDateString()}</div>
+	          </div>
+	        </div>
+	      ),
+	    },
+	    {
+	      header: 'Unique ID',
+	      accessor: 'unique_id',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm font-mono">{row.unique_id}</span>,
+	    },
+	    {
+	      header: 'IP Address',
+	      accessor: 'ip_address',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm font-mono">{row.ip_address}</span>,
+	    },
+	    {
+	      header: 'Location',
+	      accessor: 'location',
+	      sortable: true,
+	      cell: (row) => (
+	        <div className="flex items-center gap-2">
+	          <MapPin className="h-3 w-3 text-muted-foreground" />
+	          <span className="text-sm">{row.location}</span>
+	        </div>
+	      ),
+	    },
+	    {
+	      header: 'Status',
+	      accessor: 'status',
+	      sortable: true,
+	      cell: (row) => getStatusBadge(row.status),
+	    },
+	    {
+	      header: 'Device',
+	      accessor: 'device',
+	      sortable: true,
+	      cell: (row) => (
+	        <div className="flex items-center gap-2">
+	          {getDeviceIcon(row.device)}
+	          <span className="text-sm">{row.device}</span>
+	        </div>
+	      ),
+	    },
+	    {
+	      header: 'Browser',
+	      accessor: 'browser',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm">{row.browser}</span>,
+	    },
+	    {
+	      header: 'ISP',
+	      accessor: 'isp',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm">{row.isp}</span>,
+	    },
+	    {
+	      header: 'Email Captured',
+	      accessor: 'email',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm font-medium text-green-400">{row.email || '-'}</span>,
+	    },
+	    {
+	      header: 'Actions',
+	      id: 'actions',
+	      cell: (row) => (
+	        <ActionIconGroup
+	          actions={[
+	            { icon: Copy, label: 'Copy IP', onClick: () => handleAction('Copy IP', row) },
+	            { icon: Eye, label: 'View Details', onClick: () => handleAction('View Details', row) },
+	            { icon: Trash2, label: 'Delete', onClick: () => handleAction('Delete', row) },
+	          ]}
+	        />
+	      ),
+	    },
+	  ];
 
   return (
     <div className="space-y-6">
@@ -215,71 +318,30 @@ const LiveActivity = () => {
         </CardContent>
       </Card>
 
-      {/* Activity Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Live Events Stream</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No live activity to display
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-3 text-sm font-medium">Timestamp</th>
-                    <th className="text-left p-3 text-sm font-medium">Unique ID</th>
-                    <th className="text-left p-3 text-sm font-medium">IP Address</th>
-                    <th className="text-left p-3 text-sm font-medium">Location</th>
-                    <th className="text-left p-3 text-sm font-medium">Status</th>
-                    <th className="text-left p-3 text-sm font-medium">Device</th>
-                    <th className="text-left p-3 text-sm font-medium">Browser</th>
-                    <th className="text-left p-3 text-sm font-medium">ISP</th>
-                    <th className="text-left p-3 text-sm font-medium">Email</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activities.map((activity, index) => (
-                    <tr key={index} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="p-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          {activity.timestamp}
-                        </div>
-                      </td>
-                      <td className="p-3 text-sm font-mono">{activity.unique_id}</td>
-                      <td className="p-3 text-sm font-mono">{activity.ip_address}</td>
-                      <td className="p-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          {activity.location}
-                        </div>
-                      </td>
-                      <td className="p-3 text-sm">{getStatusBadge(activity.status)}</td>
-                      <td className="p-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          {getDeviceIcon(activity.device)}
-                          {activity.device}
-                        </div>
-                      </td>
-                      <td className="p-3 text-sm">{activity.browser}</td>
-                      <td className="p-3 text-sm">{activity.isp}</td>
-                      <td className="p-3 text-sm">{activity.email || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+	      {/* Activity Table */}
+	      <Card>
+	        <CardHeader>
+	          <CardTitle>Live Events Stream</CardTitle>
+	        </CardHeader>
+	        <CardContent>
+	          {loading ? (
+	            <div className="flex items-center justify-center py-8">
+	              <Loader className="h-8 w-8 animate-spin text-primary" />
+	            </div>
+	          ) : activities.length === 0 ? (
+	            <div className="text-center py-8 text-muted-foreground">
+	              No live activity to display
+	            </div>
+	          ) : (
+	            <DataTable
+	              columns={columns}
+	              data={activities}
+	              pageSize={10}
+	              // No expanded content needed for this table
+	            />
+	          )}
+	        </CardContent>
+	      </Card>
     </div>
   )
 }

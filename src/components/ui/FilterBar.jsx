@@ -11,7 +11,7 @@ const FilterBar = ({
   onExport,
   filterOptions = [], // e.g., [{ value: 'all', label: 'All' }, ...]
   onFilterChange,
-  dateRangeOptions = ['7d', '30d', '90d', 'All'],
+	  dateRangeOptions = ['24h', '2d', '7d', '30d', '90d', '180d', '365d', 'All'],
   onDateRangeChange,
   selectedDateRange = '7d',
   extraButtons, // Array of extra button components
@@ -45,19 +45,20 @@ const FilterBar = ({
         />
       </div>
 
-      {/* Date Range Buttons */}
-      <div className="flex space-x-1">
-        {dateRangeOptions.map(range => (
-          <Button
-            key={range}
-            variant={selectedDateRange === range ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onDateRangeChange(range)}
-          >
-            {range}
-          </Button>
-        ))}
-      </div>
+	      {/* Date Range Buttons */}
+	      <div className="flex flex-wrap gap-1">
+	        {dateRangeOptions.map(range => (
+	          <Button
+	            key={range}
+	            variant={selectedDateRange === range ? 'default' : 'outline'}
+	            size="sm"
+	            onClick={() => onDateRangeChange(range)}
+	            className="text-xs px-2 py-1 h-auto"
+	          >
+	            {range}
+	          </Button>
+	        ))}
+	      </div>
 
       {/* Action Buttons */}
       <div className="flex items-center space-x-3 ml-auto">

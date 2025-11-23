@@ -7,7 +7,10 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { toast } from 'sonner';
-import DomainManagementTab from './DomainManagementTab';
+	import DomainManagementTab from './DomainManagementTab';
+	import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+	import { Trash2, Database, AlertCircle } from 'lucide-react';
+	import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import api from '../../services/api';
 
 // --- Sub-Components for Settings Tabs ---
@@ -233,10 +236,125 @@ const APISettings = ({ settings, setSettings, saving, handleSave }) => (
 
 // --- Main Admin Settings Component ---
 
-const AdminSettings = () => {
-  const [settings, setSettings] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+	const SystemSettings = ({ dashboardStats, loadingStats }) => {
+	  const [confirmText, setConfirmText] = useState('');
+	  const [systemDeleteDialog, setSystemDeleteDialog] = useState(false);
+	  const [deleting, setDeleting] = useState(false);
+	
+	  const deleteAllSystemData = async () => {
+	    if (confirmText !== 'DELETE ALL DATA') {
+	      toast.error('Please type "DELETE ALL DATA" to confirm');
+	      return;
+	    }
+	
+	    setDeleting(true);
+	    try {
+	      await api.admin.deleteAllData();
+	      toast.success('All system data deleted successfully.');
+	      setSystemDeleteDialog(false);
+	      setConfirmText('');
+	      // Optionally refresh stats
+	    } catch (error) {
+	      toast.error('Failed to delete system data.');
+	    } finally {
+	      setDeleting(false);
+	    }
+	  };
+	
+	  return (
+	    <div className="space-y-6">
+	      <Card>
+	        <CardHeader>
+	          <CardTitle className="flex items-center"><AlertTriangle className="h-5 w-5 mr-2 text-red-500" /> Danger Zone</CardTitle>
+	          <p className="text-sm text-muted-foreground">Irreversible system-wide actions.</p>
+	        </CardHeader>
+	        <CardContent>
+	          <Dialog open={systemDeleteDialog} onOpenChange={setSystemDeleteDialog}>
+	            <DialogTrigger asChild>
+	              <Button variant="destructive" className="w-full">
+	                <Trash2 className="h-4 w-4 mr-2" />
+	                Delete All System Data
+	              </Button>
+	            </DialogTrigger>
+	            <DialogContent>
+	              <DialogHeader>
+	                <DialogTitle className="text-red-500">Confirm Deletion</DialogTitle>
+	                <DialogDescription>
+	                  This action is permanent and cannot be undone. All user data, links, and logs will be deleted. Type "DELETE ALL DATA" to confirm.
+	                </DialogDescription>
+	              </DialogHeader>
+	              <Input
+	                value={confirmText}
+	                onChange={(e) => setConfirmText(e.target.value)}
+	                placeholder='Type "DELETE ALL DATA" to confirm'
+	              />
+	              <div className="flex justify-end space-x-2">
+	                <Button variant="outline" onClick={() => setSystemDeleteDialog(false)}>Cancel</Button>
+	                <Button onClick={deleteAllSystemData} variant="destructive" disabled={confirmText !== 'DELETE ALL DATA' || deleting}>
+	                  {deleting ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+	                  {deleting ? 'Deleting...' : 'Delete All Data'}
+	                </Button>
+	              </div>
+	            </DialogContent>
+	          </Dialog>
+	        </CardContent>
+	      </Card>
+	
+	      <Card>
+	        <CardHeader>
+	          <CardTitle className="flex items-center"><Database className="h-5 w-5 mr-2 text-primary" /> Database Info</CardTitle>
+	          <p className="text-sm text-muted-foreground">Current statistics on database usage.</p>
+	        </CardHeader>
+	        <CardContent className="space-y-3">
+	          {loadingStats ? (
+	            <div className="flex items-center justify-center h-20">
+	              <Loader className="h-6 w-6 animate-spin text-primary" />
+	            </div>
+	          ) : (
+	            <>
+	              <div className="flex justify-between border-b pb-2">
+	                <span className="font-medium">Total Users:</span>
+	                <span>{dashboardStats.totalUsers?.toLocaleString() || 0}</span>
+	              </div>
+	              <div className="flex justify-between border-b pb-2">
+	                <span className="font-medium">Total Links:</span>
+	                <span>{dashboardStats.totalLinks?.toLocaleString() || 0}</span>
+	              </div>
+	              <div className="flex justify-between">
+	                <span className="font-medium">Total Clicks:</span>
+	                <span>{dashboardStats.totalClicks?.toLocaleString() || 0}</span>
+	              </div>
+	            </>
+	          )}
+	        </CardContent>
+	      </Card>
+	    </div>
+	  );
+	};
+	
+	const AdminSettings = () => {
+	  const [settings, setSettings] = useState({});
+	  const [dashboardStats, setDashboardStats] = useState({});
+	  const [loading, setLoading] = useState(true);
+	  const [loadingStats, setLoadingStats] = useState(true);
+	  const [saving, setSaving] = useState(false);
+	
+	  const fetchDashboardStats = async () => {
+	    setLoadingStats(true);
+	    try {
+	      const response = await api.get('/api/admin/dashboard');
+	      setDashboardStats(response.data || {});
+	    } catch (error) {
+	      console.error('Failed to load dashboard stats:', error);
+	    } finally {
+	      setLoadingStats(false);
+	    }
+	  };
+	
+	  useEffect(() => {
+	    fetchSettings();
+	    fetchDashboardStats();
+	  }, []);
 
   useEffect(() => {
     fetchSettings();
@@ -322,34 +440,38 @@ const AdminSettings = () => {
             <TabsTrigger value="email"><Mail className="h-4 w-4 mr-2" /> Email</TabsTrigger>
             <TabsTrigger value="payment"><CreditCard className="h-4 w-4 mr-2" /> Payment</TabsTrigger>
             <TabsTrigger value="cdn"><Globe className="h-4 w-4 mr-2" /> CDN/Storage</TabsTrigger>
-            <TabsTrigger value="api"><Code className="h-4 w-4 mr-2" /> API/Integrations</TabsTrigger>
-            <TabsTrigger value="domains"><Globe className="h-4 w-4 mr-2" /> Domains</TabsTrigger>
-          </TabsList>
-
-          <div className="mt-6">
-            <TabsContent value="general">
-              <GeneralSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="email">
-              <EmailSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="payment">
-              <PaymentSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="cdn">
-              <CDNStorageSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="api">
-              <APISettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="domains">
-              <DomainManagementTab />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </CardContent>
-    </Card>
-  );
-};
+	            <TabsTrigger value="api"><Code className="h-4 w-4 mr-2" /> API/Integrations</TabsTrigger>
+	            <TabsTrigger value="domains"><Globe className="h-4 w-4 mr-2" /> Domains</TabsTrigger>
+	            <TabsTrigger value="system"><AlertCircle className="h-4 w-4 mr-2" /> System</TabsTrigger>
+	          </TabsList>
+	
+	          <div className="mt-6">
+	            <TabsContent value="general">
+	              <GeneralSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+	            </TabsContent>
+	            <TabsContent value="email">
+	              <EmailSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+	            </TabsContent>
+	            <TabsContent value="payment">
+	              <PaymentSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+	            </TabsContent>
+	            <TabsContent value="cdn">
+	              <CDNStorageSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+	            </TabsContent>
+	            <TabsContent value="api">
+	              <APISettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+	            </TabsContent>
+	            <TabsContent value="domains">
+	              <DomainManagementTab />
+	            </TabsContent>
+	            <TabsContent value="system">
+	              <SystemSettings dashboardStats={dashboardStats} loadingStats={loadingStats} />
+	            </TabsContent>
+	          </div>
+	        </Tabs>
+	      </CardContent>
+	    </Card>
+	  );
+	};
 
 export default AdminSettings;

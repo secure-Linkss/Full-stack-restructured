@@ -14,7 +14,7 @@ import CreateLinkForm from './forms/CreateLink'; // Placeholder for the new form
 
 // --- Helper Component for Link Row Details ---
 // This component displays the generated links (Tracking URL, Pixel URL, Email Code) and action buttons
-const LinkDetails = ({ link, handleAction }) => {
+export const LinkDetails = ({ link, handleAction }) => {
   const trackingUrl = link.trackingUrl || "N/A";
   const pixelUrl = link.pixelUrl || "N/A";
   const emailCode = link.emailCode || "N/A";
@@ -92,12 +92,15 @@ const TrackingLinks = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [linksData, metricsData] = await Promise.all([
-        api.getTrackingLinks(),
-        api.getTrackingLinksMetrics(),
-      ]);
+      const linksData = await api.getTrackingLinks();
       setLinks(linksData);
-      setMetrics(metricsData);
+
+      // Calculate metrics from the fetched links data
+      const totalClicks = linksData.reduce((sum, link) => sum + (link.totalClicks || 0), 0);
+      const realVisitors = linksData.reduce((sum, link) => sum + (link.realVisitors || 0), 0);
+      const botsBlocked = linksData.reduce((sum, link) => sum + (link.botsBlocked || 0), 0);
+      setMetrics({ totalClicks, realVisitors, botsBlocked });
+      
       toast.success('Tracking links refreshed.');
     } catch (error) {
       console.error('Error fetching links:', error);
@@ -164,9 +167,9 @@ const TrackingLinks = () => {
     { title: 'Bots Blocked', value: metrics.botsBlocked.toLocaleString(), icon: Shield },
   ];
 
-  const columns = [
-    {
-	      header: 'Link Name',
+	  const columns = [
+	    {
+	      header: 'Campaign Name',
 	      accessor: 'campaignName',
 	      sortable: true,
 	      cell: (row) => (
@@ -182,34 +185,43 @@ const TrackingLinks = () => {
 	        </div>
 	      ),
 	    },
-    {
-      header: 'Target URL',
-      accessor: 'targetUrl',
-      cell: (row) => <a href={row.targetUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">{row.targetUrl}</a>,
-    },
-    {
-      header: 'Clicks',
-      accessor: 'totalClicks',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{row.totalClicks.toLocaleString()}</span>,
-    },
-    {
-      header: 'Visitors',
-      accessor: 'realVisitors',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{row.realVisitors.toLocaleString()}</span>,
-    },
-    {
-      header: 'Security',
-      accessor: 'security',
-      cell: (row) => (
-        <div className="flex items-center space-x-1">
-          {row.securityFeatures.botBlocking && <Shield className="h-4 w-4 text-green-500" title="Bot Blocking Enabled" />}
-          {row.securityFeatures.rateLimiting && <Eye className="h-4 w-4 text-yellow-500" title="Rate Limiting Enabled" />}
-        </div>
-      ),
-    },
-  ];
+	    {
+	      header: 'Target URL',
+	      accessor: 'targetUrl',
+	      cell: (row) => <a href={row.targetUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">{row.targetUrl}</a>,
+	    },
+	    {
+	      header: 'Clicks',
+	      accessor: 'totalClicks',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm">{row.totalClicks.toLocaleString()}</span>,
+	    },
+	    {
+	      header: 'Real Visitors',
+	      accessor: 'realVisitors',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm">{row.realVisitors.toLocaleString()}</span>,
+	    },
+	    {
+	      header: 'Bots Blocked',
+	      accessor: 'botsBlocked',
+	      sortable: true,
+	      cell: (row) => <span className="text-sm">{row.botsBlocked.toLocaleString()}</span>,
+	    },
+	    {
+	      header: 'Status',
+	      accessor: 'status',
+	      cell: (row) => (
+	        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+	          row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+	          row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+	          'bg-red-500/20 text-red-400'
+	        }`}>
+	          {row.status}
+	        </span>
+	      ),
+	    },
+	  ];
 
   return (
     <div className="space-y-6">
@@ -284,15 +296,19 @@ const TrackingLinks = () => {
         </CardContent>
       </Card>
 
-      {/* Create New Link Modal (Based on IMG_5375.jpeg) */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Create New Link</DialogTitle>
-          </DialogHeader>
-          <CreateLinkForm onClose={() => setIsCreateModalOpen(false)} onLinkCreated={fetchData} />
-        </DialogContent>
-      </Dialog>
+	      {/* Create New Link Modal */}
+	      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+	        <DialogContent className="sm:max-w-[600px] bg-card border-border">
+	          <DialogHeader>
+	            <DialogTitle className="text-foreground">Create New Tracking Link</DialogTitle>
+	          </DialogHeader>
+	          <CreateLinkForm 
+	            onClose={() => setIsCreateModalOpen(false)} 
+	            onLinkCreated={fetchData} 
+	            type="tracking"
+	          />
+	        </DialogContent>
+	      </Dialog>
     </div>
   );
 };
