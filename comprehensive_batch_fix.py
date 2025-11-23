@@ -1,4 +1,62 @@
-import React, { useState, useEffect } from 'react';
+#!/usr/bin/env python3
+"""
+Comprehensive Batch Fix Script for Brain Link Tracker
+Addresses all critical issues identified in the audit
+"""
+
+import os
+import sys
+import re
+import json
+import shutil
+from pathlib import Path
+
+class ComprehensiveFixer:
+    def __init__(self, project_root):
+        self.project_root = Path(project_root)
+        self.fixes_applied = []
+        self.errors = []
+        
+    def log(self, message, level="INFO"):
+        """Log messages with level"""
+        prefix = f"[{level}]"
+        print(f"{prefix} {message}")
+        
+    def fix_favicon(self):
+        """Fix 1: Update favicon to use correct logo"""
+        try:
+            self.log("Fixing favicon...")
+            
+            # Update index.html to use favicon.png
+            index_html_path = self.project_root / "index.html"
+            with open(index_html_path, 'r') as f:
+                content = f.read()
+            
+            # Replace favicon references
+            content = re.sub(
+                r'<link rel="icon"[^>]*/>',
+                '<link rel="icon" type="image/png" href="/favicon.png" />',
+                content
+            )
+            
+            with open(index_html_path, 'w') as f:
+                f.write(content)
+            
+            self.fixes_applied.append("✓ Favicon updated to use correct logo")
+            self.log("Favicon fixed successfully", "SUCCESS")
+            
+        except Exception as e:
+            self.errors.append(f"Favicon fix failed: {str(e)}")
+            self.log(f"Favicon fix failed: {str(e)}", "ERROR")
+    
+    def fix_profile_mock_data(self):
+        """Fix 2: Remove mock data from Profile component"""
+        try:
+            self.log("Fixing Profile component to use real API...")
+            
+            profile_path = self.project_root / "src/components/Profile.jsx"
+            
+            new_profile_content = '''import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -383,3 +441,72 @@ const Profile = () => {
 };
 
 export default Profile;
+'''
+            
+            with open(profile_path, 'w') as f:
+                f.write(new_profile_content)
+            
+            self.fixes_applied.append("✓ Profile component updated to use real API (removed mock data)")
+            self.log("Profile component fixed successfully", "SUCCESS")
+            
+        except Exception as e:
+            self.errors.append(f"Profile fix failed: {str(e)}")
+            self.log(f"Profile fix failed: {str(e)}", "ERROR")
+    
+    def generate_report(self):
+        """Generate comprehensive fix report"""
+        report = f"""
+{'='*80}
+COMPREHENSIVE BATCH FIX REPORT
+{'='*80}
+
+Project: Brain Link Tracker
+Date: {os.popen('date').read().strip()}
+Location: {self.project_root}
+
+{'='*80}
+FIXES APPLIED ({len(self.fixes_applied)})
+{'='*80}
+
+"""
+        for fix in self.fixes_applied:
+            report += f"{fix}\n"
+        
+        if self.errors:
+            report += f"\n{'='*80}\nERRORS ENCOUNTERED ({len(self.errors)})\n{'='*80}\n\n"
+            for error in self.errors:
+                report += f"✗ {error}\n"
+        
+        report += f"\n{'='*80}\nNEXT STEPS\n{'='*80}\n\n"
+        report += "1. Run backend API checks\n"
+        report += "2. Build frontend and backend\n"
+        report += "3. Push all changes to GitHub\n"
+        report += "4. Verify deployment\n"
+        
+        return report
+    
+    def run_all_fixes(self):
+        """Execute all fixes"""
+        self.log("Starting comprehensive batch fix process...")
+        self.log(f"Project root: {self.project_root}")
+        
+        # Execute fixes
+        self.fix_favicon()
+        self.fix_profile_mock_data()
+        
+        # Generate and save report
+        report = self.generate_report()
+        report_path = self.project_root / "BATCH_FIX_REPORT.md"
+        with open(report_path, 'w') as f:
+            f.write(report)
+        
+        print("\n" + report)
+        self.log(f"Report saved to: {report_path}", "SUCCESS")
+        
+        return len(self.errors) == 0
+
+if __name__ == "__main__":
+    project_root = os.getcwd()
+    fixer = ComprehensiveFixer(project_root)
+    success = fixer.run_all_fixes()
+    sys.exit(0 if success else 1)
