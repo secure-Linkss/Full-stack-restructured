@@ -13,73 +13,72 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import CreateLinkForm from './forms/CreateLink'; // Placeholder for the new form component
 
 // --- Helper Component for Link Row Details ---
-const LinkDetails = ({ link }) => (
-  <div className="space-y-3 text-sm mt-2 p-4 bg-muted/50 rounded-lg border border-border">
-    <div className="flex flex-col">
-      <span className="font-semibold text-muted-foreground">Target URL:</span>
-      <a href={link.targetUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs truncate">{link.targetUrl}</a>
-    </div>
-    <div className="flex flex-col">
-      <span className="font-semibold text-muted-foreground">Tracking URL:</span>
-      <div className="flex items-center justify-between">
-        <code className="text-xs text-foreground truncate">{link.trackingUrl}</code>
-        <ActionIconGroup
-          actions={[
-            {
-              icon: Copy,
-              label: 'Copy Tracking URL',
-              onClick: () => {
-                navigator.clipboard.writeText(link.trackingUrl);
-                toast.success('Tracking URL copied!');
-              },
-            },
-            {
-              icon: ExternalLink,
-              label: 'Test Link',
-              onClick: () => window.open(link.trackingUrl, '_blank'),
-            },
-          ]}
-        />
+// This component displays the generated links (Tracking URL, Pixel URL, Email Code) and action buttons
+const LinkDetails = ({ link, handleAction }) => {
+  const trackingUrl = link.trackingUrl || "N/A";
+  const pixelUrl = link.pixelUrl || "N/A";
+  const emailCode = link.emailCode || "N/A";
+
+  const copyToClipboard = (text, type) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${type} copied to clipboard!`);
+  };
+
+  const testLink = () => {
+    if (trackingUrl !== "N/A") {
+      window.open(trackingUrl, '_blank');
+    } else {
+      toast.error("Tracking URL is not available to test.");
+    }
+  };
+
+  return (
+    <div className="space-y-4 p-4 bg-slate-800 rounded-lg border border-slate-700 text-sm">
+      <h4 className="text-base font-semibold text-white">Generated Links</h4>
+      
+      {/* Tracking URL */}
+      <div className="space-y-1">
+        <span className="font-medium text-slate-400">TRACKING URL</span>
+        <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
+          <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{trackingUrl}</code>
+          <ActionIconGroup
+            actions={[
+              { icon: Copy, label: 'Copy Tracking URL', onClick: () => copyToClipboard(trackingUrl, 'Tracking URL') },
+              { icon: ExternalLink, label: 'Test Link', onClick: testLink },
+              { icon: RefreshCw, label: 'Regenerate Link', onClick: () => handleAction('Regenerate', link) },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* PIXEL URL */}
+      <div className="space-y-1">
+        <span className="font-medium text-slate-400">PIXEL URL</span>
+        <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
+          <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{pixelUrl}</code>
+          <ActionIconGroup
+            actions={[
+              { icon: Copy, label: 'Copy Pixel URL', onClick: () => copyToClipboard(pixelUrl, 'Pixel URL') },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* EMAIL CODE */}
+      <div className="space-y-1">
+        <span className="font-medium text-slate-400">EMAIL CODE</span>
+        <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
+          <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{emailCode}</code>
+          <ActionIconGroup
+            actions={[
+              { icon: Copy, label: 'Copy Email Code', onClick: () => copyToClipboard(emailCode, 'Email Code') },
+            ]}
+          />
+        </div>
       </div>
     </div>
-    <div className="flex flex-col">
-      <span className="font-semibold text-muted-foreground">Pixel URL:</span>
-      <div className="flex items-center justify-between">
-        <code className="text-xs text-foreground truncate">{link.pixelUrl}</code>
-        <ActionIconGroup
-          actions={[
-            {
-              icon: Copy,
-              label: 'Copy Pixel URL',
-              onClick: () => {
-                navigator.clipboard.writeText(link.pixelUrl);
-                toast.success('Pixel URL copied!');
-              },
-            },
-          ]}
-        />
-      </div>
-    </div>
-    <div className="flex flex-col">
-      <span className="font-semibold text-muted-foreground">Email Code:</span>
-      <div className="flex items-center justify-between">
-        <code className="text-xs text-foreground truncate">{link.emailCode}</code>
-        <ActionIconGroup
-          actions={[
-            {
-              icon: Copy,
-              label: 'Copy Email Code',
-              onClick: () => {
-                navigator.clipboard.writeText(link.emailCode);
-                toast.success('Email Code copied!');
-              },
-            },
-          ]}
-        />
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 // --- Main Component ---
 const TrackingLinks = () => {
@@ -120,9 +119,35 @@ const TrackingLinks = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleAction = (action, link) => {
-    toast.info(`${action} action triggered for link: ${link.campaignName}`);
-    // Mock action logic
+  const handleAction = async (action, link) => {
+    if (action === 'Regenerate') {
+      if (window.confirm(`Are you sure you want to regenerate the tracking link for "${link.campaignName}"? The old link will no longer work.`)) {
+        try {
+          // Assuming an API endpoint for regeneration exists
+          // Use the new dedicated API method
+          const response = await api.links.regenerate(link.id); 
+          // In a real app, you would update the link in the state with the new URLs
+          // For now, we'll just refetch all data
+          fetchData();
+          toast.success(`Link "${link.campaignName}" regenerated successfully!`);
+        } catch (error) {
+          toast.error(`Failed to regenerate link: ${error.message}`);
+        }
+      }
+    } else if (action === 'Delete') {
+      if (window.confirm(`Are you sure you want to delete the link "${link.campaignName}"?`)) {
+        try {
+          await api.links.delete(link.id);
+          fetchData();
+          toast.success(`Link "${link.campaignName}" deleted successfully.`);
+        } catch (error) {
+          toast.error(`Failed to delete link: ${error.message}`);
+        }
+      }
+    } else {
+      toast.info(`${action} action triggered for link: ${link.campaignName}`);
+      // Mock action logic for other actions like Edit, Toggle Status
+    }
   };
 
   const filteredLinks = links.filter(link => {
@@ -141,22 +166,22 @@ const TrackingLinks = () => {
 
   const columns = [
     {
-      header: 'Link Name',
-      accessor: 'campaignName',
-      sortable: true,
-      cell: (row) => (
-        <div className="font-medium">
-          {row.campaignName}
-          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-            row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-            row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-            'bg-red-500/20 text-red-400'
-          }`}>
-            {row.status}
-          </span>
-        </div>
-      ),
-    },
+	      header: 'Link Name',
+	      accessor: 'campaignName',
+	      sortable: true,
+	      cell: (row) => (
+	        <div className="font-medium">
+	          {row.campaignName}
+	          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+	            row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+	            row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+	            'bg-red-500/20 text-red-400'
+	          }`}>
+	            {row.status}
+	          </span>
+	        </div>
+	      ),
+	    },
     {
       header: 'Target URL',
       accessor: 'targetUrl',
@@ -253,8 +278,7 @@ const TrackingLinks = () => {
                   />
                 </div>
               )}
-              // Note: For a real implementation, the LinkDetails would be rendered as an expandable row in the DataTable.
-              // For this refactor, we'll keep it simple and assume the details are available via the Edit action for now.
+              expandedContent={(row) => <LinkDetails link={row} handleAction={handleAction} />}
             />
           )}
         </CardContent>

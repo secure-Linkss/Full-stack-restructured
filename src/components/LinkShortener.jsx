@@ -22,23 +22,37 @@ const LinkShortener = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [metrics, setMetrics] = useState({ totalLinks: 0, activeLinks: 0, totalClicks: 0 });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [linksData, metricsData] = await Promise.all([
-        api.getShortenedLinks(),
-        api.getShortenerMetrics(),
-      ]);
-      setLinks(linksData);
-      setMetrics(metricsData);
-      toast.success('Shortened links refreshed.');
-    } catch (error) {
-      console.error('Error fetching shortened links:', error);
-      toast.error('Failed to load shortened links.');
-    } finally {
-      setLoading(false);
-    }
-  };
+	  const fetchData = async () => {
+	    setLoading(true);
+	    try {
+	      // Assuming api.getShortenedLinks and api.getShortenerMetrics are placeholders 
+	      // for the new api.shorten.getAll and a dashboard metric endpoint.
+	      // Since the new api.js doesn't have getShortenedLinks/getShortenerMetrics, 
+	      // I'll assume the backend uses the /shorten endpoint for links and a general dashboard endpoint for metrics.
+	      const [linksResponse, metricsResponse] = await Promise.all([
+	        api.shorten.getAll(),
+	        api.dashboard.getMetrics(), // Reusing dashboard metrics for now
+	      ]);
+	      
+	      // The actual links data is likely in a 'links' property of the response
+	      const linksData = linksResponse.links || linksResponse; 
+	      setLinks(linksData);
+	      
+	      // Filter metrics for shortener-specific ones if possible, otherwise use general
+	      setMetrics({
+	        totalLinks: linksData.length, // Fallback to count
+	        activeLinks: linksData.filter(l => l.status === 'active').length, // Fallback to count
+	        totalClicks: metricsResponse.totalClicks || 0,
+	      });
+	      
+	      toast.success('Shortened links refreshed.');
+	    } catch (error) {
+	      console.error('Error fetching shortened links:', error);
+	      toast.error('Failed to load shortened links.');
+	    } finally {
+	      setLoading(false);
+	    }
+	  };
 
   useEffect(() => {
     fetchData();
@@ -52,15 +66,26 @@ const LinkShortener = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleAction = (action, link) => {
-    if (action === 'Copy Link') {
-      navigator.clipboard.writeText(link.shortUrl);
-      toast.success('Link copied to clipboard!');
-    } else {
-      toast.info(`${action} action triggered for link: ${link.shortUrl}`);
-    }
-    // Mock action logic
-  };
+	  const handleAction = async (action, link) => {
+	    if (action === 'Copy Link') {
+	      navigator.clipboard.writeText(link.shortUrl);
+	      toast.success('Link copied to clipboard!');
+	    } else if (action === 'Delete') {
+	      if (window.confirm(`Are you sure you want to delete the short link "${link.shortUrl}"?`)) {
+	        try {
+	          // Assuming the link object has an 'id' property
+	          await api.shorten.delete(link.id); 
+	          fetchData();
+	          toast.success(`Link "${link.shortUrl}" deleted successfully.`);
+	        } catch (error) {
+	          toast.error(`Failed to delete link: ${error.message}`);
+	        }
+	      }
+	    } else {
+	      toast.info(`${action} action triggered for link: ${link.shortUrl}`);
+	      // Mock action logic for other actions like Edit, View Analytics
+	    }
+	  };
 
   const filteredLinks = links.filter(link => {
     const matchesFilter = filter === 'all' || link.status === filter;
@@ -78,24 +103,24 @@ const LinkShortener = () => {
 
   const columns = [
     {
-      header: 'Short Link',
-      accessor: 'shortUrl',
-      sortable: true,
-      cell: (row) => (
-        <div className="font-medium">
-          <a href={row.shortUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-            {row.shortUrl}
-          </a>
-          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-            row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-            row.status === 'expired' ? 'bg-red-500/20 text-red-400' :
-            'bg-yellow-500/20 text-yellow-400'
-          }`}>
-            {row.status}
-          </span>
-        </div>
-      ),
-    },
+	      header: 'Short Link',
+	      accessor: 'shortUrl',
+	      sortable: true,
+	      cell: (row) => (
+	        <div className="font-medium">
+	          <a href={row.shortUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+	            {row.shortUrl}
+	          </a>
+	          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+	            row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+	            row.status === 'expired' ? 'bg-red-500/20 text-red-400' :
+	            'bg-yellow-500/20 text-yellow-400'
+	          }`}>
+	            {row.status}
+	          </span>
+	        </div>
+	      ),
+	    },
     {
       header: 'Target URL',
       accessor: 'targetUrl',
@@ -176,8 +201,8 @@ const LinkShortener = () => {
                     actions={[
                       { icon: Copy, label: 'Copy Link', onClick: () => handleAction('Copy Link', row) },
                       { icon: BarChart3, label: 'View Analytics', onClick: () => handleAction('View Analytics', row) },
-                      { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row) },
-                      { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row) },
+	                      { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row) },
+	                      { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row) },
                     ]}
                   />
                 </div>
@@ -191,9 +216,9 @@ const LinkShortener = () => {
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="sm:max-w-[425px] bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Create New Short Link</DialogTitle>
+	          <DialogTitle className="text-foreground">Create New Link</DialogTitle>
           </DialogHeader>
-          <CreateLinkForm onClose={() => setIsCreateModalOpen(false)} onLinkCreated={fetchData} />
+	          <CreateLinkForm onClose={() => setIsCreateModalOpen(false)} onLinkCreated={fetchData} type="shortener" />
         </DialogContent>
       </Dialog>
     </div>

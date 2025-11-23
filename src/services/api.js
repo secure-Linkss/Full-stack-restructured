@@ -127,28 +127,47 @@ const api = {
     },
   },
 
-  // ==================== TRACKING LINKS APIs ====================
-  links: {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters);
-      return fetchWithAuth(`${API_BASE_URL}/links?${params}`);
-    },
-    getById: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`),
-    create: (linkData) => fetchWithAuth(`${API_BASE_URL}/links`, {
-      method: 'POST',
-      body: JSON.stringify(linkData),
-    }),
-    update: (id, linkData) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(linkData),
-    }),
-    delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
-    getAnalytics: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/analytics`),
-    bulkDelete: (ids) => fetchWithAuth(`${API_BASE_URL}/links/bulk-delete`, {
-      method: 'POST',
-      body: JSON.stringify({ ids }),
-    }),
-  },
+	  // ==================== GENERIC HTTP METHODS ====================
+	  get: (path, options) => fetchWithAuth(`${API_BASE_URL}${path}`, options),
+	  post: (path, body, options) => fetchWithAuth(`${API_BASE_URL}${path}`, {
+	    method: 'POST',
+	    body: JSON.stringify(body),
+	    ...options,
+	  }),
+	  put: (path, body, options) => fetchWithAuth(`${API_BASE_URL}${path}`, {
+	    method: 'PUT',
+	    body: JSON.stringify(body),
+	    ...options,
+	  }),
+	  delete: (path, options) => fetchWithAuth(`${API_BASE_URL}${path}`, {
+	    method: 'DELETE',
+	    ...options,
+	  }),
+	
+	  // ==================== TRACKING LINKS APIs ====================
+	  links: {
+	    getAll: (filters = {}) => {
+	      const params = new URLSearchParams(filters);
+	      return api.get(`/links?${params}`);
+	    },
+	    getById: (id) => api.get(`/links/${id}`),
+	    create: (linkData) => api.post('/links', linkData),
+	    update: (id, linkData) => api.put(`/links/${id}`, linkData),
+	    delete: (id) => api.delete(`/links/${id}`),
+	    regenerate: (id) => api.post(`/links/regenerate/${id}`), // Added regenerate
+	    getAnalytics: (id) => api.get(`/links/${id}/analytics`),
+	    bulkDelete: (ids) => api.post('/links/bulk-delete', { ids }),
+	  },
+	
+	  // ==================== LINK SHORTENER APIs ====================
+	  shorten: {
+	    getAll: (filters = {}) => {
+	      const params = new URLSearchParams(filters);
+	      return api.get(`/shorten?${params}`); // Assuming a /shorten endpoint
+	    },
+	    create: (linkData) => api.post('/shorten', linkData), // Used in CreateLink.jsx
+	    delete: (id) => api.delete(`/shorten/${id}`),
+	  },
 
   // ==================== ANALYTICS APIs ====================
   analytics: {
@@ -280,32 +299,7 @@ const api = {
     getDashboard: () => fetchWithAuth(`${API_BASE_URL}/admin/dashboard/stats`),
     getMetrics: () => fetchWithAuth(`${API_BASE_URL}/admin/metrics`),
     getUsersGraph: (days = 30) => fetchWithAuth(`${API_BASE_URL}/admin/users/graph?days=${days}`),
-    getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),
-  },
-
-  // ==================== ADMIN - USER MANAGEMENT APIs ====================
-  adminUsers: {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters);
-      return fetchWithAuth(`${API_BASE_URL}/admin/users?${params}`);
-    },
-    getById: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`),
-    create: (userData) => fetchWithAuth(`${API_BASE_URL}/admin/users`, {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    }),
-    update: (id, userData) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(userData),
-    }),
-    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/delete`, {
-      method: 'POST',
-    }),
-    suspend: (id, reason) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/suspend`, {
-      method: 'PATCH',
-      body: JSON.stringify({ suspend: true, reason }),
-    }),
-    activate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/approve`, {
+    getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),vate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/approve`, {
       method: 'POST',
     }),
     impersonate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/impersonate`, {
