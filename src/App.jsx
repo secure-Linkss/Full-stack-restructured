@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { auth } from './services/api.js';
 import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
@@ -25,6 +24,7 @@ import LiveActivity from './components/LiveActivity';
 import Profile from './components/Profile';
 import SupportTickets from './components/SupportTickets';
 import { Toaster, toast } from 'sonner';
+import api from './services/api';
 
 // Auth Context/Hook (Real API Integration)
 const useAuth = () => {
@@ -37,7 +37,7 @@ const useAuth = () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (token) {
         try {
-          const userProfile = await auth.getCurrentUser();
+          const userProfile = await api.auth.getCurrentUser();
           setUser(userProfile);
         } catch (error) {
           // Token is invalid or expired, log out user
@@ -53,9 +53,9 @@ const useAuth = () => {
 
   const login = async (username, password) => {
     try {
-      const response = await auth.login({ username, password });
+      const response = await api.auth.login({ username, password });
       // After successful login, fetch the user profile
-      const userProfile = await auth.getCurrentUser();
+      const userProfile = await api.auth.getCurrentUser();
       setUser(userProfile);
       toast.success('Login successful!');
       return true;
@@ -67,7 +67,7 @@ const useAuth = () => {
 
   const logout = async () => {
     try {
-      await auth.logout();
+      await api.auth.logout();
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
@@ -80,9 +80,7 @@ const useAuth = () => {
 };
 
 // Protected Route Component
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, loading } = useAuth();
-
+const ProtectedRoute = ({ children, allowedRoles, user, loading }) => {
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-foreground text-xl">Loading...</div>
@@ -126,15 +124,9 @@ const AppContent = () => {
 
   const pageTitle = getPageTitle(location.pathname);
 
-  if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-foreground text-xl">Loading Application...</div>
-    </div>;
-  }
-
   // Helper to wrap protected routes with Layout and Auth props
   const ProtectedLayout = ({ children, allowedRoles }) => (
-    <ProtectedRoute allowedRoles={allowedRoles}>
+    <ProtectedRoute allowedRoles={allowedRoles} user={user} loading={loading}>
       <Layout user={user} logout={logout} pageTitle={pageTitle}>
         {children}
       </Layout>
@@ -180,8 +172,8 @@ const AppContent = () => {
           } 
         />
         
-        {/* Fallback for unknown routes */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Fallback - redirect unknown authenticated routes to dashboard, unauthenticated to home */}
+        <Route path="*" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
       </Routes>
     </div>
   );

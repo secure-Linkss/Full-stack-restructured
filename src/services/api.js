@@ -204,11 +204,18 @@ const api = {
       body: JSON.stringify(linkData),
     }),
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
+    regenerate: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/regenerate`, { method: 'POST' }),
     getAnalytics: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/analytics`),
     bulkDelete: (ids) => fetchWithAuth(`${API_BASE_URL}/links/bulk-delete`, {
       method: 'POST',
       body: JSON.stringify({ ids }),
     }),
+  },
+
+  // Alias for backward compatibility
+  getTrackingLinks: (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    return fetchWithAuth(`${API_BASE_URL}/links?${params}`);
   },
 
   // ==================== ANALYTICS APIs ====================
