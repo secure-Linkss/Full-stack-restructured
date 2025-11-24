@@ -33,14 +33,12 @@ const useAuth = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Check for existing token on mount
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (token) {
         try {
           const userProfile = await api.auth.getCurrentUser();
           setUser(userProfile);
         } catch (error) {
-          // Token is invalid or expired, log out user
           console.error('Token validation failed:', error);
           localStorage.removeItem('token');
           sessionStorage.removeItem('token');
@@ -54,7 +52,6 @@ const useAuth = () => {
   const login = async (username, password) => {
     try {
       const response = await api.auth.login({ username, password });
-      // After successful login, fetch the user profile
       const userProfile = await api.auth.getCurrentUser();
       setUser(userProfile);
       toast.success('Login successful!');
@@ -79,7 +76,7 @@ const useAuth = () => {
   return { user, loading, login, logout };
 };
 
-// Protected Route Component
+// Protected Route Component - receives user and loading from parent
 const ProtectedRoute = ({ children, allowedRoles, user, loading }) => {
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -124,7 +121,13 @@ const AppContent = () => {
 
   const pageTitle = getPageTitle(location.pathname);
 
-  // Helper to wrap protected routes with Layout and Auth props
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-foreground text-xl">Loading Application...</div>
+    </div>;
+  }
+
+  // Helper to wrap protected routes with Layout and pass user/loading props
   const ProtectedLayout = ({ children, allowedRoles }) => (
     <ProtectedRoute allowedRoles={allowedRoles} user={user} loading={loading}>
       <Layout user={user} logout={logout} pageTitle={pageTitle}>
@@ -172,7 +175,7 @@ const AppContent = () => {
           } 
         />
         
-        {/* Fallback - redirect unknown authenticated routes to dashboard, unauthenticated to home */}
+        {/* Fallback - redirect unknown routes */}
         <Route path="*" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />} />
       </Routes>
     </div>

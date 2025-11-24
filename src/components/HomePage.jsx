@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Logo from './Logo'
+import Footer from './Footer'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -56,7 +57,6 @@ const HomePage = () => {
     }
   ]
 
-  // Updated pricing to match PricingPage - showing key plans only
   const plans = [
     {
       name: 'Free',
@@ -92,14 +92,12 @@ const HomePage = () => {
   ]
 
   return (
-    <>
-      <Footer />
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled ? 'bg-slate-900/95 backdrop-blur-lg shadow-lg' : 'bg-transparent'
       }`}>
-       <div className="max-w-7xl mx-auto pt-16 pb-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20">
             {/* Logo */}
             <div className="cursor-pointer" onClick={() => navigate('/')}>
@@ -396,8 +394,8 @@ const HomePage = () => {
       </section>
 
       {/* Footer */}
-      </div>
-    </>
+      <Footer />
+    </div>
   )
 }
 
