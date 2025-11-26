@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Plus, RefreshCw, Filter, Trash2, Edit, Lock, Mail, UserCheck, Clock } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import DataTable from '../ui/DataTable';
-import FilterBar from '../ui/FilterBar';
-import ActionIconGroup from '../ui/ActionIconGroup';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DataTable from '@/components/ui/DataTable';
+import FilterBar from '@/components/ui/FilterBar';
+import ActionIconGroup from '@/components/ui/ActionIconGroup';
 import CreateUserModal from './CreateUserModal';
 import PendingUsersTable from './PendingUsersTable';
 import api from '../../services/api';

@@ -85,12 +85,13 @@ const api = {
       });
       
       // Store token if present in response
-      if (response.token) {
-        localStorage.setItem('token', response.token);
+      // The login API should return a token or access_token.
+      // Assuming the backend returns the token in a field like 'token' or 'access_token'.
+      // If the backend is using Flask-JWT-Extended, it often returns 'access_token'.
+      const tokenToStore = response.token || response.access_token;
+      if (tokenToStore) {
+        localStorage.setItem('token', tokenToStore);
         console.log('[API] Token stored successfully');
-      } else if (response.access_token) {
-        localStorage.setItem('token', response.access_token);
-        console.log('[API] Access token stored successfully');
       } else {
         console.warn('[API] No token in login response:', Object.keys(response));
       }

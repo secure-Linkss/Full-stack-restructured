@@ -7,6 +7,7 @@ import FilterBar from './ui/FilterBar';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { RefreshCw, Download, Link, MousePointerClick, Users, Mail, CheckCircle, Globe, TrendingUp, DollarSign, Minus } from 'lucide-react';
+import { Badge } from './ui/Badge';
 import api from '../services/api';
 import { toast } from 'sonner';
 

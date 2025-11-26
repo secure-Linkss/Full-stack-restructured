@@ -5,6 +5,8 @@ import { Button } from './button'; // Assuming button component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'; // Assuming select component
 
 const FilterBar = ({
+
+
   searchPlaceholder = 'Search...',
   onSearch,
   onRefresh,

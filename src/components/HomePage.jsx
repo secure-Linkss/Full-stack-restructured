@@ -7,9 +7,9 @@ import {
   ArrowRight, Check, Star, TrendingUp, Lock, Smartphone,
   ChevronRight, Menu, X
 } from 'lucide-react'
-import { motion } from 'framer-motion'
-import Logo from './Logo'
-import Footer from './Footer'
+// import { motion } from 'framer-motion'
+import Logo from '@/components/Logo'
+import Footer from '@/components/Footer'
 
 const HomePage = () => {
   const navigate = useNavigate()
@@ -142,9 +142,9 @@ const HomePage = () => {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div 
+            
+            
             className="md:hidden bg-slate-900 border-t border-slate-800"
           >
             <div className="px-4 py-4 space-y-3">
@@ -171,17 +171,17 @@ const HomePage = () => {
                 Get Started
               </Button>
             </div>
-          </motion.div>
+          </div>
         )}
       </nav>
 
       {/* Hero Section */}
       <section className="pt-32 md:pt-40 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+          <div 
+            
+            
+            
             className="text-center"
           >
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
@@ -213,13 +213,13 @@ const HomePage = () => {
                 Contact Sales
               </Button>
             </div>
-          </motion.div>
+          </div>
 
           {/* Stats */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+          <div 
+            
+            
+            
             className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8"
           >
             {stats.map((stat, index) => (
@@ -230,17 +230,17 @@ const HomePage = () => {
                 <div className="text-slate-400 text-sm md:text-base">{stat.label}</div>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+          <div 
+            
+            
+            
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
@@ -249,16 +249,16 @@ const HomePage = () => {
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               Powerful features designed to help you create, manage, and optimize your links at scale.
             </p>
-          </motion.div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                
+                
+                
+                
               >
                 <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800 transition-all duration-300 h-full hover:scale-105">
                   <CardHeader>
@@ -271,7 +271,7 @@ const HomePage = () => {
                     </CardDescription>
                   </CardHeader>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -280,10 +280,10 @@ const HomePage = () => {
       {/* Pricing Section */}
       <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+          <div 
+            
+            
+            
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
@@ -299,16 +299,16 @@ const HomePage = () => {
             >
               View all pricing options →
             </Button>
-          </motion.div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {plans.map((plan, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                
+                
+                
+                
               >
                 <Card className={`relative ${
                   plan.popular 
@@ -351,7 +351,7 @@ const HomePage = () => {
                     </Button>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -360,10 +360,10 @@ const HomePage = () => {
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+          <div
+            
+            
+            
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
               Ready to Transform Your Link Management?
@@ -389,7 +389,7 @@ const HomePage = () => {
                 Talk to Sales
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 

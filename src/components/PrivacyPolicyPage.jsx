@@ -2,8 +2,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, Lock, Eye, Database, UserCheck, FileText, Mail, AlertCircle, ArrowLeft } from 'lucide-react'
-import { motion } from 'framer-motion'
-import Logo from './Logo'
+import Logo from '@/components/Logo'
+import Footer from '@/components/Footer'
 
 const PrivacyPolicyPage = () => {
   const navigate = useNavigate()
@@ -237,133 +237,115 @@ const PrivacyPolicyPage = () => {
 
   return (
     <>
-      <Footer />
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pt-20">
-      {/* Navigation - Consistent with HomePage */}
-      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-slate-900/95 backdrop-blur-lg shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 md:h-20">
-            {/* Logo */}
-            <div className="cursor-pointer" onClick={() => navigate("/")}>
-              <Logo size="md" />
-            </div>
+        {/* Navigation */}
+        <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-slate-900/95 backdrop-blur-lg shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16 md:h-20">
+              {/* Logo */}
+              <div className="cursor-pointer" onClick={() => navigate("/")}>
+                <Logo size="md" />
+              </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link to="/features" className="text-slate-300 hover:text-white transition-colors">
-                Features
-              </Link>
-              <Link to="/pricing" className="text-slate-300 hover:text-white transition-colors">
-                Pricing
-              </Link>
-              <Link to="/about" className="text-slate-300 hover:text-white transition-colors">
-                About
-              </Link>
-              <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">
-                Contact
-              </Link>
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate("/login")}
-                className="text-slate-300 hover:text-white hover:bg-slate-800"
-              >
-                Sign In
-              </Button>
-              <Button 
-                onClick={() => navigate("/register")}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                Get Started
-              </Button>
-            </div>
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center space-x-8">
+                <Link to="/features" className="text-slate-300 hover:text-white transition-colors">
+                  Features
+                </Link>
+                <Link to="/pricing" className="text-slate-300 hover:text-white transition-colors">
+                  Pricing
+                </Link>
+                <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">
+                  Contact
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/login")}
+                  className="text-slate-300 hover:text-white hover:bg-slate-800"
+                >
+                  Sign In
+                </Button>
+                <Button 
+                  onClick={() => navigate("/register")}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  Get Started
+                </Button>
+              </div>
 
-            {/* Mobile Menu Button - Added a simple back button for mobile view */}
-            <div className="md:hidden">
-              <Button 
-                variant="ghost"
-                onClick={() => navigate("/")}
-                className="text-slate-300 hover:text-white hover:bg-slate-800"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Home
-              </Button>
+              {/* Mobile Menu Button - Added a simple back button for mobile view */}
+              <div className="md:hidden">
+                <Button 
+                  variant="ghost"
+                  onClick={() => navigate("/")}
+                  className="text-slate-300 hover:text-white hover:bg-slate-800"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Home
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* Header */}
-      <div className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-900/20 to-purple-900/20">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-blue-500/10 rounded-full">
-              <Shield className="w-12 h-12 text-blue-400" />
-            </div>
+        {/* Hero Section */}
+        <section className="pt-32 pb-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+              Privacy Policy
+            </h1>
+            <p className="text-xl text-slate-400 max-w-3xl mx-auto">
+              Last Updated: November 26, 2025
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Privacy Policy
-          </h1>
-          <p className="text-lg text-slate-400">
-            Last Updated: November 15, 2025
-          </p>
-        </div>
-      </div>
+        </section>
 
-      {/* Content */}
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          {sections.map((section, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-2xl flex items-center">
-                    {section.icon}
-                    <span className="ml-3">{section.title}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-slate-300 space-y-4">
-                  {section.content.map((item, itemIndex) => (
-                    <div key={itemIndex}>
-                      <h3 className="text-white font-semibold mb-2">{item.subtitle}</h3>
+        {/* Content Section */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto space-y-12">
+            {sections.map((section, index) => (
+              <div key={index} className="bg-slate-900/50 p-6 rounded-lg border border-slate-800">
+                <div className="flex items-center mb-4">
+                  {section.icon}
+                  <h2 className="text-2xl font-bold text-white ml-3">{section.title}</h2>
+                </div>
+                <div className="space-y-6 text-slate-300">
+                  {section.content.map((item, i) => (
+                    <div key={i}>
+                      <h3 className="text-lg font-semibold text-blue-400 mb-1">{item.subtitle}</h3>
                       <p>{item.text}</p>
                     </div>
                   ))}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">Ready to Transform Your Tracking?</h2>
-          <p className="text-xl text-slate-400 mb-8">
-            Join thousands of businesses already using Brain Link Tracker to optimize their campaigns
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-8">
-                Start Free Trial
-              </Button>
-            </Link>
-            <Link to="/contact">
-              <Button size="lg" variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white text-lg px-8">
-                Contact Sales
-              </Button>
-            </Link>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer - Consistent with HomePage */}
+        {/* CTA Section */}
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
+              Have Questions?
+            </h2>
+            <p className="text-lg text-slate-400 mb-8">
+              If you have any concerns about our privacy practices, please contact us.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg"
+                onClick={() => navigate('/contact')}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-8 py-6"
+              >
+                Contact Support
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <Footer />
       </div>
     </>
   )

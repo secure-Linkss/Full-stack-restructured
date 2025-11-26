@@ -38,11 +38,13 @@ export default defineConfig({
     port: 3001,
     host: true,
     hmr: {
-      host: '3001-i0g5i0w6vdbp6stgz6oi8-bfde8959.manus.computer',
+      host: '3001-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
       protocol: 'wss',
     },
     allowedHosts: [
-      '3001-i0g5i0w6vdbp6stgz6oi8-bfde8959.manus.computer',
+      '3001-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3002-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3003-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
     ],
     proxy: {
       '/api': {

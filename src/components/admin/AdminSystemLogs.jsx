@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, RefreshCw, Filter, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import DataTable from '../ui/DataTable';
-import FilterBar from '../ui/FilterBar';
+import DataTable from '@/components/ui/DataTable';
+import FilterBar from '@/components/ui/FilterBar';
 import api from '../../services/api';
 
 const AdminSystemLogs = () => {

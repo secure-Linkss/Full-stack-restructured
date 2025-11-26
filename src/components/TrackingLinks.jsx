@@ -92,7 +92,8 @@ const TrackingLinks = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const linksData = await api.getTrackingLinks();
+      const response = await api.links.getAll();
+      const linksData = response.links || [];
       setLinks(linksData);
 
       // Calculate metrics from the fetched links data

@@ -4,6 +4,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { DialogFooter } from '../ui/dialog';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from 'sonner';
 import api from '../../services/api'; // Assuming api service is available at this path
@@ -43,7 +44,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
     // Fetch domains for selection
     const fetchDomains = async () => {
       try {
-        const response = await api.get('/domains');
+        const response = await api.domains.getAll();
         if (response.success && response.domains.length > 0) {
           setDomains(response.domains);
           setFormData(prev => ({ ...prev, domain: response.domains[0].name }));
@@ -108,8 +109,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
       };
 
       // Determine API endpoint based on type
-      const apiPath = type === 'tracking' ? '/links' : '/shorten';
-      const response = await api.post(apiPath, payload); 
+      const response = await (type === 'tracking' ? api.links.create(payload) : api.shortener.shorten(formData.targetUrl, payload)); 
       
       if (response.success) {
         toast.success('Link created successfully!');

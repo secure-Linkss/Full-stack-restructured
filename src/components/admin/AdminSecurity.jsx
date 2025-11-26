@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, RefreshCw, AlertTriangle, CheckCircle, Lock, Server } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import DataTable from '../ui/DataTable';
+import DataTable from '@/components/ui/DataTable';
 import { fetchMockData } from '../../services/mockApi';
 
 const AdminSecurity = () => {

@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import Logo from './Logo'
+import Logo from '@/components/Logo'
+import Footer from '@/components/Footer'
 // import Footer from './Footer' - Replaced with inline footer from HomePage
 
 const ContactPage = () => {
@@ -193,9 +194,10 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
-	      </div>
-	    </div>
-	  )
+		      </div>
+          <Footer />
+		    </div>
+		  )
 }
 
 export default ContactPage
