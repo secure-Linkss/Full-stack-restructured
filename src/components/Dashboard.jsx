@@ -49,16 +49,18 @@ const Dashboard = () => {
           realVisitors: 0,
           capturedEmails: 0,
           activeLinks: 0,
-          conversionRate: 0,
-          avgClicksPerLink: 0,
-          countries: 0,
+	          conversionRate: 0,
+	          bounceRate: 0,
+	          avgClicksPerLink: 0,
+	          countries: 0,
           totalLinksChange: 0,
           totalClicksChange: 0,
           realVisitorsChange: 0,
           capturedEmailsChange: 0,
           activeLinksChange: 0,
-          conversionRateChange: 0,
-          avgClicksPerLinkChange: 0
+	          conversionRateChange: 0,
+	          bounceRateChange: 0,
+	          avgClicksPerLinkChange: 0
         },
         performance: { labels: [], clicks: [], visitors: [], emailCaptures: [] },
         deviceBreakdown: { labels: [], data: [] },
@@ -104,11 +106,12 @@ const Dashboard = () => {
     { title: 'Total Links', value: metrics.totalLinks, icon: Link, change: metrics.totalLinksChange || 0, unit: '', description: 'Total links created' },
     { title: 'Total Clicks', value: metrics.totalClicks?.toLocaleString() || '0', icon: MousePointerClick, change: metrics.totalClicksChange || 0, unit: '', description: 'All clicks recorded' },
     { title: 'Real Visitors', value: metrics.realVisitors?.toLocaleString() || '0', icon: Users, change: metrics.realVisitorsChange || 0, unit: '', description: 'Unique human visitors' },
-    { title: 'Captured Emails', value: metrics.capturedEmails?.toLocaleString() || '0', icon: Mail, change: metrics.capturedEmailsChange || 0, unit: '', description: 'Emails collected via links' },
-    { title: 'Active Links', value: metrics.activeLinks || 0, icon: CheckCircle, change: metrics.activeLinksChange || 0, unit: '', description: 'Currently active links' },
-    { title: 'Conversion Rate', value: `${metrics.conversionRate || 0}%`, icon: TrendingUp, change: metrics.conversionRateChange || 0, unit: '', description: 'Click to capture conversion' },
-    { title: 'Avg Clicks/Link', value: metrics.avgClicksPerLink || 0, icon: MousePointerClick, change: metrics.avgClicksPerLinkChange || 0, unit: '', description: 'Average clicks per link' },
-    { title: 'Countries', value: metrics.countries || 0, icon: Globe, change: 0, unit: '', description: 'Countries with traffic' },
+	    { title: 'Captured Emails', value: metrics.capturedEmails?.toLocaleString() || '0', icon: Mail, change: metrics.capturedEmailsChange || 0, unit: '', description: 'Emails collected via links' },
+	    { title: 'Active Links', value: metrics.activeLinks || 0, icon: CheckCircle, change: metrics.activeLinksChange || 0, unit: '', description: 'Currently active links' },
+	    { title: 'Conversion Rate', value: `${metrics.conversionRate || 0}%`, icon: TrendingUp, change: metrics.conversionRateChange || 0, unit: '', description: 'Click to capture conversion' },
+	    { title: 'Bounce Rate', value: `${metrics.bounceRate || 0}%`, icon: Minus, change: metrics.bounceRateChange || 0, unit: '', description: 'Percentage of single-page visits' },
+	    { title: 'Avg Clicks/Link', value: metrics.avgClicksPerLink || 0, icon: MousePointerClick, change: metrics.avgClicksPerLinkChange || 0, unit: '', description: 'Average clicks per link' },
+	    { title: 'Countries', value: metrics.countries || 0, icon: Globe, change: 0, unit: '', description: 'Countries with traffic' },
   ];
 
   // --- Chart Data for Performance Over Time ---
@@ -273,7 +276,7 @@ const Dashboard = () => {
 	      </div>
 
 	      {/* A/B Testing and API Generation Sections */}
-	      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+		      <div className="grid grid-cols-1 gap-6">
 	        {/* A/B Testing Overview */}
 	        <Card>
 	          <CardHeader>
@@ -299,35 +302,7 @@ const Dashboard = () => {
 	          </CardContent>
 	        </Card>
 
-	        {/* API Generation and Integration */}
-	        <Card>
-	          <CardHeader>
-	            <CardTitle>API Generation & Integration</CardTitle>
-	          </CardHeader>
-	          <CardContent>
-	            <p className="text-muted-foreground mb-4">
-	              Generate API keys and view documentation for seamless integration with external systems.
-	            </p>
-	            <div className="space-y-4">
-	              <div className="flex justify-between items-center border-b pb-2">
-	                <span className="font-medium">Current API Key:</span>
-	                <Badge variant="secondary" className="font-mono">********************</Badge>
-	              </div>
-	              <div className="flex justify-between items-center">
-	                <Button variant="default">Generate New Key</Button>
-	                <Button variant="outline">View Documentation</Button>
-	              </div>
-	            </div>
-	            <div className="mt-4">
-	              <h4 className="font-semibold mb-2">API Usage (Last 30 Days)</h4>
-	              <ul className="text-sm text-muted-foreground space-y-1">
-	                <li>Total Requests: 1,245</li>
-	                <li>Successful Requests: 1,230</li>
-	                <li>Rate Limit Errors: 15</li>
-	              </ul>
-	            </div>
-	          </CardContent>
-	        </Card>
+
 	      </div>
     </div>
   );

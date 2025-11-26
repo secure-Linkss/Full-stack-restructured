@@ -1,4 +1,4 @@
-#!/home/ubuntu/Full-stack-restructured/venv/bin/python3
+#!/home/ubuntu/project/venv/bin/python3.11
 
 # pipdither
 # Error Diffusing image dithering.

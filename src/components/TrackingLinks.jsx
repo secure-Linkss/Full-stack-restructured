@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Plus, Link, Copy, RefreshCw, Trash2, Edit, Play, Pause, ExternalLink, Filter, Users, BarChart3, Eye, Shield } from 'lucide-react';
+import EnhancedLinkBox from './EnhancedLinkBox';
 import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
@@ -12,73 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import CreateLinkForm from './forms/CreateLink'; // Placeholder for the new form component
 
-// --- Helper Component for Link Row Details ---
-// This component displays the generated links (Tracking URL, Pixel URL, Email Code) and action buttons
-export const LinkDetails = ({ link, handleAction }) => {
-  const trackingUrl = link.trackingUrl || "N/A";
-  const pixelUrl = link.pixelUrl || "N/A";
-  const emailCode = link.emailCode || "N/A";
 
-  const copyToClipboard = (text, type) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${type} copied to clipboard!`);
-  };
-
-  const testLink = () => {
-    if (trackingUrl !== "N/A") {
-      window.open(trackingUrl, '_blank');
-    } else {
-      toast.error("Tracking URL is not available to test.");
-    }
-  };
-
-  return (
-        <div className="space-y-4 p-4 bg-slate-800 rounded-lg border border-slate-700 text-sm">
-          <h4 className="text-base font-semibold text-white">Generated Links</h4>
-          
-          {/* Tracking URL */}
-          <div className="space-y-1">
-            <span className="font-medium text-slate-400">TRACKING URL</span>
-            <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
-              <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{trackingUrl}</code>
-              <ActionIconGroup
-                actions={[
-                  { icon: Copy, label: 'Copy Tracking URL', onClick: () => copyToClipboard(trackingUrl, 'Tracking URL') },
-                  { icon: ExternalLink, label: 'Test Link', onClick: testLink },
-                  { icon: RefreshCw, label: 'Regenerate Link', onClick: () => handleAction('Regenerate', link) },
-                ]}
-              />
-            </div>
-          </div>
-
-          {/* PIXEL URL */}
-          <div className="space-y-1">
-            <span className="font-medium text-slate-400">PIXEL URL</span>
-            <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
-              <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{pixelUrl}</code>
-              <ActionIconGroup
-                actions={[
-                  { icon: Copy, label: 'Copy Pixel URL', onClick: () => copyToClipboard(pixelUrl, 'Pixel URL') },
-                ]}
-              />
-            </div>
-          </div>
-
-          {/* EMAIL CODE */}
-          <div className="space-y-1">
-            <span className="font-medium text-slate-400">EMAIL CODE</span>
-            <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
-              <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{emailCode}</code>
-              <ActionIconGroup
-                actions={[
-                  { icon: Copy, label: 'Copy Email Code', onClick: () => copyToClipboard(emailCode, 'Email Code') },
-                ]}
-              />
-            </div>
-          </div>
-        </div>
-  );
-};
 
 // --- Main Component ---
 const TrackingLinks = () => {
@@ -87,14 +22,24 @@ const TrackingLinks = () => {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [metrics, setMetrics] = useState({ totalClicks: 0, realVisitors: 0, botsBlocked: 0 });
+	  const [metrics, setMetrics] = useState({ totalClicks: 0, realVisitors: 0, botsBlocked: 0 });
+	  const [selectedLink, setSelectedLink] = useState(null); // State for the link to display in the box
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const response = await api.links.getAll();
-      const linksData = response.links || [];
-      setLinks(linksData);
+	      const linksData = response.links || [];
+	      setLinks(linksData);
+	      if (linksData.length > 0 && !selectedLink) {
+	        setSelectedLink(linksData[0]); // Select the first link by default
+	      } else if (linksData.length > 0 && selectedLink) {
+	        // Update the selected link if it still exists in the list
+	        const updatedSelected = linksData.find(l => l.id === selectedLink.id);
+	        if (updatedSelected) setSelectedLink(updatedSelected);
+	      } else {
+	        setSelectedLink(null);
+	      }
 
       // Calculate metrics from the fetched links data
       const totalClicks = linksData.reduce((sum, link) => sum + (link.totalClicks || 0), 0);
@@ -123,47 +68,54 @@ const TrackingLinks = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleAction = async (action, link) => {
-    if (action === 'Regenerate') {
-      if (window.confirm(`Are you sure you want to regenerate the tracking link for "${link.campaignName}"? The old link will no longer work.`)) {
-        try {
-          // Assuming an API endpoint for regeneration exists
-          // Use the new dedicated API method
-          const response = await api.links.regenerate(link.id); 
-          // In a real app, you would update the link in the state with the new URLs
-          // For now, we'll just refetch all data
-          fetchData();
-          toast.success(`Link "${link.campaignName}" regenerated successfully!`);
-        } catch (error) {
-          toast.error(`Failed to regenerate link: ${error.message}`);
-        }
-      }
-    } else if (action === 'Edit') {
-      // Placeholder for opening an edit modal
-      toast.info(`Edit action triggered for link: ${link.campaignName}`);
-      // You would typically open a modal here and pass the link object
-      // setIsEditModalOpen(true);
-      // setSelectedLink(link);
-    } else if (action === 'Copy') {
-      // Placeholder for copying the link
-      toast.info(`Copy action triggered for link: ${link.campaignName}`);
-      // You would typically call an API to duplicate the link
-      // api.links.copy(link.id);
-    } else if (action === 'Delete') {
-      if (window.confirm(`Are you sure you want to delete the link "${link.campaignName}"?`)) {
-        try {
-          await api.links.delete(link.id);
-          fetchData();
-          toast.success(`Link "${link.campaignName}" deleted successfully.`);
-        } catch (error) {
-          toast.error(`Failed to delete link: ${error.message}`);
-        }
-      }
-    } else {
-      toast.info(`${action} action triggered for link: ${link.campaignName}`);
-      // Mock action logic for other actions like Edit, Toggle Status
-    }
-  };
+	  const handleAction = async (action, link) => {
+	    if (action === 'Regenerate') {
+	      if (window.confirm(`Are you sure you want to regenerate the tracking link for "${link.campaignName}"? The old link will no longer work.`)) {
+	        try {
+	          // Assuming an API endpoint for regeneration exists
+	          const response = await api.links.regenerate(link.id); 
+	          // Update the selected link and refetch all data
+	          setSelectedLink(response.link);
+	          fetchData();
+	          toast.success(`Link "${link.campaignName}" regenerated successfully!`);
+	        } catch (error) {
+	          toast.error(`Failed to regenerate link: ${error.message}`);
+	        }
+	      }
+	    } else if (action === 'Edit') {
+	      // Placeholder for opening an edit modal
+	      toast.info(`Edit action triggered for link: ${link.campaignName}`);
+	      // You would typically open a modal here and pass the link object
+	      // setIsEditModalOpen(true);
+	      // setSelectedLink(link);
+	    } else if (action === 'Copy') {
+	      // Placeholder for copying the link
+	      toast.info(`Copy action triggered for link: ${link.campaignName}`);
+	      // You would typically call an API to duplicate the link
+	      // api.links.copy(link.id);
+	    } else if (action === 'Delete') {
+	      if (window.confirm(`Are you sure you want to delete the link "${link.campaignName}"?`)) {
+	        try {
+	          await api.links.delete(link.id);
+	          fetchData();
+	          toast.success(`Link "${link.campaignName}" deleted successfully.`);
+	        } catch (error) {
+	          toast.error(`Failed to delete link: ${error.message}`);
+	        }
+	      }
+	    } else if (action === 'Select') {
+	      setSelectedLink(link);
+	    } else {
+	      toast.info(`${action} action triggered for link: ${link.campaignName}`);
+	      // Mock action logic for other actions like Edit, Toggle Status
+	    }
+	  };
+	
+	  const handleLinkUpdate = (updatedLink) => {
+	    // Update the selected link and the list of links
+	    setSelectedLink(updatedLink);
+	    setLinks(prevLinks => prevLinks.map(l => l.id === updatedLink.id ? updatedLink : l));
+	  };
 
   const filteredLinks = links.filter(link => {
     const matchesFilter = filter === 'all' || link.status === filter;
@@ -262,11 +214,21 @@ const TrackingLinks = () => {
       />
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {metricCards.map((card, index) => (
-          <MetricCard key={index} {...card} />
-        ))}
-      </div>
+	      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+	        {metricCards.map((card, index) => (
+	          <MetricCard key={index} {...card} />
+	        ))}
+	      </div>
+	
+	      {/* Enhanced Link Box Section */}
+	      {selectedLink && (
+	        <EnhancedLinkBox 
+	          link={selectedLink} 
+	          onRegenerate={(link) => handleAction('Regenerate', link)}
+	          onEdit={() => toast.info('Edit button clicked on EnhancedLinkBox')}
+	          onLinkUpdate={handleLinkUpdate}
+	        />
+	      )}
 
       <FilterBar
         searchPlaceholder="Search links..."
@@ -315,7 +277,17 @@ const TrackingLinks = () => {
                   />
                 </div>
               )}
-              expandedContent={(row) => <LinkDetails link={row} handleAction={handleAction} />}
+	              expandedContent={(row) => (
+	                <div className="p-4">
+	                  <Button 
+	                    variant="outline" 
+	                    size="sm" 
+	                    onClick={() => handleAction('Select', row)}
+	                  >
+	                    View in Enhanced Box
+	                  </Button>
+	                </div>
+	              )}
             />
           )}
         </CardContent>

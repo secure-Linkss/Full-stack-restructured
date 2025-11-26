@@ -8,54 +8,13 @@ import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { toast } from 'sonner';
 import UserApiKeyManager from './UserApiKeyManager';
+import AccountSettings from './AccountSettings';
+import SecuritySettings from './SecuritySettings';
+import AppearanceSettings from './AppearanceSettings';
+import BillingAndSubscription from './BillingAndSubscription';
 import api from '../services/api';
 
-// --- Placeholder Components for Settings Sections ---
 
-const AccountSettings = () => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center"><User className="h-5 w-5 mr-2 text-primary" /> Account Information</CardTitle>
-      <p className="text-sm text-muted-foreground">Update your personal details and email address.</p>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="h-32 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-        [Account Details Form - Implementation Pending]
-      </div>
-      <Button onClick={() => toast.info('Account details saved (Mock)')}>Save Changes</Button>
-    </CardContent>
-  </Card>
-);
-
-const SecuritySettings = () => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center"><Lock className="h-5 w-5 mr-2 text-primary" /> Security & Password</CardTitle>
-      <p className="text-sm text-muted-foreground">Change your password and enable two-factor authentication.</p>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="h-32 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-        [Password Change and 2FA Settings - Implementation Pending]
-      </div>
-      <Button onClick={() => toast.info('Security settings saved (Mock)')}>Save Changes</Button>
-    </CardContent>
-  </Card>
-);
-
-const BillingSettings = () => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center"><CreditCard className="h-5 w-5 mr-2 text-primary" /> Billing & Subscription</CardTitle>
-      <p className="text-sm text-muted-foreground">Manage your payment methods and view your billing history.</p>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="h-32 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-        [Subscription Details and Invoice List - Implementation Pending]
-      </div>
-      <Button onClick={() => toast.info('Redirecting to billing portal (Mock)')} variant="outline">Manage Subscription</Button>
-    </CardContent>
-  </Card>
-);
 
 	const NotificationSettings = () => {
 	  const [settings, setSettings] = useState({
@@ -339,67 +298,7 @@ const DangerZone = () => (
 );
 
 // --- Appearance Settings Component ---
-const AppearanceSettings = () => {
-  const [theme, setTheme] = useState('system'); // Placeholder for actual theme state
-  const [loading, setLoading] = useState(false);
 
-  // Mock function to simulate theme change
-  const handleThemeChange = (newTheme) => {
-    setLoading(true);
-    setTimeout(() => {
-      setTheme(newTheme);
-      // Mock background change logic here
-      toast.success(`Theme set to ${newTheme}.`);
-      setLoading(false);
-    }, 500);
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center"><Palette className="h-5 w-5 mr-2 text-primary" /> Appearance</CardTitle>
-        <p className="text-sm text-muted-foreground">Customize the look and feel of your dashboard, including background changes.</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Theme</Label>
-          <div className="flex space-x-4">
-            <Button 
-              variant={theme === 'light' ? 'default' : 'outline'} 
-              onClick={() => handleThemeChange('light')}
-              disabled={loading}
-            >
-              Light
-            </Button>
-            <Button 
-              variant={theme === 'dark' ? 'default' : 'outline'} 
-              onClick={() => handleThemeChange('dark')}
-              disabled={loading}
-            >
-              Dark
-            </Button>
-            <Button 
-              variant={theme === 'system' ? 'default' : 'outline'} 
-              onClick={() => handleThemeChange('system')}
-              disabled={loading}
-            >
-              System
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">Select a theme for the dashboard. This will also control the background.</p>
-        </div>
-        
-        <div className="space-y-2 pt-4 border-t">
-          <Label>Advanced Background</Label>
-          <div className="h-16 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-            [Custom Background Image/Color Picker - Implementation Pending]
-          </div>
-          <p className="text-xs text-muted-foreground">Upload a custom background or select a color palette.</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
 // --- Main Settings Component ---
 
@@ -407,10 +306,10 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('account');
 
 	  const settingsTabs = [
-	    { id: 'account', title: 'Account', icon: User, component: AccountSettings },
-	    { id: 'appearance', title: 'Appearance', icon: Palette, component: AppearanceSettings },
-	    { id: 'security', title: 'Security', icon: Lock, component: SecuritySettings },
-	    { id: 'billing', title: 'Billing', icon: CreditCard, component: BillingSettings },
+		    { id: 'account', title: 'Account', icon: User, component: AccountSettings },
+		    { id: 'appearance', title: 'Appearance', icon: Palette, component: AppearanceSettings },
+		    { id: 'security', title: 'Security', icon: Lock, component: SecuritySettings },
+		    { id: 'billing', title: 'Billing', icon: CreditCard, component: BillingAndSubscription },
 	    { id: 'notifications', title: 'Notifications', icon: Bell, component: NotificationSettings },
 	    { id: 'api', title: 'API Access', icon: Code, component: ApiSettings },
 	    { id: 'danger', title: 'Danger Zone', icon: Trash2, component: DangerZone },

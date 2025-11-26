@@ -14,11 +14,11 @@ import { toast } from 'sonner';
 
 
 // --- Map Component ---
-const WorldMap = () => {
+const WorldMap = ({ data }) => {
   return (
     <Card className="col-span-1 lg:col-span-2">
       <CardContent className="h-[600px] p-0">
-        <InteractiveMap />
+        <InteractiveMap data={data} />
       </CardContent>
     </Card>
   );
@@ -35,17 +35,15 @@ const Geography = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
-      
       // Fetch geography data from API
-      const geoData = await api.geography.getCountries();
+      const geoData = await api.analytics.getGeographyAnalytics({ period: dateRange });
       
       // Process the data
       const processedCountries = geoData.countries || [];
       
       // Calculate metrics
       const totalCountries = processedCountries.length;
-      const topCountry = processedCountries[0] || {};
+      const topCountry = geoData.topCountry || {};
       
       setMetrics({
         totalCountries,
@@ -85,8 +83,9 @@ const Geography = () => {
 
   const metricCards = [
     { title: 'Total Countries', value: metrics.totalCountries, icon: Globe, change: 0.0 },
-    { title: 'Top Country Clicks', value: metrics.topCountryClicks?.toLocaleString(), icon: MapPin, change: 1.2 },
-    { title: 'Top Country Visitors', value: metrics.topCountryVisitors?.toLocaleString(), icon: MapPin, change: 0.8 },
+	    { title: 'Top Country Clicks', value: metrics.topCountryClicks?.toLocaleString(), icon: MapPin, change: 1.2 },
+	    { title: 'Top Country Visitors', value: metrics.topCountryVisitors?.toLocaleString(), icon: MapPin, change: 0.8 },
+	    { title: 'Total Cities', value: metrics.totalCities?.toLocaleString(), icon: MapPin, change: 0.0 },
   ];
 
   const columns = [
@@ -161,9 +160,9 @@ const Geography = () => {
             ))}
           </div>
 
-          {/* Map and Top Countries Table */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <WorldMap data={countryData} />
+	          {/* Map and Top Countries Table */}
+	          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+	            <WorldMap data={countryData.map(c => ({ name: c.name, clicks: c.clicks, coordinates: c.coordinates }))} />
             <Card>
               <CardHeader>
                 <CardTitle>Top 5 Countries</CardTitle>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Link, Plus, RefreshCw, Filter, Copy, BarChart3, Trash2, Edit } from 'lucide-react';
+import EnhancedLinkBox from './EnhancedLinkBox';
 import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
@@ -11,7 +12,7 @@ import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import CreateLinkForm from './forms/CreateLink'; // Reusing the form component
-import { LinkDetails } from './TrackingLinks'; // Reusing the LinkDetails component for consistency
+
 
 // --- Main LinkShortener Component ---
 
@@ -21,7 +22,8 @@ const LinkShortener = () => {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [metrics, setMetrics] = useState({ totalLinks: 0, activeLinks: 0, totalClicks: 0 });
+	  const [metrics, setMetrics] = useState({ totalLinks: 0, activeLinks: 0, totalClicks: 0 });
+	  const [selectedLink, setSelectedLink] = useState(null); // State for the link to display in the box
 
 	  const fetchData = async () => {
 	    setLoading(true);
@@ -38,6 +40,15 @@ const LinkShortener = () => {
 	      // The actual links data is likely in a 'links' property of the response
 	      const linksData = linksResponse.links || linksResponse; 
 	      setLinks(linksData);
+	      if (linksData.length > 0 && !selectedLink) {
+	        setSelectedLink(linksData[0]); // Select the first link by default
+	      } else if (linksData.length > 0 && selectedLink) {
+	        // Update the selected link if it still exists in the list
+	        const updatedSelected = linksData.find(l => l.id === selectedLink.id);
+	        if (updatedSelected) setSelectedLink(updatedSelected);
+	      } else {
+	        setSelectedLink(null);
+	      }
 	      
 	      // Filter metrics for shortener-specific ones if possible, otherwise use general
 	      setMetrics({
@@ -67,26 +78,44 @@ const LinkShortener = () => {
     setIsCreateModalOpen(true);
   };
 
-	  const handleAction = async (action, link) => {
-	    if (action === 'Copy Link') {
-	      navigator.clipboard.writeText(link.shortUrl);
-	      toast.success('Link copied to clipboard!');
-	    } else if (action === 'Delete') {
-	      if (window.confirm(`Are you sure you want to delete the short link "${link.shortUrl}"?`)) {
-	        try {
-	          // Assuming the link object has an 'id' property
-	          await api.shorten.delete(link.id); 
-	          fetchData();
-	          toast.success(`Link "${link.shortUrl}" deleted successfully.`);
-	        } catch (error) {
-	          toast.error(`Failed to delete link: ${error.message}`);
-	        }
-	      }
-	    } else {
-	      toast.info(`${action} action triggered for link: ${link.shortUrl}`);
-	      // Mock action logic for other actions like Edit, View Analytics
-	    }
-	  };
+		  const handleAction = async (action, link) => {
+		    if (action === 'Regenerate') {
+		      if (window.confirm(`Are you sure you want to regenerate the short link for "${link.campaignName}"? The old link will no longer work.`)) {
+		        try {
+		          // Assuming an API endpoint for regeneration exists
+		          const response = await api.shorten.regenerate(link.id); 
+		          // Update the selected link and refetch all data
+		          setSelectedLink(response.link);
+		          fetchData();
+		          toast.success(`Link "${link.campaignName}" regenerated successfully!`);
+		        } catch (error) {
+		          toast.error(`Failed to regenerate link: ${error.message}`);
+		        }
+		      }
+		    } else if (action === 'Select') {
+		      setSelectedLink(link);
+		    } else if (action === 'Delete') {
+		      if (window.confirm(`Are you sure you want to delete the short link "${link.shortUrl}"?`)) {
+		        try {
+		          // Assuming the link object has an 'id' property
+		          await api.shorten.delete(link.id); 
+		          fetchData();
+		          toast.success(`Link "${link.shortUrl}" deleted successfully.`);
+		        } catch (error) {
+		          toast.error(`Failed to delete link: ${error.message}`);
+		        }
+		      }
+		    } else {
+		      toast.info(`${action} action triggered for link: ${link.shortUrl}`);
+		      // Mock action logic for other actions like Edit, View Analytics
+		    }
+		  };
+		
+		  const handleLinkUpdate = (updatedLink) => {
+		    // Update the selected link and the list of links
+		    setSelectedLink(updatedLink);
+		    setLinks(prevLinks => prevLinks.map(l => l.id === updatedLink.id ? updatedLink : l));
+		  };
 
   const filteredLinks = links.filter(link => {
     const matchesFilter = filter === 'all' || link.status === filter;
@@ -168,11 +197,28 @@ const LinkShortener = () => {
       />
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {metricCards.map((card, index) => (
-          <MetricCard key={index} {...card} />
-        ))}
-      </div>
+	      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+	        {metricCards.map((card, index) => (
+	          <MetricCard key={index} {...card} />
+	        ))}
+	      </div>
+	
+	      {/* Enhanced Link Box Section */}
+	      {selectedLink && (
+	        <EnhancedLinkBox 
+	          link={{
+	            ...selectedLink,
+	            trackingUrl: selectedLink.shortUrl, // Use shortUrl as the main tracking URL
+	            pixelUrl: 'N/A (Shortener does not support pixel)', // Placeholder for shortener
+	            emailCode: 'N/A (Shortener does not support email code)', // Placeholder for shortener
+	            campaignName: selectedLink.shortUrl,
+	            targetUrl: selectedLink.targetUrl,
+	          }} 
+	          onRegenerate={(link) => handleAction('Regenerate', link)}
+	          onEdit={() => toast.info('Edit button clicked on EnhancedLinkBox')}
+	          onLinkUpdate={handleLinkUpdate}
+	        />
+	      )}
 
       <FilterBar
         searchPlaceholder="Search links by short URL or target URL..."
@@ -220,7 +266,17 @@ const LinkShortener = () => {
 		                  />
 		                </div>
 		              )}
-		              expandedContent={(row) => <LinkDetails link={{ trackingUrl: row.shortUrl }} handleAction={handleAction} />}
+			              expandedContent={(row) => (
+			                <div className="p-4">
+			                  <Button 
+			                    variant="outline" 
+			                    size="sm" 
+			                    onClick={() => handleAction('Select', row)}
+			                  >
+			                    View in Enhanced Box
+			                  </Button>
+			                </div>
+			              )}
 			            />
           )}
         </CardContent>

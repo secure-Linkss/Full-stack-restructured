@@ -7,6 +7,8 @@ import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
 import api from '../services/api';
 import { toast } from 'sonner';
+import VisitorBehaviorFlow from './VisitorBehaviorFlow';
+import ABTestPerformance from './ABTestPerformance';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 // --- Placeholder Components for Charts and Tables ---
@@ -75,10 +77,11 @@ const Analytics = () => {
       
       setMetrics({
         totalClicks: overviewData.totalClicks || 0,
-        uniqueVisitors: overviewData.uniqueVisitors || 0,
-        capturedEmails: overviewData.capturedEmails || 0,
-        conversionRate: overviewData.conversionRate || 0,
-        activeLinks: overviewData.activeLinks || 0,
+	        uniqueVisitors: overviewData.uniqueVisitors || 0,
+	        capturedEmails: overviewData.capturedEmails || 0,
+	        conversionRate: overviewData.conversionRate || 0,
+	        bounceRate: overviewData.bounceRate || 0,
+	        activeLinks: overviewData.activeLinks || 0,
         countriesTracked: overviewData.countriesTracked || 0,
       });
       
@@ -93,10 +96,11 @@ const Analytics = () => {
       // Set default empty data on error
       setMetrics({
         totalClicks: 0,
-        uniqueVisitors: 0,
-        capturedEmails: 0,
-        conversionRate: 0,
-        activeLinks: 0,
+	        uniqueVisitors: 0,
+	        capturedEmails: 0,
+	        conversionRate: 0,
+	        bounceRate: 0,
+	        activeLinks: 0,
         countriesTracked: 0,
       });
       setTopLinksData([]);
@@ -126,8 +130,9 @@ const Analytics = () => {
   const metricCards = [
     { title: 'Total Clicks', value: metrics.totalClicks?.toLocaleString(), icon: TrendingUp, change: 1.5 },
     { title: 'Unique Visitors', value: metrics.uniqueVisitors?.toLocaleString(), icon: Users, change: 0.8 },
-    { title: 'Captured Emails', value: metrics.capturedEmails?.toLocaleString(), icon: Mail, change: 2.1 },
-    { title: 'Conversion Rate', value: `${Math.round((metrics.conversionRate || 0) * 100)}%`, icon: BarChart3, change: -0.2 },
+	    { title: 'Captured Emails', value: metrics.capturedEmails?.toLocaleString(), icon: Mail, change: 2.1 },
+	    { title: 'Conversion Rate', value: `${Math.round((metrics.conversionRate || 0) * 100)}%`, icon: BarChart3, change: -0.2 },
+	    { title: 'Bounce Rate', value: `${Math.round((metrics.bounceRate || 0) * 100)}%`, icon: Minus, change: 0.0 },
     { title: 'Active Links', value: metrics.activeLinks, icon: Link, change: 0.0 },
     { title: 'Countries Tracked', value: metrics.countriesTracked, icon: Globe, change: 0.0 },
   ];
@@ -172,21 +177,13 @@ const Analytics = () => {
             <ConversionRateOverTime data={conversionData} />
           </div>
 
-          {/* Additional Analytics Sections (Placeholders) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader><CardTitle>Visitor Behavior Flow</CardTitle></CardHeader>
-              <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
-                [Placeholder for Flow Chart/Diagram]
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>A/B Test Performance</CardTitle></CardHeader>
-              <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
-                [Placeholder for A/B Test Comparison Table/Chart]
-              </CardContent>
-            </Card>
-          </div>
+	          {/* Advanced Analytics Sections */}
+	          <div className="grid grid-cols-1 gap-6">
+	            <VisitorBehaviorFlow />
+	          </div>
+	          <div className="grid grid-cols-1 gap-6">
+	            <ABTestPerformance />
+	          </div>
         </>
       )}
     </div>
