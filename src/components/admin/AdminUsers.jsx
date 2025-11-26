@@ -21,7 +21,7 @@ const AdminUsers = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const usersData = await api.adminUsers.getAll();
+      const usersData = await api.admin.users.getAll();
       
       // Map backend data to frontend structure
       const mappedUsers = usersData.map(u => ({

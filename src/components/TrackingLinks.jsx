@@ -33,50 +33,50 @@ export const LinkDetails = ({ link, handleAction }) => {
   };
 
   return (
-    <div className="space-y-4 p-4 bg-slate-800 rounded-lg border border-slate-700 text-sm">
-      <h4 className="text-base font-semibold text-white">Generated Links</h4>
-      
-      {/* Tracking URL */}
-      <div className="space-y-1">
-        <span className="font-medium text-slate-400">TRACKING URL</span>
-        <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
-          <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{trackingUrl}</code>
-          <ActionIconGroup
-            actions={[
-              { icon: Copy, label: 'Copy Tracking URL', onClick: () => copyToClipboard(trackingUrl, 'Tracking URL') },
-              { icon: ExternalLink, label: 'Test Link', onClick: testLink },
-              { icon: RefreshCw, label: 'Regenerate Link', onClick: () => handleAction('Regenerate', link) },
-            ]}
-          />
-        </div>
-      </div>
+        <div className="space-y-4 p-4 bg-slate-800 rounded-lg border border-slate-700 text-sm">
+          <h4 className="text-base font-semibold text-white">Generated Links</h4>
+          
+          {/* Tracking URL */}
+          <div className="space-y-1">
+            <span className="font-medium text-slate-400">TRACKING URL</span>
+            <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
+              <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{trackingUrl}</code>
+              <ActionIconGroup
+                actions={[
+                  { icon: Copy, label: 'Copy Tracking URL', onClick: () => copyToClipboard(trackingUrl, 'Tracking URL') },
+                  { icon: ExternalLink, label: 'Test Link', onClick: testLink },
+                  { icon: RefreshCw, label: 'Regenerate Link', onClick: () => handleAction('Regenerate', link) },
+                ]}
+              />
+            </div>
+          </div>
 
-      {/* PIXEL URL */}
-      <div className="space-y-1">
-        <span className="font-medium text-slate-400">PIXEL URL</span>
-        <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
-          <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{pixelUrl}</code>
-          <ActionIconGroup
-            actions={[
-              { icon: Copy, label: 'Copy Pixel URL', onClick: () => copyToClipboard(pixelUrl, 'Pixel URL') },
-            ]}
-          />
-        </div>
-      </div>
+          {/* PIXEL URL */}
+          <div className="space-y-1">
+            <span className="font-medium text-slate-400">PIXEL URL</span>
+            <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
+              <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{pixelUrl}</code>
+              <ActionIconGroup
+                actions={[
+                  { icon: Copy, label: 'Copy Pixel URL', onClick: () => copyToClipboard(pixelUrl, 'Pixel URL') },
+                ]}
+              />
+            </div>
+          </div>
 
-      {/* EMAIL CODE */}
-      <div className="space-y-1">
-        <span className="font-medium text-slate-400">EMAIL CODE</span>
-        <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
-          <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{emailCode}</code>
-          <ActionIconGroup
-            actions={[
-              { icon: Copy, label: 'Copy Email Code', onClick: () => copyToClipboard(emailCode, 'Email Code') },
-            ]}
-          />
+          {/* EMAIL CODE */}
+          <div className="space-y-1">
+            <span className="font-medium text-slate-400">EMAIL CODE</span>
+            <div className="flex items-center justify-between bg-slate-700 p-2 rounded-md">
+              <code className="text-blue-400 text-xs sm:text-sm break-all pr-2">{emailCode}</code>
+              <ActionIconGroup
+                actions={[
+                  { icon: Copy, label: 'Copy Email Code', onClick: () => copyToClipboard(emailCode, 'Email Code') },
+                ]}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
   );
 };
 
@@ -138,6 +138,17 @@ const TrackingLinks = () => {
           toast.error(`Failed to regenerate link: ${error.message}`);
         }
       }
+    } else if (action === 'Edit') {
+      // Placeholder for opening an edit modal
+      toast.info(`Edit action triggered for link: ${link.campaignName}`);
+      // You would typically open a modal here and pass the link object
+      // setIsEditModalOpen(true);
+      // setSelectedLink(link);
+    } else if (action === 'Copy') {
+      // Placeholder for copying the link
+      toast.info(`Copy action triggered for link: ${link.campaignName}`);
+      // You would typically call an API to duplicate the link
+      // api.links.copy(link.id);
     } else if (action === 'Delete') {
       if (window.confirm(`Are you sure you want to delete the link "${link.campaignName}"?`)) {
         try {
@@ -191,13 +202,26 @@ const TrackingLinks = () => {
 	      accessor: 'targetUrl',
 	      cell: (row) => <a href={row.targetUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm">{row.targetUrl}</a>,
 	    },
-	    {
-	      header: 'Clicks',
-	      accessor: 'totalClicks',
-	      sortable: true,
-	      cell: (row) => <span className="text-sm">{row.totalClicks.toLocaleString()}</span>,
-	    },
-	    {
+		    {
+		      header: 'Clicks',
+		      accessor: 'totalClicks',
+		      sortable: true,
+		      cell: (row) => <span className="text-sm">{row.totalClicks.toLocaleString()}</span>,
+		    },
+		    {
+		      header: 'Actions',
+		      accessor: 'actions',
+		      cell: (row) => (
+		        <ActionIconGroup
+		          actions={[
+		            { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row) },
+		            { icon: Copy, label: 'Copy Link', onClick: () => handleAction('Copy', row) },
+		            { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row) },
+		          ]}
+		        />
+		      ),
+		    },
+		    {
 	      header: 'Real Visitors',
 	      accessor: 'realVisitors',
 	      sortable: true,

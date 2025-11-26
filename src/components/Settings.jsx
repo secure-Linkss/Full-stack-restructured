@@ -7,6 +7,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { toast } from 'sonner';
+import UserApiKeyManager from './UserApiKeyManager';
 import api from '../services/api';
 
 // --- Placeholder Components for Settings Sections ---
@@ -18,9 +19,8 @@ const AccountSettings = () => (
       <p className="text-sm text-muted-foreground">Update your personal details and email address.</p>
     </CardHeader>
     <CardContent className="space-y-4">
-      {/* Placeholder Form */}
       <div className="h-32 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-        [Account Details Form]
+        [Account Details Form - Implementation Pending]
       </div>
       <Button onClick={() => toast.info('Account details saved (Mock)')}>Save Changes</Button>
     </CardContent>
@@ -34,9 +34,8 @@ const SecuritySettings = () => (
       <p className="text-sm text-muted-foreground">Change your password and enable two-factor authentication.</p>
     </CardHeader>
     <CardContent className="space-y-4">
-      {/* Placeholder Form */}
       <div className="h-32 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-        [Password Change and 2FA Settings]
+        [Password Change and 2FA Settings - Implementation Pending]
       </div>
       <Button onClick={() => toast.info('Security settings saved (Mock)')}>Save Changes</Button>
     </CardContent>
@@ -50,9 +49,8 @@ const BillingSettings = () => (
       <p className="text-sm text-muted-foreground">Manage your payment methods and view your billing history.</p>
     </CardHeader>
     <CardContent className="space-y-4">
-      {/* Placeholder Content */}
       <div className="h-32 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-        [Subscription Details and Invoice List]
+        [Subscription Details and Invoice List - Implementation Pending]
       </div>
       <Button onClick={() => toast.info('Redirecting to billing portal (Mock)')} variant="outline">Manage Subscription</Button>
     </CardContent>
@@ -313,15 +311,11 @@ const BillingSettings = () => (
 const ApiSettings = () => (
   <Card>
     <CardHeader>
-      <CardTitle className="flex items-center"><Code className="h-5 w-5 mr-2 text-primary" /> API Access</CardTitle>
-      <p className="text-sm text-muted-foreground">Generate and manage your API keys for external integrations.</p>
+      <CardTitle className="flex items-center"><Code className="h-5 w-5 mr-2 text-primary" /> API Management</CardTitle>
+      <p className="text-sm text-muted-foreground">Manage your personal API keys for programmatic access to your data.</p>
     </CardHeader>
-    <CardContent className="space-y-4">
-      {/* Placeholder Content */}
-      <div className="h-32 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-        [API Key Management Table and Button]
-      </div>
-      <Button onClick={() => toast.info('New API key generated (Mock)')}>Generate New Key</Button>
+    <CardContent>
+      <UserApiKeyManager />
     </CardContent>
   </Card>
 );
@@ -395,11 +389,10 @@ const AppearanceSettings = () => {
           <p className="text-xs text-muted-foreground">Select a theme for the dashboard. This will also control the background.</p>
         </div>
         
-        {/* Placeholder for more advanced background settings */}
         <div className="space-y-2 pt-4 border-t">
           <Label>Advanced Background</Label>
           <div className="h-16 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-            [Placeholder for Custom Background Image/Color Picker]
+            [Custom Background Image/Color Picker - Implementation Pending]
           </div>
           <p className="text-xs text-muted-foreground">Upload a custom background or select a color palette.</p>
         </div>

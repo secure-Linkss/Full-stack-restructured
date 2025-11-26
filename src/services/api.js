@@ -322,9 +322,47 @@ const api = {
     markAllAsRead: () => fetchWithAuth(`${API_BASE_URL}/notifications/mark-all-read`, {
       method: 'PUT',
     }),
-    delete: (id) => fetchWithAuth(`${API_BASE_URL}/notifications/${id}`, {
+        delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, {
       method: 'DELETE',
     }),
+  },
+
+  // ==================== ADMIN APIs ====================
+  admin: {
+    campaigns: {
+      getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/campaigns`),
+      delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, { method: 'DELETE' }),
+    },
+    announcements: {
+      getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/announcements`),
+      create: (data) => fetchWithAuth(`${API_BASE_URL}/admin/announcements`, { method: 'POST', body: JSON.stringify(data) }),
+      delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/announcements/${id}`, { method: 'DELETE' }),
+    },
+    users: {
+      getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/users`),
+      approve: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/approve`, { method: 'POST' }),
+      block: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/block`, { method: 'POST' }),
+    },
+    security: {
+      getBlockedIPs: () => fetchWithAuth(`${API_BASE_URL}/admin/security/blocked-ips`),
+      addBlockedIP: (ip) => fetchWithAuth(`${API_BASE_URL}/admin/security/blocked-ips`, { method: 'POST', body: JSON.stringify({ ip_address: ip }) }),
+      removeBlockedIP: (ip) => fetchWithAuth(`${API_BASE_URL}/admin/security/blocked-ips/${ip}`, { method: 'DELETE' }),
+      getRateLimitSettings: () => fetchWithAuth(`${API_BASE_URL}/admin/security/rate-limit`),
+      updateRateLimitSettings: (settings) => fetchWithAuth(`${API_BASE_URL}/admin/security/rate-limit`, { method: 'PUT', body: JSON.stringify(settings) }),
+    },
+    payments: {
+      getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/admin/payments/crypto-wallets`),
+      addCryptoWallet: (wallet) => fetchWithAuth(`${API_BASE_URL}/admin/payments/crypto-wallets`, { method: 'POST', body: JSON.stringify(wallet) }),
+      removeCryptoWallet: (id) => fetchWithAuth(`${API_BASE_URL}/admin/payments/crypto-wallets/${id}`, { method: 'DELETE' }),
+    },
+  },
+
+  // ==================== ADMIN SETTINGS APIs ====================
+  adminSettings: {
+    getDomains: () => fetchWithAuth(`${API_BASE_URL}/admin/domains`),
+    addDomain: (data) => fetchWithAuth(`${API_BASE_URL}/admin/domains`, { method: 'POST', body: JSON.stringify(data) }),
+    updateDomain: (id, data) => fetchWithAuth(`${API_BASE_URL}/admin/domains/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteDomain: (id) => fetchWithAuth(`${API_BASE_URL}/admin/domains/${id}`, { method: 'DELETE' }),
   },
 
   // ==================== SETTINGS APIs ====================

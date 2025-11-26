@@ -4,7 +4,7 @@ import { Megaphone, Plus, RefreshCw, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DataTable from '@/components/ui/DataTable';
-import { fetchMockData } from '../../services/mockApi';
+// import { fetchMockData } from '../../services/mockApi';
 
 const AdminAnnouncements = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -13,7 +13,7 @@ const AdminAnnouncements = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const announcementsData = await fetchMockData('getAdminAnnouncements');
+      const announcementsData = await api.admin.announcements.getAll();
       setAnnouncements(announcementsData);
       toast.success('Announcements refreshed.');
     } catch (error) {

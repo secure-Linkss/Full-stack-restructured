@@ -17,7 +17,7 @@ const AdminCampaigns = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const campaignsData = await api.adminCampaigns.getAll();
+      const campaignsData = await api.admin.campaigns.getAll();
       
       // Map backend data to frontend structure
       const mappedCampaigns = campaignsData.map(c => ({

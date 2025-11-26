@@ -58,7 +58,7 @@ const DomainManagementTab = () => {
     }
   };
 
-  const handleEdit = async () => {
+  const handleUpdate = async () => {
     try {
       await api.adminSettings.updateDomain(selectedDomain.id, formData);
       toast.success('Domain updated successfully!');
@@ -70,17 +70,9 @@ const DomainManagementTab = () => {
     }
   };
 
-  const handleDelete = async (domain) => {
-    if (window.confirm(`Are you sure you want to delete domain ${domain.domain}?`)) {
-      try {
-        await api.adminSettings.deleteDomain(domain.id);
-        toast.success('Domain deleted successfully!');
-        fetchDomains();
-      } catch (error) {
-        toast.error(`Failed to delete domain: ${error.message}`);
-      }
-    }
-  };
+
+
+
 
   const openEditModal = (domain) => {
     setSelectedDomain(domain);

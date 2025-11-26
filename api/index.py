@@ -48,6 +48,10 @@ from api.routes.advanced_security import advanced_security_bp
 from api.routes.domains import domains_bp
 from api.routes.profile import profile_bp
 from api.routes.broadcaster import broadcaster_bp
+from api.routes.admin_fixes import admin_fixes_bp
+from api.routes.admin_security_fixes import admin_security_fixes_bp
+from api.routes.admin_payment_fixes import admin_payment_fixes_bp
+from api.routes.admin_domain_fixes import admin_domain_fixes_bp
 from api.routes.pending_users import pending_users_bp
 from api.routes.payments import payments_bp
 from api.routes.crypto_payments import crypto_payments_bp
@@ -129,7 +133,11 @@ app.register_blueprint(notifications_bp)  # Has /api prefix in routes
 app.register_blueprint(quantum_bp)  # No prefix - has /q/, /validate, /route routes
 app.register_blueprint(advanced_security_bp, url_prefix='/api')
 app.register_blueprint(domains_bp)  # Has /api in routes
-app.register_blueprint(profile_bp)  # Profile management routes
+app.register_blueprint(profile_bp)
+app.register_blueprint(admin_fixes_bp)
+app.register_blueprint(admin_security_fixes_bp)
+app.register_blueprint(admin_payment_fixes_bp)
+app.register_blueprint(admin_domain_fixes_bp)  # Profile management routes
 app.register_blueprint(track_bp)  # No prefix - has /t/, /p/, /track routes
 app.register_blueprint(events_bp)  # No prefix - has /api/ in blueprint
 app.register_blueprint(broadcaster_bp)  # Global broadcaster routes - has /api in blueprint

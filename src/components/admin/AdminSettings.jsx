@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 	import { Trash2, Database, AlertCircle } from 'lucide-react';
 	import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import api from '../../services/api';
+import CryptoPaymentSettings from './CryptoPaymentSettings';
 
 // --- Sub-Components for Settings Tabs ---
 
@@ -149,6 +150,8 @@ const PaymentSettings = ({ settings, setSettings, saving, handleSave }) => (
         </div>
       </CardContent>
     </Card>
+
+    <CryptoPaymentSettings />
 
     <div className="flex justify-end">
       <Button onClick={() => handleSave('payment')} disabled={saving}>

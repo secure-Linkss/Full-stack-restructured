@@ -4,7 +4,9 @@ import { Shield, RefreshCw, AlertTriangle, CheckCircle, Lock, Server } from 'luc
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DataTable from '@/components/ui/DataTable';
-import { fetchMockData } from '../../services/mockApi';
+// import { fetchMockData } from '../../services/mockApi';
+import BlockedIPs from './BlockedIPs';
+import RateLimiting from './RateLimiting';
 
 const AdminSecurity = () => {
   const [securityLogs, setSecurityLogs] = useState([]);
@@ -13,7 +15,9 @@ const AdminSecurity = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const logsData = await fetchMockData('getAdminSecurityLogs');
+      // const logsData = await fetchMockData('getAdminSecurityLogs');
+      // Temporarily mock log data until backend is implemented
+      const logsData = [];
       setSecurityLogs(logsData);
       toast.success('Security logs refreshed.');
     } catch (error) {
@@ -79,26 +83,8 @@ const AdminSecurity = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-red-500/10 border-red-500/20">
-              <CardHeader>
-                <CardTitle className="text-red-400 flex items-center"><Lock className="h-5 w-5 mr-2" /> Blocked IPs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-24 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-                  [IP Blocklist Management]
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-yellow-500/10 border-yellow-500/20">
-              <CardHeader>
-                <CardTitle className="text-yellow-400 flex items-center"><Server className="h-5 w-5 mr-2" /> Rate Limiting</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-24 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-                  [Rate Limiting Configuration]
-                </div>
-              </CardContent>
-            </Card>
+            <BlockedIPs />
+            <RateLimiting />
           </div>
 
           <div className="flex justify-between items-center">
