@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
@@ -35,16 +36,22 @@ export default defineConfig({
 
   // Development server configuration
   server: {
-    port: 3001,
+    port: 3025,
     host: true,
     hmr: {
-      host: '3001-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      host: '3025-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
       protocol: 'wss',
     },
     allowedHosts: [
       '3001-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
       '3002-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
       '3003-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3004-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3005-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3009-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3013-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3017-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3021-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',\n      '3025-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer'
     ],
     proxy: {
       '/api': {
