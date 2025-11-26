@@ -5,6 +5,7 @@ Handles Stripe payment processing, checkout sessions, and webhooks
 from flask import Blueprint, request, jsonify, session
 from api.database import db
 from api.models.user import User
+from api.models.payment import Payment
 from api.models.subscription_verification import SubscriptionVerification
 import os
 import stripe
@@ -97,6 +98,20 @@ def stripe_webhook():
         if user_id:
             user = User.query.get(user_id)
             if user:
+                # Create a record in the unified Payment model
+                new_payment = Payment(
+                    user_id=user_id,
+                    payment_type='stripe',
+                    currency='USD', # Assuming Stripe uses USD
+                    amount=session_data.get('amount_total') / 100, # Stripe uses cents
+                    plan_type=plan_type,
+                    stripe_charge_id=session_data.get('payment_intent'),
+                    status='confirmed',
+                    confirmed_at=datetime.utcnow()
+                )
+                db.session.add(new_payment)
+                db.session.commit()
+                
                 # Update user subscription
                 user.plan_type = plan_type
                 user.subscription_status = 'active'
