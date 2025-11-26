@@ -19,6 +19,7 @@ from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
 from api.models.support_ticket import SupportTicket
 from api.models.subscription_verification import SubscriptionVerification
 from api.models.notification import Notification
+from api.models.payment import Payment
 from api.models.domain import Domain
 from api.models.security_threat import SecurityThreat
 from api.models.security_threat_db import SecurityThreat as SecurityThreatDB
