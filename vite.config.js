@@ -51,7 +51,8 @@ export default defineConfig({
       '3009-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
       '3013-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
       '3017-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
-      '3021-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',\n      '3025-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer'
+      '3021-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer',
+      '3025-ie47i6tvelb2uxnkqkh0i-9344a37e.manusvm.computer'
     ],
     proxy: {
       '/api': {

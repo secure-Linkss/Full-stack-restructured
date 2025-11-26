@@ -54,6 +54,9 @@ from api.routes.support_tickets import support_tickets_bp
 from api.routes.admin_missing import admin_missing_bp
 from api.routes.user_missing import user_missing_bp
 from api.routes.missing_api_routes import missing_routes_bp
+from api.routes.campaigns_advanced import campaigns_advanced_bp
+from api.routes.user_api_keys_advanced import user_api_keys_advanced_bp
+from api.routes.crypto_payments_advanced import crypto_payments_advanced_bp
 from api.utils.migration_helper import check_and_add_missing_columns, safe_create_default_admin
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), '..', 'dist'))
@@ -136,6 +139,9 @@ app.register_blueprint(support_tickets_bp)  # Support ticket system - has /api i
 app.register_blueprint(admin_missing_bp)  # Missing admin routes
 app.register_blueprint(user_missing_bp)  # Missing user routes
 app.register_blueprint(missing_routes_bp)  # Missing API routes
+app.register_blueprint(campaigns_advanced_bp)  # Advanced campaign management
+app.register_blueprint(user_api_keys_advanced_bp)  # Advanced user API key management
+app.register_blueprint(crypto_payments_advanced_bp)  # Advanced crypto payment processing
 
 @app.route('/', defaults={'path': ''}) 
 @app.route('/<path:path>')

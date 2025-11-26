@@ -435,14 +435,14 @@ const APISettings = ({ settings, setSettings, saving, handleSave }) => (
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="general"><Settings className="h-4 w-4 mr-2" /> General</TabsTrigger>
-            <TabsTrigger value="email"><Mail className="h-4 w-4 mr-2" /> Email</TabsTrigger>
-            <TabsTrigger value="payment"><CreditCard className="h-4 w-4 mr-2" /> Payment</TabsTrigger>
-            <TabsTrigger value="cdn"><Globe className="h-4 w-4 mr-2" /> CDN/Storage</TabsTrigger>
-	            <TabsTrigger value="api"><Code className="h-4 w-4 mr-2" /> API/Integrations</TabsTrigger>
-	            <TabsTrigger value="domains"><Globe className="h-4 w-4 mr-2" /> Domains</TabsTrigger>
-	            <TabsTrigger value="system"><AlertCircle className="h-4 w-4 mr-2" /> System</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-1 overflow-x-auto">
+            <TabsTrigger value="general" className="text-xs sm:text-sm whitespace-nowrap"><Settings className="h-4 w-4 mr-1" /><span className="hidden sm:inline">General</span></TabsTrigger>
+            <TabsTrigger value="email" className="text-xs sm:text-sm whitespace-nowrap"><Mail className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Email</span></TabsTrigger>
+            <TabsTrigger value="payment" className="text-xs sm:text-sm whitespace-nowrap"><CreditCard className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Payment</span></TabsTrigger>
+            <TabsTrigger value="cdn" className="text-xs sm:text-sm whitespace-nowrap"><Globe className="h-4 w-4 mr-1" /><span className="hidden sm:inline">CDN</span></TabsTrigger>
+            <TabsTrigger value="api" className="text-xs sm:text-sm whitespace-nowrap"><Code className="h-4 w-4 mr-1" /><span className="hidden sm:inline">API</span></TabsTrigger>
+            <TabsTrigger value="domains" className="text-xs sm:text-sm whitespace-nowrap"><Globe className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Domains</span></TabsTrigger>
+            <TabsTrigger value="system" className="text-xs sm:text-sm whitespace-nowrap"><AlertCircle className="h-4 w-4 mr-1" /><span className="hidden sm:inline">System</span></TabsTrigger>
 	          </TabsList>
 	
 	          <div className="mt-6">
