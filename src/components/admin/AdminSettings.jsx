@@ -1,23 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Save, Mail, CreditCard, Globe, Code, AlertTriangle, Loader } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-    <Card>
-      <CardHeader><CardTitle>Platform Identity</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="companyName">Company Name</Label>
-          <Input id="companyName" value={settings.companyName || ''} onChange={(e) => setSettings('companyName', e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="companyLogoUrl">Company Logo URL</Label>
-          <Input id="companyLogoUrl" value={settings.companyLogoUrl || ''} onChange={(e) => setSettings('companyLogoUrl', e.target.value)} />
-        </div>
-      </CardContent>
-    </Card>
+<Input id="companyName" value={settings.companyName || ''} onChange={(e) => setSettings('companyName', e.target.value)} />
+        </div >
+  <div>
+    <Label htmlFor="companyLogoUrl">Company Logo URL</Label>
+    <Input id="companyLogoUrl" value={settings.companyLogoUrl || ''} onChange={(e) => setSettings('companyLogoUrl', e.target.value)} />
+  </div>
+      </CardContent >
+    </Card >
 
     <Card>
       <CardHeader><CardTitle>System Status</CardTitle></CardHeader>
