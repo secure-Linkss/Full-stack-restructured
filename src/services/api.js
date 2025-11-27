@@ -435,6 +435,7 @@ const api = {
       method: 'PUT',
       body: JSON.stringify(settings),
     }),
+    testTelegram: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/telegram/test`, { method: 'POST' }),
     getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/admin/settings/crypto-wallets`),
     addCryptoWallet: (walletData) => fetchWithAuth(`${API_BASE_URL}/admin/settings/crypto-wallets`, {
       method: 'POST',
