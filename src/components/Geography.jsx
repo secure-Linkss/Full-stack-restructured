@@ -26,185 +26,143 @@ const WorldMap = ({ data }) => {
 
 // --- Main Geography Component ---
 
-const Geography = () => {
-  const [metrics, setMetrics] = useState({});
-  const [countryData, setCountryData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('30d');
+const handleRefresh = () => {
+  fetchData();
+};
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // Fetch geography data from API
-      const geoData = await api.analytics.getGeographyAnalytics({ period: dateRange });
-      
-      // Process the data
-      const processedCountries = geoData.countries || [];
-      
-      // Calculate metrics
-      const totalCountries = processedCountries.length;
-      const topCountry = geoData.topCountry || {};
-      
-      setMetrics({
-        totalCountries,
-        topCountryClicks: topCountry.clicks || 0,
-        topCountryVisitors: topCountry.visitors || 0,
-      });
-      
-      setCountryData(processedCountries);
-      toast.success('Geography data refreshed successfully.');
-    } catch (error) {
-      console.error('Error fetching geography data:', error);
-      toast.error('Failed to load geography data.');
-      // Set default empty data on error
-      setMetrics({ totalCountries: 0, topCountryClicks: 0, topCountryVisitors: 0 });
-      setCountryData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleDateRangeChange = (range) => {
+  setDateRange(range);
+};
 
-  useEffect(() => {
-    fetchData();
-  }, [dateRange]);
+const handleExport = () => {
+  toast.info('Exporting geography data...');
+  // Mock export logic
+};
 
-  const handleRefresh = () => {
-    fetchData();
-  };
+const metricCards = [
+  { title: 'Total Countries', value: metrics.totalCountries, icon: Globe, change: 0.0 },
+  { title: 'Top Country Clicks', value: metrics.topCountryClicks?.toLocaleString(), icon: MapPin, change: 1.2 },
+  { title: 'Top Country Visitors', value: metrics.topCountryVisitors?.toLocaleString(), icon: MapPin, change: 0.8 },
+  { title: 'Total Cities', value: metrics.totalCities?.toLocaleString(), icon: MapPin, change: 0.0 },
+];
 
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
+const columns = [
+  {
+    header: 'Country',
+    accessor: 'country',
+    sortable: true,
+    cell: (row) => (
+      <div className="flex items-center">
+        <span className="mr-2 text-lg">{row.flag || '🌍'}</span>
+        <span className="font-medium">{row.country || row.name}</span>
+      </div>
+    ),
+  },
+  {
+    header: 'Clicks',
+    accessor: 'clicks',
+    sortable: true,
+    cell: (row) => <span className="text-sm">{(row.clicks || 0).toLocaleString()}</span>,
+  },
+  {
+    header: 'Visitors',
+    accessor: 'visitors',
+    sortable: true,
+    cell: (row) => <span className="text-sm">{(row.visitors || 0).toLocaleString()}</span>,
+  },
+  {
+    header: 'Emails Captured',
+    accessor: 'emailsCaptured',
+    sortable: true,
+    cell: (row) => <span className="text-sm">{(row.emailsCaptured || 0).toLocaleString()}</span>,
+  },
+  {
+    header: 'Conversion Rate',
+    accessor: 'conversionRate',
+    sortable: true,
+    cell: (row) => <span className="text-sm">{Math.round((row.conversionRate || 0) * 100)}%</span>,
+  },
+];
 
-  const handleExport = () => {
-    toast.info('Exporting geography data...');
-    // Mock export logic
-  };
+return (
+  <div className="space-y-6">
+    <PageHeader
+      title="Geography Analytics"
+      description="Analyze traffic distribution and performance by geographic location"
+    />
 
-  const metricCards = [
-    { title: 'Total Countries', value: metrics.totalCountries, icon: Globe, change: 0.0 },
-	    { title: 'Top Country Clicks', value: metrics.topCountryClicks?.toLocaleString(), icon: MapPin, change: 1.2 },
-	    { title: 'Top Country Visitors', value: metrics.topCountryVisitors?.toLocaleString(), icon: MapPin, change: 0.8 },
-	    { title: 'Total Cities', value: metrics.totalCities?.toLocaleString(), icon: MapPin, change: 0.0 },
-  ];
+    <FilterBar
+      searchPlaceholder="Search country or city..."
+      onSearch={() => { }}
+      onRefresh={handleRefresh}
+      onExport={handleExport}
+      dateRangeOptions={['7d', '30d', '90d']}
+      onDateRangeChange={handleDateRangeChange}
+      selectedDateRange={dateRange}
+      extraButtons={[
+        <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
+          <Filter className="h-4 w-4 mr-2" />
+          Filters
+        </Button>
+      ]}
+    />
 
-  const columns = [
-    {
-      header: 'Country',
-      accessor: 'country',
-      sortable: true,
-      cell: (row) => (
-        <div className="flex items-center">
-          <span className="mr-2 text-lg">{row.flag || '🌍'}</span>
-          <span className="font-medium">{row.country || row.name}</span>
+    {loading ? (
+      <div className="text-center text-muted-foreground p-10">Loading Geography Data...</div>
+    ) : (
+      <>
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {metricCards.map((card, index) => (
+            <MetricCard key={index} {...card} />
+          ))}
         </div>
-      ),
-    },
-    {
-      header: 'Clicks',
-      accessor: 'clicks',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{(row.clicks || 0).toLocaleString()}</span>,
-    },
-    {
-      header: 'Visitors',
-      accessor: 'visitors',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{(row.visitors || 0).toLocaleString()}</span>,
-    },
-    {
-      header: 'Emails Captured',
-      accessor: 'emailsCaptured',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{(row.emailsCaptured || 0).toLocaleString()}</span>,
-    },
-    {
-      header: 'Conversion Rate',
-      accessor: 'conversionRate',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{Math.round((row.conversionRate || 0) * 100)}%</span>,
-    },
-  ];
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Geography Analytics"
-        description="Analyze traffic distribution and performance by geographic location"
-      />
-
-      <FilterBar
-        searchPlaceholder="Search country or city..."
-        onSearch={() => {}}
-        onRefresh={handleRefresh}
-        onExport={handleExport}
-        dateRangeOptions={['7d', '30d', '90d']}
-        onDateRangeChange={handleDateRangeChange}
-        selectedDateRange={dateRange}
-        extraButtons={[
-          <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-        ]}
-      />
-
-      {loading ? (
-        <div className="text-center text-muted-foreground p-10">Loading Geography Data...</div>
-      ) : (
-        <>
-          {/* Metric Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {metricCards.map((card, index) => (
-              <MetricCard key={index} {...card} />
-            ))}
-          </div>
-
-	          {/* Map and Top Countries Table */}
-	          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-	            <WorldMap data={countryData.map(c => ({ name: c.name, clicks: c.clicks, coordinates: c.coordinates }))} />
-            <Card>
-              <CardHeader>
-                <CardTitle>Top 5 Countries</CardTitle>
-                <p className="text-sm text-muted-foreground">Highest performing locations</p>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {countryData.slice(0, 5).map((country, index) => (
-                    <li key={index} className="flex justify-between items-center border-b border-border pb-2 last:border-b-0">
-                      <div className="flex items-center">
-                        <span className="mr-2 text-lg">{country.flag || '🌍'}</span>
-                        <span className="font-medium">{country.country || country.name}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold">{(country.clicks || 0).toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">{Math.round((country.conversionRate || 0) * 100)}% CR</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Detailed Country Data Table */}
+        {/* Map and Top Countries Table */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <WorldMap data={countryData.map(c => ({ name: c.name, clicks: c.clicks, coordinates: c.coordinates }))} />
           <Card>
             <CardHeader>
-              <CardTitle>Detailed Geographic Data</CardTitle>
-              <p className="text-sm text-muted-foreground">All tracked countries and their metrics</p>
+              <CardTitle>Top 5 Countries</CardTitle>
+              <p className="text-sm text-muted-foreground">Highest performing locations</p>
             </CardHeader>
             <CardContent>
-              <DataTable
-                columns={columns}
-                data={countryData}
-                pageSize={10}
-              />
+              <ul className="space-y-3">
+                {countryData.slice(0, 5).map((country, index) => (
+                  <li key={index} className="flex justify-between items-center border-b border-border pb-2 last:border-b-0">
+                    <div className="flex items-center">
+                      <span className="mr-2 text-lg">{country.flag || '🌍'}</span>
+                      <span className="font-medium">{country.country || country.name}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold">{(country.clicks || 0).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">{Math.round((country.conversionRate || 0) * 100)}% CR</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
-        </>
-      )}
-    </div>
-  );
+        </div>
+
+        {/* Detailed Country Data Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detailed Geographic Data</CardTitle>
+            <p className="text-sm text-muted-foreground">All tracked countries and their metrics</p>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              columns={columns}
+              data={countryData}
+              pageSize={10}
+            />
+          </CardContent>
+        </Card>
+      </>
+    )}
+  </div>
+);
 };
 
 export default Geography;

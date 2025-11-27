@@ -37,8 +37,8 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
 
   const fetchWalletAddresses = async () => {
     try {
-      const response = await api.get('/api/crypto-payments/wallets')
-      setWallets(response.data.wallets || {})
+      const response = await api.payments.getCryptoWallets()
+      setWallets(response.wallets || {})
     } catch (error) {
       console.error('Error fetching wallet addresses:', error)
       toast.error('Failed to load wallet addresses')
@@ -57,7 +57,7 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
         toast.error('File size must be less than 5MB')
         return
       }
-      
+
       const reader = new FileReader()
       reader.onloadend = () => {
         setPaymentProof(prev => ({ ...prev, screenshot: reader.result }))
@@ -82,7 +82,7 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
     setLoading(true)
 
     try {
-      const response = await api.post('/api/crypto-payments/submit-proof', {
+      const response = await api.payments.submitCryptoPayment({
         plan_type: planType,
         currency: selectedCurrency,
         tx_hash: paymentProof.txHash,
@@ -90,9 +90,9 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
         screenshot: paymentProof.screenshot
       })
 
-      if (response.data.success) {
-        setSubmittedPayment(response.data.payment)
-        setPaymentStatus(response.data.payment)
+      if (response.success) {
+        setSubmittedPayment(response.payment)
+        setPaymentStatus(response.payment)
         toast.success('Payment proof submitted! Checking confirmations...')
       }
     } catch (error) {
@@ -108,12 +108,12 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
 
     try {
       setChecking(true)
-      const response = await api.get(`/api/crypto-payments/check-status/${submittedPayment.id}`)
-      
-      if (response.data.payment) {
-        setPaymentStatus(response.data.payment)
-        
-        if (response.data.payment.is_confirmed) {
+      const response = await api.payments.checkStatus(submittedPayment.id)
+
+      if (response.payment) {
+        setPaymentStatus(response.payment)
+
+        if (response.payment.is_confirmed) {
           toast.success('Payment confirmed! Your subscription is now active.')
           if (onSuccess) onSuccess()
         }
@@ -253,11 +253,10 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
                 key={currency.code}
                 type="button"
                 onClick={() => setSelectedCurrency(currency.code)}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  selectedCurrency === currency.code
+                className={`p-3 rounded-lg border-2 transition-all ${selectedCurrency === currency.code
                     ? 'border-orange-500 bg-orange-900/20'
                     : 'border-slate-600 bg-slate-700/30 hover:border-slate-500'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{currency.icon}</span>
@@ -281,10 +280,10 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
               value={currentWallet}
               className="flex-1 bg-slate-700 border-slate-600 text-white truncate"
             />
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="icon" 
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
               onClick={() => copyToClipboard(currentWallet)}
               className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
             >
@@ -328,8 +327,8 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
                 className="hidden"
                 id="screenshot-upload"
               />
-              <Label 
-                htmlFor="screenshot-upload" 
+              <Label
+                htmlFor="screenshot-upload"
                 className="flex-1 flex items-center justify-center p-3 border-2 border-dashed rounded-lg cursor-pointer bg-slate-700/50 border-slate-600 hover:bg-slate-700/70 text-slate-400"
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -341,8 +340,8 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
             </div>
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-orange-600 hover:bg-orange-700 text-white"
             disabled={loading}
           >
@@ -354,9 +353,9 @@ const AdvancedCryptoPaymentForm = ({ planType, planPrice, onSuccess, onCancel })
             {loading ? 'Submitting Proof...' : 'Submit Payment Proof'}
           </Button>
           {onCancel && (
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               className="w-full mt-2 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
               onClick={onCancel}
               disabled={loading}

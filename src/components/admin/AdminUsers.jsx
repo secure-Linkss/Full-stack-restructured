@@ -21,15 +21,15 @@ const AdminUsers = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const usersData = await api.admin.users.getAll();
-      
+      const usersData = await api.adminUsers.getAll();
+
       // Map backend data to frontend structure
-      const mappedUsers = usersData.map(u => ({
+      const mappedUsers = (usersData.users || usersData || []).map(u => ({
         ...u,
         linkCount: u.links_count || 0,
         lastLogin: u.last_login_at || u.last_login || u.created_at
       }));
-      
+
       setUsers(mappedUsers);
       toast.success('User list refreshed.');
     } catch (error) {
@@ -96,11 +96,10 @@ const AdminUsers = () => {
       accessor: 'role',
       sortable: true,
       cell: (row) => (
-        <span className={`text-sm font-medium px-2 py-0.5 rounded-full capitalize ${
-          row.role === 'main_admin' ? 'bg-red-500/20 text-red-400' :
-          row.role === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
-          'bg-green-500/20 text-green-400'
-        }`}>
+        <span className={`text-sm font-medium px-2 py-0.5 rounded-full capitalize ${row.role === 'main_admin' ? 'bg-red-500/20 text-red-400' :
+            row.role === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-green-500/20 text-green-400'
+          }`}>
           {row.role}
         </span>
       ),
@@ -110,12 +109,11 @@ const AdminUsers = () => {
       accessor: 'status',
       sortable: true,
       cell: (row) => (
-        <span className={`text-sm font-medium px-2 py-0.5 rounded-full capitalize ${
-          row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-          row.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-          row.status === 'suspended' ? 'bg-red-500/20 text-red-400' :
-          'bg-gray-500/20 text-gray-400'
-        }`}>
+        <span className={`text-sm font-medium px-2 py-0.5 rounded-full capitalize ${row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+            row.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+              row.status === 'suspended' ? 'bg-red-500/20 text-red-400' :
+                'bg-gray-500/20 text-gray-400'
+          }`}>
           {row.status || 'active'}
         </span>
       ),
@@ -125,11 +123,10 @@ const AdminUsers = () => {
       accessor: 'plan_type',
       sortable: true,
       cell: (row) => (
-        <span className={`text-sm font-medium px-2 py-0.5 rounded-full capitalize ${
-          row.plan_type === 'enterprise' ? 'bg-purple-500/20 text-purple-400' :
-          row.plan_type === 'pro' ? 'bg-blue-500/20 text-blue-400' :
-          'bg-gray-500/20 text-gray-400'
-        }`}>
+        <span className={`text-sm font-medium px-2 py-0.5 rounded-full capitalize ${row.plan_type === 'enterprise' ? 'bg-purple-500/20 text-purple-400' :
+            row.plan_type === 'pro' ? 'bg-blue-500/20 text-blue-400' :
+              'bg-gray-500/20 text-gray-400'
+          }`}>
           {row.plan_type || 'free'}
         </span>
       ),
@@ -204,12 +201,12 @@ const AdminUsers = () => {
             Pending Approvals
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="all-users">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 mr-2 text-primary" /> 
+                <Users className="h-5 w-5 mr-2 text-primary" />
                 User Management
               </CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -230,11 +227,11 @@ const AdminUsers = () => {
                 ]}
                 onFilterChange={setFilterRole}
                 dateRangeOptions={[]}
-                onDateRangeChange={() => {}}
+                onDateRangeChange={() => { }}
                 extraButtons={[
-                  <Button 
-                    key="add" 
-                    size="sm" 
+                  <Button
+                    key="add"
+                    size="sm"
                     onClick={() => setIsCreateModalOpen(true)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -256,10 +253,10 @@ const AdminUsers = () => {
                         actions={[
                           { icon: Edit, label: 'Edit User', onClick: () => handleAction('Edit User', row) },
                           { icon: Lock, label: 'Reset Password', onClick: () => handleAction('Reset Password', row) },
-                          { 
-                            icon: row.status === 'suspended' ? UserCheck : Lock, 
-                            label: row.status === 'suspended' ? 'Activate User' : 'Suspend User', 
-                            onClick: () => handleAction(row.status === 'suspended' ? 'Activate User' : 'Suspend User', row) 
+                          {
+                            icon: row.status === 'suspended' ? UserCheck : Lock,
+                            label: row.status === 'suspended' ? 'Activate User' : 'Suspend User',
+                            onClick: () => handleAction(row.status === 'suspended' ? 'Activate User' : 'Suspend User', row)
                           },
                           { icon: Mail, label: 'Send Email', onClick: () => handleAction('Send Email', row) },
                           { icon: Trash2, label: 'Delete User', onClick: () => handleAction('Delete User', row) },
@@ -272,7 +269,7 @@ const AdminUsers = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="pending">
           <PendingUsersTable />
         </TabsContent>

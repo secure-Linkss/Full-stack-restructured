@@ -5,19 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
-	import DomainManagementTab from './DomainManagementTab';
-	import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-	import { Trash2, Database, AlertCircle } from 'lucide-react';
-	import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import api from '../../services/api';
-import CryptoPaymentSettings from './CryptoPaymentSettings';
-
-// --- Sub-Components for Settings Tabs ---
-
-const GeneralSettings = ({ settings, setSettings, saving, handleSave }) => (
-  <div className="space-y-6">
     <Card>
       <CardHeader><CardTitle>Platform Identity</CardTitle></CardHeader>
       <CardContent className="space-y-4">
@@ -60,7 +47,7 @@ const GeneralSettings = ({ settings, setSettings, saving, handleSave }) => (
         Save General Settings
       </Button>
     </div>
-  </div>
+  </div >
 );
 
 const EmailSettings = ({ settings, setSettings, saving, handleSave }) => (
@@ -152,6 +139,8 @@ const PaymentSettings = ({ settings, setSettings, saving, handleSave }) => (
     </Card>
 
     <CryptoPaymentSettings />
+    <CryptoWalletManager />
+    <BlockchainVerificationSettings />
 
     <div className="flex justify-end">
       <Button onClick={() => handleSave('payment')} disabled={saving}>
@@ -239,183 +228,14 @@ const APISettings = ({ settings, setSettings, saving, handleSave }) => (
 
 // --- Main Admin Settings Component ---
 
-	const SystemSettings = ({ dashboardStats, loadingStats }) => {
-	  const [confirmText, setConfirmText] = useState('');
-	  const [systemDeleteDialog, setSystemDeleteDialog] = useState(false);
-	  const [deleting, setDeleting] = useState(false);
-	
-	  const deleteAllSystemData = async () => {
-	    if (confirmText !== 'DELETE ALL DATA') {
-	      toast.error('Please type "DELETE ALL DATA" to confirm');
-	      return;
-	    }
-	
-	    setDeleting(true);
-	    try {
-	      await api.admin.deleteAllData();
-	      toast.success('All system data deleted successfully.');
-	      setSystemDeleteDialog(false);
-	      setConfirmText('');
-	      // Optionally refresh stats
-	    } catch (error) {
-	      toast.error('Failed to delete system data.');
-	    } finally {
-	      setDeleting(false);
-	    }
-	  };
-	
-	  return (
-	    <div className="space-y-6">
-	      <Card>
-	        <CardHeader>
-	          <CardTitle className="flex items-center"><AlertTriangle className="h-5 w-5 mr-2 text-red-500" /> Danger Zone</CardTitle>
-	          <p className="text-sm text-muted-foreground">Irreversible system-wide actions.</p>
-	        </CardHeader>
-	        <CardContent>
-	          <Dialog open={systemDeleteDialog} onOpenChange={setSystemDeleteDialog}>
-	            <DialogTrigger asChild>
-	              <Button variant="destructive" className="w-full">
-	                <Trash2 className="h-4 w-4 mr-2" />
-	                Delete All System Data
-	              </Button>
-	            </DialogTrigger>
-	            <DialogContent>
-	              <DialogHeader>
-	                <DialogTitle className="text-red-500">Confirm Deletion</DialogTitle>
-	                <DialogDescription>
-	                  This action is permanent and cannot be undone. All user data, links, and logs will be deleted. Type "DELETE ALL DATA" to confirm.
-	                </DialogDescription>
-	              </DialogHeader>
-	              <Input
-	                value={confirmText}
-	                onChange={(e) => setConfirmText(e.target.value)}
-	                placeholder='Type "DELETE ALL DATA" to confirm'
-	              />
-	              <div className="flex justify-end space-x-2">
-	                <Button variant="outline" onClick={() => setSystemDeleteDialog(false)}>Cancel</Button>
-	                <Button onClick={deleteAllSystemData} variant="destructive" disabled={confirmText !== 'DELETE ALL DATA' || deleting}>
-	                  {deleting ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-	                  {deleting ? 'Deleting...' : 'Delete All Data'}
-	                </Button>
-	              </div>
-	            </DialogContent>
-	          </Dialog>
-	        </CardContent>
-	      </Card>
-	
-	      <Card>
-	        <CardHeader>
-	          <CardTitle className="flex items-center"><Database className="h-5 w-5 mr-2 text-primary" /> Database Info</CardTitle>
-	          <p className="text-sm text-muted-foreground">Current statistics on database usage.</p>
-	        </CardHeader>
-	        <CardContent className="space-y-3">
-	          {loadingStats ? (
-	            <div className="flex items-center justify-center h-20">
-	              <Loader className="h-6 w-6 animate-spin text-primary" />
-	            </div>
-	          ) : (
-	            <>
-	              <div className="flex justify-between border-b pb-2">
-	                <span className="font-medium">Total Users:</span>
-	                <span>{dashboardStats.totalUsers?.toLocaleString() || 0}</span>
-	              </div>
-	              <div className="flex justify-between border-b pb-2">
-	                <span className="font-medium">Total Links:</span>
-	                <span>{dashboardStats.totalLinks?.toLocaleString() || 0}</span>
-	              </div>
-	              <div className="flex justify-between">
-	                <span className="font-medium">Total Clicks:</span>
-	                <span>{dashboardStats.totalClicks?.toLocaleString() || 0}</span>
-	              </div>
-	            </>
-	          )}
-	        </CardContent>
-	      </Card>
-	    </div>
-	  );
-	};
-	
-	const AdminSettings = () => {
-	  const [settings, setSettings] = useState({});
-	  const [dashboardStats, setDashboardStats] = useState({});
-	  const [loading, setLoading] = useState(true);
-	  const [loadingStats, setLoadingStats] = useState(true);
-	  const [saving, setSaving] = useState(false);
-	
-	  const fetchDashboardStats = async () => {
-	    setLoadingStats(true);
-	    try {
-	      const response = await api.get('/api/admin/dashboard');
-	      setDashboardStats(response.data || {});
-	    } catch (error) {
-	      console.error('Failed to load dashboard stats:', error);
-	    } finally {
-	      setLoadingStats(false);
-	    }
-	  };
-	
-	  useEffect(() => {
-	    fetchSettings();
-	    fetchDashboardStats();
-	  }, []);
+const SystemSettings = ({ dashboardStats, loadingStats }) => {
+  const [confirmText, setConfirmText] = useState('');
+  const [systemDeleteDialog, setSystemDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/api/admin/settings');
-      setSettings(response.data || {});
-    } catch (error) {
-      console.error('Failed to load admin settings:', error);
-      toast.error('Failed to load system settings. Using defaults.');
-      // Set default settings on error
-      setSettings({
-        companyName: 'Brain Link Tracker Pro',
-        companyLogoUrl: '',
-        maintenanceMode: false,
-        enableRegistrations: true,
-        smtpEnabled: false,
-        smtpHost: '',
-        smtpPort: 587,
-        smtpUser: '',
-        smtpPassword: '',
-        stripeEnabled: false,
-        stripePublishableKey: '',
-        stripeSecretKey: '',
-        paypalEnabled: false,
-        paypalClientId: '',
-        paypalSecret: '',
-        s3Enabled: false,
-        s3BucketName: '',
-        s3Region: 'us-east-1',
-        s3AccessKeyId: '',
-        s3SecretAccessKey: '',
-        telegramEnabled: false,
-        telegramBotToken: '',
-        telegramChatId: '',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateSetting = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleSave = async (section) => {
-    setSaving(true);
-    try {
-      await api.put('/api/admin/settings', settings);
-      toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully.`);
-    } catch (error) {
-      console.error(`Failed to save ${section} settings:`, error);
-      toast.error(`Failed to save ${section} settings. Please try again.`);
-    } finally {
-      setSaving(false);
+  const deleteAllSystemData = async () => {
+    if (confirmText !== 'DELETE ALL DATA') {
+      toast.error('Please type "DELETE ALL DATA" to confirm');
     }
   };
 
@@ -446,35 +266,35 @@ const APISettings = ({ settings, setSettings, saving, handleSave }) => (
             <TabsTrigger value="api" className="text-xs sm:text-sm whitespace-nowrap"><Code className="h-4 w-4 mr-1" /><span className="hidden sm:inline">API</span></TabsTrigger>
             <TabsTrigger value="domains" className="text-xs sm:text-sm whitespace-nowrap"><Globe className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Domains</span></TabsTrigger>
             <TabsTrigger value="system" className="text-xs sm:text-sm whitespace-nowrap"><AlertCircle className="h-4 w-4 mr-1" /><span className="hidden sm:inline">System</span></TabsTrigger>
-	          </TabsList>
-	
-	          <div className="mt-6">
-	            <TabsContent value="general">
-	              <GeneralSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-	            </TabsContent>
-	            <TabsContent value="email">
-	              <EmailSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-	            </TabsContent>
-	            <TabsContent value="payment">
-	              <PaymentSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-	            </TabsContent>
-	            <TabsContent value="cdn">
-	              <CDNStorageSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-	            </TabsContent>
-	            <TabsContent value="api">
-	              <APISettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-	            </TabsContent>
-	            <TabsContent value="domains">
-	              <DomainManagementTab />
-	            </TabsContent>
-	            <TabsContent value="system">
-	              <SystemSettings dashboardStats={dashboardStats} loadingStats={loadingStats} />
-	            </TabsContent>
-	          </div>
-	        </Tabs>
-	      </CardContent>
-	    </Card>
-	  );
-	};
+          </TabsList>
+
+          <div className="mt-6">
+            <TabsContent value="general">
+              <GeneralSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+            </TabsContent>
+            <TabsContent value="email">
+              <EmailSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+            </TabsContent>
+            <TabsContent value="payment">
+              <PaymentSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+            </TabsContent>
+            <TabsContent value="cdn">
+              <CDNStorageSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+            </TabsContent>
+            <TabsContent value="api">
+              <APISettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
+            </TabsContent>
+            <TabsContent value="domains">
+              <DomainManagementTab />
+            </TabsContent>
+            <TabsContent value="system">
+              <SystemSettings dashboardStats={dashboardStats} loadingStats={loadingStats} />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default AdminSettings;

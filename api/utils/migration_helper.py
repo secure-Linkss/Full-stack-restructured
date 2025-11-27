@@ -34,6 +34,10 @@ def check_and_add_missing_columns(db):
             'telegram_bot_token': 'VARCHAR(255)',
             'telegram_chat_id': 'VARCHAR(100)',
             'telegram_enabled': 'BOOLEAN DEFAULT FALSE',
+            # New columns
+            'avatar_url': 'TEXT',
+            'background_url': 'TEXT',
+            'background_color': "VARCHAR(20) DEFAULT '#000000'",
         }
         
         # Get existing columns
@@ -43,23 +47,24 @@ def check_and_add_missing_columns(db):
         # Find missing columns
         missing_columns = {k: v for k, v in expected_columns.items() if k not in existing_columns}
         
-        if not missing_columns:
-            logger.info("✓ All user table columns are present")
-            return True
+        if missing_columns:
+            logger.info(f"Found {len(missing_columns)} missing columns in users table, adding them...")
             
-        logger.info(f"Found {len(missing_columns)} missing columns, adding them...")
-        
-        # Add missing columns
-        with db.engine.begin() as connection:
-            for column_name, column_def in missing_columns.items():
-                try:
-                    sql = text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {column_name} {column_def}")
-                    connection.execute(sql)
-                    logger.info(f"✓ Added column: {column_name}")
-                except Exception as e:
-                    logger.error(f"✗ Failed to add column {column_name}: {e}")
-                    # Don't fail completely, try to add other columns
-                    continue
+            # Add missing columns
+            with db.engine.begin() as connection:
+                for column_name, column_def in missing_columns.items():
+                    try:
+                        sql = text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {column_name} {column_def}")
+                        connection.execute(sql)
+                        logger.info(f"✓ Added column to users: {column_name}")
+                    except Exception as e:
+                        logger.error(f"✗ Failed to add column {column_name} to users: {e}")
+                        continue
+        else:
+            logger.info("✓ All user table columns are present")
+
+        # Check campaigns table
+        check_and_add_campaign_columns(db)
         
         logger.info("✓ Migration completed successfully!")
         return True
@@ -68,6 +73,41 @@ def check_and_add_missing_columns(db):
         logger.error(f"✗ Migration failed: {e}")
         # Don't fail the application startup, just log the error
         return False
+
+def check_and_add_campaign_columns(db):
+    """Check and add missing columns to campaigns table"""
+    try:
+        expected_columns = {
+            'type': "VARCHAR(50) DEFAULT 'standard'",
+            'impressions': 'INTEGER DEFAULT 0',
+            'total_visitors': 'INTEGER DEFAULT 0',
+            'last_activity_date': 'TIMESTAMP',
+        }
+        
+        inspector = inspect(db.engine)
+        # Check if table exists first
+        if 'campaigns' not in inspector.get_table_names():
+            return
+            
+        existing_columns = [col['name'] for col in inspector.get_columns('campaigns')]
+        missing_columns = {k: v for k, v in expected_columns.items() if k not in existing_columns}
+        
+        if missing_columns:
+            logger.info(f"Found {len(missing_columns)} missing columns in campaigns table, adding them...")
+            with db.engine.begin() as connection:
+                for column_name, column_def in missing_columns.items():
+                    try:
+                        sql = text(f"ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS {column_name} {column_def}")
+                        connection.execute(sql)
+                        logger.info(f"✓ Added column to campaigns: {column_name}")
+                    except Exception as e:
+                        logger.error(f"✗ Failed to add column {column_name} to campaigns: {e}")
+                        continue
+        else:
+            logger.info("✓ All campaigns table columns are present")
+            
+    except Exception as e:
+        logger.error(f"✗ Campaign migration failed: {e}")
 
 def safe_create_default_admin(db, User):
     """

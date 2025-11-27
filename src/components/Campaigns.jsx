@@ -25,8 +25,8 @@ const Campaigns = () => {
     setLoading(true);
     try {
       const [campaignsData, metricsData] = await Promise.all([
-        api.getCampaigns(),
-        api.getCampaignMetrics(),
+        api.campaigns.getAll(),
+        api.campaigns.getMetrics(),
       ]);
       setCampaigns(campaignsData);
       setMetrics(metricsData);
@@ -78,11 +78,10 @@ const Campaigns = () => {
       cell: (row) => (
         <div className="font-medium">
           {row.name}
-          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-            row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-            row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-            'bg-red-500/20 text-red-400'
-          }`}>
+          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+              row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-red-500/20 text-red-400'
+            }`}>
             {row.status}
           </span>
         </div>
@@ -152,7 +151,7 @@ const Campaigns = () => {
         ]}
         onFilterChange={setFilter}
         dateRangeOptions={[]} // Not needed for this view
-        onDateRangeChange={() => {}}
+        onDateRangeChange={() => { }}
         extraButtons={[
           <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
             <Filter className="h-4 w-4 mr-2" />

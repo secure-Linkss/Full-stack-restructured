@@ -119,7 +119,7 @@ const PendingUsersTable = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Clock className="h-5 w-5 mr-2 text-primary" /> 
+            <Clock className="h-5 w-5 mr-2 text-primary" />
             Pending User Approvals
           </CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -133,9 +133,9 @@ const PendingUsersTable = () => {
             onRefresh={fetchData}
             onExport={() => toast.info('Exporting pending users...')}
             filterOptions={[]}
-            onFilterChange={() => {}}
+            onFilterChange={() => { }}
             dateRangeOptions={[]}
-            onDateRangeChange={() => {}}
+            onDateRangeChange={() => { }}
           />
 
           {loading ? (

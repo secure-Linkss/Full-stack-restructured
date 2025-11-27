@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DataTable from '@/components/ui/DataTable';
 import MetricCard from '@/components/ui/MetricCard';
-import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 
 const AdminPayments = () => {
   const [transactions, setTransactions] = useState([]);
@@ -15,15 +15,30 @@ const AdminPayments = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [transactionsData, metricsData] = await Promise.all([
-        fetchMockData('getAdminTransactions'),
-        fetchMockData('getAdminPaymentMetrics'),
+      const [transactionsData, subscriptionsData] = await Promise.all([
+        api.adminPayments.getTransactions(),
+        api.adminPayments.getSubscriptions(),
       ]);
-      setTransactions(transactionsData);
-      setMetrics(metricsData);
+
+      setTransactions(transactionsData.transactions || []);
+
+      // Calculate metrics from real data
+      const totalRevenue = (transactionsData.transactions || []).reduce((sum, t) => sum + (t.amount || 0), 0);
+      const totalTransactions = (transactionsData.transactions || []).length;
+      const activeSubscriptions = (subscriptionsData.subscriptions || []).filter(s => s.status === 'active').length;
+
+      setMetrics({
+        totalRevenue,
+        totalTransactions,
+        activeSubscriptions
+      });
+
       toast.success('Payment data refreshed.');
     } catch (error) {
+      console.error('Error fetching payment data:', error);
       toast.error('Failed to load payment data.');
+      setTransactions([]);
+      setMetrics({ totalRevenue: 0, totalTransactions: 0, activeSubscriptions: 0 });
     } finally {
       setLoading(false);
     }
@@ -61,11 +76,10 @@ const AdminPayments = () => {
       accessor: 'status',
       sortable: true,
       cell: (row) => (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-          row.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-          row.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-          'bg-red-500/20 text-red-400'
-        }`}>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${row.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+            row.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-red-500/20 text-red-400'
+          }`}>
           {row.status}
         </span>
       ),
@@ -101,7 +115,7 @@ const AdminPayments = () => {
               Refresh
             </Button>
           </div>
-          
+
           {loading ? (
             <div className="text-center text-muted-foreground p-10">Loading Transactions...</div>
           ) : (

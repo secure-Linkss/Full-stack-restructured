@@ -36,11 +36,10 @@ const SystemHealth = ({ health }) => (
       {Object.entries(health).map(([service, status]) => (
         <div key={service} className="flex justify-between items-center p-2 border-b border-border last:border-b-0">
           <span className="font-medium capitalize">{service.replace('_', ' ')}</span>
-          <span className={`text-sm font-semibold ${
-            status === 'Operational' ? 'text-green-500' :
-            status === 'Degraded' ? 'text-yellow-500' :
-            'text-red-500'
-          }`}>
+          <span className={`text-sm font-semibold ${status === 'Operational' ? 'text-green-500' :
+              status === 'Degraded' ? 'text-yellow-500' :
+                'text-red-500'
+            }`}>
             {status}
           </span>
         </div>
@@ -61,24 +60,21 @@ const AdminDashboard = () => {
       try {
         // Fetch real data from API
         const dashboardStats = await api.admin.getDashboard();
-        
+
         // Map backend response to frontend expectation
         setStats({
-          totalUsers: dashboardStats.users.total,
-          totalLinks: dashboardStats.links.total,
-          totalClicks: 0, // TODO: Add to backend
-          totalRevenue: 0 // TODO: Add to backend
+          totalUsers: dashboardStats.users?.total || 0,
+          totalLinks: dashboardStats.links?.total || 0,
+          totalClicks: dashboardStats.clicks?.total || 0,
+          totalRevenue: dashboardStats.revenue?.total || 0
         });
 
-        // Mock growth data for now (Backend implementation pending)
-        const mockGrowth = Array.from({ length: 30 }, (_, i) => ({
-          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-          newUsers: Math.floor(Math.random() * 10) + 1
-        }));
-        setUserGrowth(mockGrowth);
+        // Use real growth data if available, otherwise fallback to empty array
+        const growthData = dashboardStats.growth || [];
+        setUserGrowth(growthData);
 
-        // Mock system health (Backend implementation pending)
-        setSystemHealth({
+        // Use real system health if available
+        setSystemHealth(dashboardStats.systemHealth || {
           database: 'Operational',
           api_gateway: 'Operational',
           redis_cache: 'Operational',
@@ -90,7 +86,7 @@ const AdminDashboard = () => {
       } catch (error) {
         console.error('Admin dashboard error:', error);
         toast.error('Failed to load admin dashboard data.');
-        
+
         // Fallback to prevent crash
         setStats({ totalUsers: 0, totalLinks: 0, totalClicks: 0, totalRevenue: 0 });
         setUserGrowth([]);

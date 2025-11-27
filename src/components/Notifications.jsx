@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
-import { 
-  Bell, MessageSquare, CheckCircle, AlertCircle, Info, 
+import {
+  Bell, MessageSquare, CheckCircle, AlertCircle, Info,
   Shield, Link2, CreditCard, TrendingUp, Trash2, Filter,
   Plus, Send, Paperclip, X, Clock, User, RefreshCw, Loader
 } from 'lucide-react';
@@ -33,11 +33,10 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
 
   return (
     <div
-      className={`p-4 rounded-lg border transition-colors ${
-        notification.read
+      className={`p-4 rounded-lg border transition-colors ${notification.read
           ? 'bg-muted/30 border-border'
           : 'bg-card-foreground/5 border-primary/50'
-      }`}
+        }`}
     >
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0 mt-1">
@@ -112,13 +111,14 @@ const NotificationsAndSupport = () => {
     setLoading(true);
     try {
       const [notificationsData, ticketsData] = await Promise.all([
-        api.getNotifications(),
-        api.getSupportTickets(),
+        api.notifications.getAll(),
+        api.support.getTickets(),
       ]);
       setNotifications(notificationsData);
       setTickets(ticketsData);
       toast.success('Data refreshed.');
     } catch (error) {
+      console.error('Failed to load data:', error);
       toast.error('Failed to load data.');
     } finally {
       setLoading(false);
@@ -130,22 +130,39 @@ const NotificationsAndSupport = () => {
   }, []);
 
   // --- Notification Handlers (Mocked) ---
-  const handleMarkAsRead = (id) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
-    toast.success('Marked as read (Mock)');
+  // --- Notification Handlers (Real API) ---
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.notifications.markAsRead(id);
+      setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+      toast.success('Marked as read');
+    } catch (error) {
+      toast.error('Failed to mark as read');
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-    toast.success('All notifications marked as read (Mock)');
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.notifications.markAllAsRead();
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      toast.success('All notifications marked as read');
+    } catch (error) {
+      toast.error('Failed to mark all as read');
+    }
   };
 
-  const handleDeleteNotification = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-    toast.success('Notification deleted (Mock)');
+  const handleDeleteNotification = async (id) => {
+    try {
+      await api.notifications.delete(id);
+      setNotifications(notifications.filter(n => n.id !== id));
+      toast.success('Notification deleted');
+    } catch (error) {
+      toast.error('Failed to delete notification');
+    }
   };
 
   // --- Ticket Handlers (Mocked) ---
+  // --- Ticket Handlers (Real API) ---
   const handleCreateTicket = async () => {
     if (!newTicket.subject || !newTicket.description) {
       toast.error('Please fill in all required fields');
@@ -154,24 +171,23 @@ const NotificationsAndSupport = () => {
 
     try {
       setSaving(true);
-      // Mock API call for ticket creation
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const createdTicket = {
-        id: Date.now(),
-        ...newTicket,
-        status: 'open',
-        messages: [{ sender: 'user', message: newTicket.description, timestamp: new Date().toISOString() }],
-        createdAt: new Date().toISOString(),
-      };
+      const createdTicket = await api.support.createTicket(newTicket);
+
+      // Handle attachments if any
+      if (attachments.length > 0) {
+        const formData = new FormData();
+        attachments.forEach(file => formData.append('files', file));
+        await api.support.uploadAttachment(createdTicket.id, formData);
+      }
 
       setTickets(prev => [createdTicket, ...prev]);
-      toast.success('Support ticket created successfully (Mock)');
+      toast.success('Support ticket created successfully');
       setNewTicket({ subject: '', category: 'general', priority: 'medium', description: '' });
       setAttachments([]);
       setCreateTicketOpen(false);
     } catch (error) {
-      toast.error('Failed to create ticket (Mock)');
+      console.error('Failed to create ticket:', error);
+      toast.error('Failed to create ticket');
     } finally {
       setSaving(false);
     }
@@ -182,34 +198,49 @@ const NotificationsAndSupport = () => {
 
     try {
       setSaving(true);
-      // Mock API call for sending message
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const response = await api.support.replyToTicket(ticketId, ticketMessage);
+
+      // Assuming response contains the new message object or the updated ticket
+      const newMessage = {
+        sender: 'user',
+        message: ticketMessage,
+        timestamp: new Date().toISOString()
+      };
 
       setTickets(prev => prev.map(t => t.id === ticketId ? {
         ...t,
-        messages: [...t.messages, { sender: 'user', message: ticketMessage, timestamp: new Date().toISOString() }]
+        messages: [...(t.messages || []), newMessage]
       } : t));
-      
-      toast.success('Message sent (Mock)');
+
+      toast.success('Message sent');
       setTicketMessage('');
       // Update selected ticket state to show new message
       setSelectedTicket(prev => ({
         ...prev,
-        messages: [...prev.messages, { sender: 'user', message: ticketMessage, timestamp: new Date().toISOString() }]
+        messages: [...(prev.messages || []), newMessage]
       }));
     } catch (error) {
-      toast.error('Failed to send message (Mock)');
+      console.error('Failed to send message:', error);
+      toast.error('Failed to send message');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCloseTicket = (ticketId) => {
+  const handleCloseTicket = async (ticketId) => {
     if (!window.confirm('Are you sure you want to close this ticket?')) return;
 
-    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'closed' } : t));
-    setSelectedTicket(null);
-    toast.success('Ticket closed (Mock)');
+    try {
+      await api.support.closeTicket(ticketId);
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'closed' } : t));
+      if (selectedTicket && selectedTicket.id === ticketId) {
+        setSelectedTicket(prev => ({ ...prev, status: 'closed' }));
+      }
+      toast.success('Ticket closed');
+    } catch (error) {
+      console.error('Failed to close ticket:', error);
+      toast.error('Failed to close ticket');
+    }
   };
 
   const handleFileAttachment = (e) => {
@@ -221,7 +252,7 @@ const NotificationsAndSupport = () => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const filteredNotifications = notifications.filter(notif => 
+  const filteredNotifications = notifications.filter(notif =>
     filterCategory === 'all' || notif.category === filterCategory
   );
 
@@ -424,16 +455,14 @@ const NotificationsAndSupport = () => {
                   tickets.map((ticket) => (
                     <div
                       key={ticket.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedTicket?.id === ticket.id ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'
-                      }`}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedTicket?.id === ticket.id ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'
+                        }`}
                       onClick={() => setSelectedTicket(ticket)}
                     >
                       <div className="flex justify-between items-center">
                         <h4 className="font-medium truncate">{ticket.subject}</h4>
-                        <Badge className={`capitalize ${
-                          ticket.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                        }`}>
+                        <Badge className={`capitalize ${ticket.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                          }`}>
                           {ticket.status}
                         </Badge>
                       </div>
@@ -476,9 +505,8 @@ const NotificationsAndSupport = () => {
                     <div className="flex-1 overflow-y-auto space-y-4 p-2 mb-4">
                       {selectedTicket.messages.map((msg, index) => (
                         <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-xs lg:max-w-md p-3 rounded-lg ${
-                            msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                          }`}>
+                          <div className={`max-w-xs lg:max-w-md p-3 rounded-lg ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                            }`}>
                             <p className="text-sm">{msg.message}</p>
                             <p className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                               {new Date(msg.timestamp).toLocaleTimeString()}

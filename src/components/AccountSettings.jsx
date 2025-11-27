@@ -19,8 +19,8 @@ const AccountSettings = () => {
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/user/profile');
-      setUser({ name: response.data.username || '', email: response.data.email || '' });
+      const response = await api.profile.get();
+      setUser({ name: response.username || '', email: response.email || '' });
     } catch (error) {
       console.error('Error fetching user profile:', error);
       toast.error('Failed to load user profile.');
@@ -38,14 +38,14 @@ const AccountSettings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.patch('/api/user/profile', {
+      await api.profile.update({
         username: user.name,
         email: user.email,
       });
       toast.success('Account details updated successfully!');
     } catch (error) {
       console.error('Error updating user profile:', error);
-      toast.error(error.response?.data?.error || 'Failed to update account details.');
+      toast.error(error.message || 'Failed to update account details.');
     } finally {
       setSaving(false);
     }

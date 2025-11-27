@@ -86,3 +86,6 @@ backups/
 
 # Misc
 .deployment-trigger
+
+venv/
+api/venv/

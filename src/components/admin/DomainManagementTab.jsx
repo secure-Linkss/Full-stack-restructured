@@ -17,7 +17,7 @@ const DomainManagementTab = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     domain: '',
     domain_type: 'custom',
@@ -70,9 +70,21 @@ const DomainManagementTab = () => {
     }
   };
 
+  const handleDelete = async (domain) => {
+    if (window.confirm(`Are you sure you want to delete the domain "${domain.domain}"? This action cannot be undone.`)) {
+      try {
+        await api.adminSettings.deleteDomain(domain.id);
+        toast.success('Domain deleted successfully!');
+        fetchDomains();
+      } catch (error) {
+        toast.error(`Failed to delete domain: ${error.message}`);
+      }
+    }
+  };
 
-
-
+  const handleEdit = async () => {
+    await handleUpdate();
+  };
 
   const openEditModal = (domain) => {
     setSelectedDomain(domain);
@@ -126,9 +138,8 @@ const DomainManagementTab = () => {
       accessor: 'is_active',
       sortable: true,
       cell: (row) => (
-        <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${
-          row.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-        }`}>
+        <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${row.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+          }`}>
           {row.is_active ? 'Active' : 'Inactive'}
         </span>
       ),
@@ -138,8 +149,8 @@ const DomainManagementTab = () => {
       accessor: 'is_verified',
       sortable: true,
       cell: (row) => (
-        row.is_verified ? 
-          <CheckCircle className="h-5 w-5 text-green-400" /> : 
+        row.is_verified ?
+          <CheckCircle className="h-5 w-5 text-green-400" /> :
           <XCircle className="h-5 w-5 text-yellow-400" />
       ),
     },
@@ -168,7 +179,7 @@ const DomainManagementTab = () => {
           onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
         />
       </div>
-      
+
       <div>
         <Label htmlFor="domain_type">Domain Type *</Label>
         <Select
@@ -185,7 +196,7 @@ const DomainManagementTab = () => {
           </SelectContent>
         </Select>
       </div>
-      
+
       <div>
         <Label htmlFor="description">Description</Label>
         <Input
@@ -195,7 +206,7 @@ const DomainManagementTab = () => {
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
         />
       </div>
-      
+
       {formData.domain_type === 'shortio' && (
         <>
           <div>
@@ -208,7 +219,7 @@ const DomainManagementTab = () => {
               onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
             />
           </div>
-          
+
           <div>
             <Label htmlFor="api_secret">Short.io API Secret</Label>
             <Input
@@ -221,7 +232,7 @@ const DomainManagementTab = () => {
           </div>
         </>
       )}
-      
+
       <div className="flex items-center justify-between">
         <Label htmlFor="is_active">Active</Label>
         <Switch
@@ -230,7 +241,7 @@ const DomainManagementTab = () => {
           onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
         />
       </div>
-      
+
       <Button onClick={onSubmit} className="w-full">
         {submitLabel}
       </Button>
@@ -244,14 +255,14 @@ const DomainManagementTab = () => {
           <div className="flex justify-between items-center">
             <div>
               <CardTitle className="flex items-center">
-                <Globe className="h-5 w-5 mr-2 text-primary" /> 
+                <Globe className="h-5 w-5 mr-2 text-primary" />
                 Domain Management
               </CardTitle>
               <p className="text-sm text-muted-foreground">
                 Manage custom domains for link shortening
               </p>
             </div>
-            
+
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -268,7 +279,7 @@ const DomainManagementTab = () => {
             </Dialog>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           {loading ? (
             <div className="text-center text-muted-foreground p-10">Loading Domains...</div>
@@ -299,7 +310,7 @@ const DomainManagementTab = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent>

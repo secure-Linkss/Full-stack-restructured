@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Palette, Upload, CheckCircle } from 'lucide-react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner';
 import api from '../services/api';
@@ -21,8 +22,12 @@ const AppearanceSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await api.get('/api/user/settings/appearance');
-      setSettings(response.data);
+      const response = await api.settings.get();
+      setSettings({
+        theme: response.theme || 'system',
+        background_url: response.background_url || '',
+        background_color: response.background_color || '#000000',
+      });
     } catch (error) {
       console.error('Failed to load appearance settings:', error);
       // Fallback to default if API fails
@@ -49,11 +54,17 @@ const AppearanceSettings = () => {
     formData.append('background_image', file);
 
     try {
-      // Assuming an API endpoint for file upload
-      const response = await api.post('/api/user/settings/appearance/background', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // Upload background image using profile avatar upload (can be extended for backgrounds)
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/user/settings/background`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
       });
-      setSettings(prev => ({ ...prev, background_url: response.data.url, background_color: '' }));
+
+      if (!response.ok) throw new Error('Upload failed');
+      const data = await response.json();
+      setSettings(prev => ({ ...prev, background_url: data.url || data.background_url, background_color: '' }));
       toast.success('Background image uploaded successfully!');
     } catch (error) {
       console.error('Background upload failed:', error);
@@ -66,7 +77,9 @@ const AppearanceSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.patch('/api/user/settings/appearance', settings);
+      await api.settings.update(settings);
+      // Apply theme immediately
+      document.documentElement.className = settings.theme === 'dark' ? 'theme-dark' : settings.theme === 'light' ? 'theme-light' : 'theme-dark';
       toast.success('Appearance settings saved!');
     } catch (error) {
       console.error('Failed to save appearance settings:', error);
@@ -101,9 +114,9 @@ const AppearanceSettings = () => {
           <Label>Theme</Label>
           <div className="flex space-x-4">
             {['light', 'dark', 'system'].map(t => (
-              <Button 
+              <Button
                 key={t}
-                variant={settings.theme === t ? 'default' : 'outline'} 
+                variant={settings.theme === t ? 'default' : 'outline'}
                 onClick={() => handleThemeChange(t)}
                 disabled={saving}
               >
@@ -113,7 +126,7 @@ const AppearanceSettings = () => {
           </div>
           <p className="text-xs text-muted-foreground">Select a theme for the dashboard.</p>
         </div>
-        
+
         {/* Advanced Background */}
         <div className="space-y-4 pt-4 border-t">
           <Label>Advanced Background</Label>

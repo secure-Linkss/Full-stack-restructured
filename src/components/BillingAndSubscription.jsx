@@ -17,13 +17,17 @@ const BillingAndSubscription = () => {
   const fetchBillingInfo = async () => {
     try {
       setLoading(true);
-      // Assuming an API endpoint for billing information
-      const response = await api.get('/api/user/billing');
-      setBillingInfo(response.data);
+      const userProfile = await api.profile.get();
+      setBillingInfo({
+        plan: userProfile.plan || 'Free',
+        status: userProfile.subscription_status || 'Active',
+        next_billing_date: userProfile.next_billing_date || new Date().toISOString(),
+        payment_method: userProfile.payment_method || 'N/A',
+        invoices: userProfile.invoices || []
+      });
     } catch (error) {
       console.error('Error fetching billing info:', error);
       toast.error('Failed to load billing information.');
-      // Set to null to trigger the loading state or display empty state
       setBillingInfo(null);
     } finally {
       setLoading(false);
