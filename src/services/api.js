@@ -480,6 +480,10 @@ const api = {
       method: 'PUT',
       body: JSON.stringify(settings),
     }),
+    testTelegram: (data) => fetchWithAuth(`${API_BASE_URL}/user/telegram/test`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
     getApiKeys: () => fetchWithAuth(`${API_BASE_URL}/user/api-keys`),
     createApiKey: (name) => fetchWithAuth(`${API_BASE_URL}/user/api-keys`, {
       method: 'POST',
