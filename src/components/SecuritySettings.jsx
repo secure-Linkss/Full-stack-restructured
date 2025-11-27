@@ -33,7 +33,7 @@ const SecuritySettings = () => {
 
     setSaving(true);
     try {
-      await api.patch('/api/user/password', {
+      await api.profile.changePassword({
         current_password: passwords.current_password,
         new_password: passwords.new_password,
       });

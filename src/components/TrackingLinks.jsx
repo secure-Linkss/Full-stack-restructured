@@ -29,7 +29,7 @@ const TrackingLinks = () => {
 		setLoading(true);
 		try {
 			const response = await api.links.getAll();
-			const linksData = response.links || [];
+			const linksData = Array.isArray(response) ? response : (response.links || []);
 			setLinks(linksData);
 			if (linksData.length > 0 && !selectedLink) {
 				setSelectedLink(linksData[0]); // Select the first link by default
@@ -42,9 +42,9 @@ const TrackingLinks = () => {
 			}
 
 			// Calculate metrics from the fetched links data
-			const totalClicks = linksData.reduce((sum, link) => sum + (link.totalClicks || 0), 0);
-			const realVisitors = linksData.reduce((sum, link) => sum + (link.realVisitors || 0), 0);
-			const botsBlocked = linksData.reduce((sum, link) => sum + (link.botsBlocked || 0), 0);
+			const totalClicks = linksData.reduce((sum, link) => sum + (link.totalClicks || link.total_clicks || 0), 0);
+			const realVisitors = linksData.reduce((sum, link) => sum + (link.realVisitors || link.real_visitors || 0), 0);
+			const botsBlocked = linksData.reduce((sum, link) => sum + (link.botsBlocked || link.bots_blocked || 0), 0);
 			setMetrics({ totalClicks, realVisitors, botsBlocked });
 
 			toast.success('Tracking links refreshed.');
@@ -140,8 +140,8 @@ const TrackingLinks = () => {
 				<div className="font-medium">
 					{row.campaignName}
 					<span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-							row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-								'bg-red-500/20 text-red-400'
+						row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+							'bg-red-500/20 text-red-400'
 						}`}>
 						{row.status}
 					</span>
@@ -189,8 +189,8 @@ const TrackingLinks = () => {
 			accessor: 'status',
 			cell: (row) => (
 				<span className={`px-2 py-1 text-xs font-medium rounded-full ${row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-						row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-							'bg-red-500/20 text-red-400'
+					row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+						'bg-red-500/20 text-red-400'
 					}`}>
 					{row.status}
 				</span>

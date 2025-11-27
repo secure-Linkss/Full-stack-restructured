@@ -242,6 +242,7 @@ const api = {
     }),
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}`, { method: 'DELETE' }),
     getPerformance: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}/performance`),
+    getMetrics: () => fetchWithAuth(`${API_BASE_URL}/campaigns/metrics`),
   },
 
   // ==================== LIVE ACTIVITY APIs ====================
@@ -479,13 +480,17 @@ const api = {
       method: 'PUT',
       body: JSON.stringify(settings),
     }),
-    getApiKeys: () => fetchWithAuth(`${API_BASE_URL}/settings/api-keys`),
-    createApiKey: (name) => fetchWithAuth(`${API_BASE_URL}/settings/api-keys`, {
+    getApiKeys: () => fetchWithAuth(`${API_BASE_URL}/user/api-keys`),
+    createApiKey: (name) => fetchWithAuth(`${API_BASE_URL}/user/api-keys`, {
       method: 'POST',
       body: JSON.stringify({ name }),
     }),
-    deleteApiKey: (id) => fetchWithAuth(`${API_BASE_URL}/settings/api-keys/${id}`, {
+    deleteApiKey: (id) => fetchWithAuth(`${API_BASE_URL}/user/api-keys/${id}`, {
       method: 'DELETE',
+    }),
+    getApiKeyUsageStats: () => fetchWithAuth(`${API_BASE_URL}/user/api-keys/usage-stats`),
+    revokeApiKey: (id) => fetchWithAuth(`${API_BASE_URL}/user/api-keys/${id}/revoke`, {
+      method: 'POST',
     }),
   },
 
@@ -652,29 +657,28 @@ const api = {
     getAvailable: () => fetchWithAuth(`${API_BASE_URL}/domains/available`),
   },
 
-  auth,
-  dashboard,
-  links,
-  analytics,
-  campaigns,
-  liveActivity,
-  geography,
-  security,
-  profile,
-  notifications,
-  settings,
-  admin,
-  adminUsers,
-  adminCampaigns,
-  adminLinks,
-  adminPayments,
-  adminTickets,
-  adminLogs,
-  adminSecurity,
-  adminSettings,
-  quantum,
-  shortener,
-  domains,
-  payments,
-  tickets,
-} = api;
+  // Payments APIs (if needed)
+  payments: {
+    getHistory: () => fetchWithAuth(`${API_BASE_URL}/payments/history`),
+    createPayment: (paymentData) => fetchWithAuth(`${API_BASE_URL}/payments/create`, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    }),
+    getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/crypto-payments/wallets`),
+    submitCryptoProof: (proofData) => fetchWithAuth(`${API_BASE_URL}/crypto-payments/submit-proof`, {
+      method: 'POST',
+      body: JSON.stringify(proofData),
+    }),
+  },
+
+  // Tickets alias
+  tickets: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/support/tickets`),
+    create: (ticketData) => fetchWithAuth(`${API_BASE_URL}/support/tickets`, {
+      method: 'POST',
+      body: JSON.stringify(ticketData),
+    }),
+  },
+};
+
+export default api;

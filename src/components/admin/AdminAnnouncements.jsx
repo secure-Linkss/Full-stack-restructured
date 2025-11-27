@@ -4,7 +4,7 @@ import { Megaphone, Plus, RefreshCw, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DataTable from '@/components/ui/DataTable';
-// import { fetchMockData } from '../../services/mockApi';
+import api from '../../services/api';
 
 const AdminAnnouncements = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -43,10 +43,9 @@ const AdminAnnouncements = () => {
       accessor: 'status',
       sortable: true,
       cell: (row) => (
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-          row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-          'bg-yellow-500/20 text-yellow-400'
-        }`}>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+            'bg-yellow-500/20 text-yellow-400'
+          }`}>
           {row.status}
         </span>
       ),
@@ -87,7 +86,7 @@ const AdminAnnouncements = () => {
               Create Announcement
             </Button>
           </div>
-          
+
           {loading ? (
             <div className="text-center text-muted-foreground p-10">Loading Announcements...</div>
           ) : (

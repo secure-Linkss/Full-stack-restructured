@@ -35,8 +35,8 @@ const UserApiKeyManager = () => {
   const fetchApiKeys = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/api/user/api-keys')
-      setApiKeys(response.data.api_keys || [])
+      const response = await api.settings.getApiKeys()
+      setApiKeys(response.api_keys || [])
     } catch (error) {
       console.error('Error fetching API keys:', error)
       toast.error('Failed to load API keys')
@@ -47,8 +47,8 @@ const UserApiKeyManager = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/api/user/api-keys/usage-stats')
-      setStats(response.data.stats || {})
+      const response = await api.settings.getApiKeyUsageStats()
+      setStats(response.stats || {})
     } catch (error) {
       console.error('Error fetching stats:', error)
     }
@@ -62,15 +62,11 @@ const UserApiKeyManager = () => {
 
     try {
       setCreating(true)
-      const response = await api.post('/api/user/api-keys', {
-        name: newKeyData.name,
-        permissions: newKeyData.permissions,
-        expires_in_days: newKeyData.expires_in_days
-      })
+      const response = await api.settings.createApiKey(newKeyData.name)
 
-      setCreatedKey(response.data.api_key)
+      setCreatedKey(response.api_key)
       toast.success('API key created successfully!')
-      
+
       // Reset form
       setNewKeyData({
         name: '',
@@ -95,7 +91,7 @@ const UserApiKeyManager = () => {
     }
 
     try {
-      await api.post(`/api/user/api-keys/${keyId}/revoke`)
+      await api.settings.revokeApiKey(keyId)
       toast.success('API key revoked successfully')
       await fetchApiKeys()
       await fetchStats()
@@ -111,7 +107,7 @@ const UserApiKeyManager = () => {
     }
 
     try {
-      await api.delete(`/api/user/api-keys/${keyId}`)
+      await api.settings.deleteApiKey(keyId)
       toast.success('API key deleted successfully')
       await fetchApiKeys()
       await fetchStats()
@@ -335,11 +331,10 @@ const UserApiKeyManager = () => {
                           <p className="font-semibold text-white">{key.name}</p>
                           <p className="text-sm text-muted-foreground">Key: {key.key_prefix}......</p>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          key.status === 'active'
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${key.status === 'active'
                             ? 'bg-green-900/30 text-green-400'
                             : 'bg-red-900/30 text-red-400'
-                        }`}>
+                          }`}>
                           {key.status.charAt(0).toUpperCase() + key.status.slice(1)}
                         </span>
                       </div>

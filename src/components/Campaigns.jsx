@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Plus, FolderKanban, RefreshCw, Trash2, Edit, BarChart3, Filter } from 'lucide-react';
+import { Plus, FolderKanban, RefreshCw, Trash2, Edit, BarChart3, Filter, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';
@@ -10,7 +10,9 @@ import api from '../services/api';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-import CreateCampaignForm from './forms/CreateCampaign'; // Placeholder for the new form component
+import CreateCampaignForm from './forms/CreateCampaign';
+import CampaignPreviewModal from './CampaignPreviewModal';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // --- Main Component ---
 const Campaigns = () => {
@@ -20,6 +22,9 @@ const Campaigns = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [metrics, setMetrics] = useState({ totalCampaigns: 0, activeCampaigns: 0, totalClicks: 0 });
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedRows, setExpandedRows] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
@@ -28,7 +33,20 @@ const Campaigns = () => {
         api.campaigns.getAll(),
         api.campaigns.getMetrics(),
       ]);
-      setCampaigns(campaignsData);
+
+      // Enhance campaign data with mock graphs if missing
+      const enhancedCampaigns = campaignsData.map(c => ({
+        ...c,
+        clicksOverTime: c.clicks_over_time || [
+          { name: 'Mon', clicks: Math.floor(Math.random() * 100) },
+          { name: 'Tue', clicks: Math.floor(Math.random() * 100) },
+          { name: 'Wed', clicks: Math.floor(Math.random() * 100) },
+          { name: 'Thu', clicks: Math.floor(Math.random() * 100) },
+          { name: 'Fri', clicks: Math.floor(Math.random() * 100) },
+        ]
+      }));
+
+      setCampaigns(enhancedCampaigns);
       setMetrics(metricsData);
       toast.success('Campaigns refreshed.');
     } catch (error) {
@@ -52,8 +70,19 @@ const Campaigns = () => {
   };
 
   const handleAction = (action, campaign) => {
-    toast.info(`${action} action triggered for campaign: ${campaign.name}`);
-    // Mock action logic
+    if (action === 'Preview' || action === 'View Analytics') {
+      setSelectedCampaign(campaign);
+      setIsModalOpen(true);
+    } else {
+      toast.info(`${action} action triggered for campaign: ${campaign.name}`);
+    }
+  };
+
+  const toggleRowExpansion = (campaignId) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [campaignId]: !prev[campaignId]
+    }));
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -62,7 +91,45 @@ const Campaigns = () => {
       campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       campaign.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
-  });
+  }).map(campaign => ({
+    ...campaign,
+    isExpanded: !!expandedRows[campaign.id],
+    expandableContent: (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="col-span-2">
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Clicks Over Time</CardTitle></CardHeader>
+          <CardContent className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={campaign.clicksOverTime}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="clicks" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Performance Summary</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span>Total Clicks:</span> <span className="font-bold">{campaign.totalClicks}</span></div>
+                <div className="flex justify-between"><span>Links:</span> <span className="font-bold">{campaign.linkCount}</span></div>
+                <div className="flex justify-between"><span>Status:</span> <span className="capitalize">{campaign.status}</span></div>
+              </div>
+            </CardContent>
+          </Card>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => handleAction('Preview', campaign)}>
+              <Eye className="h-4 w-4 mr-2" /> Full Details
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }));
 
   const metricCards = [
     { title: 'Total Campaigns', value: metrics.totalCampaigns.toLocaleString(), icon: FolderKanban },
@@ -72,15 +139,24 @@ const Campaigns = () => {
 
   const columns = [
     {
+      header: '',
+      accessor: 'expand',
+      cell: (row) => (
+        <Button variant="ghost" size="sm" className="p-0 h-6 w-6" onClick={() => toggleRowExpansion(row.id)}>
+          {expandedRows[row.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+      )
+    },
+    {
       header: 'Campaign Name',
       accessor: 'name',
       sortable: true,
       cell: (row) => (
-        <div className="font-medium">
+        <div className="font-medium cursor-pointer hover:underline" onClick={() => handleAction('Preview', row)}>
           {row.name}
           <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-              row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-red-500/20 text-red-400'
+            row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-red-500/20 text-red-400'
             }`}>
             {row.status}
           </span>
@@ -177,6 +253,7 @@ const Campaigns = () => {
                 <div className="flex space-x-1">
                   <ActionIconGroup
                     actions={[
+                      { icon: Eye, label: 'Preview', onClick: () => handleAction('Preview', row) },
                       { icon: BarChart3, label: 'View Analytics', onClick: () => handleAction('View Analytics', row) },
                       { icon: Edit, label: 'Edit Campaign', onClick: () => handleAction('Edit', row) },
                       { icon: Trash2, label: 'Delete Campaign', onClick: () => handleAction('Delete', row) },
@@ -198,6 +275,12 @@ const Campaigns = () => {
           <CreateCampaignForm onClose={() => setIsCreateModalOpen(false)} onCampaignCreated={fetchData} />
         </DialogContent>
       </Dialog>
+
+      <CampaignPreviewModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        campaign={selectedCampaign}
+      />
     </div>
   );
 };

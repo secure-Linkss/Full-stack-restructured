@@ -32,15 +32,9 @@ const UserCampaignManager = () => {
   const fetchCampaigns = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/api/user/campaigns', {
-        params: {
-          page,
-          per_page: 10,
-          search: searchQuery
-        }
-      })
-      setCampaigns(response.data.campaigns || [])
-      setTotalPages(response.data.pages || 1)
+      const response = await api.campaigns.getAll()
+      setCampaigns(response || [])
+      setTotalPages(1) // Adjust if backend supports pagination
     } catch (error) {
       console.error('Error fetching campaigns:', error)
       toast.error('Failed to load campaigns')
@@ -59,7 +53,7 @@ const UserCampaignManager = () => {
       if (editingCampaignId) {
         // Update existing campaign
         setEditing(true)
-        await api.put(`/api/user/campaigns/${editingCampaignId}`, {
+        await api.campaigns.update(editingCampaignId, {
           name: newCampaignData.name,
           description: newCampaignData.description
         })
@@ -67,7 +61,7 @@ const UserCampaignManager = () => {
       } else {
         // Create new campaign
         setCreating(true)
-        await api.post('/api/user/campaigns', {
+        await api.campaigns.create({
           name: newCampaignData.name,
           description: newCampaignData.description
         })
@@ -105,7 +99,7 @@ const UserCampaignManager = () => {
     }
 
     try {
-      await api.delete(`/api/user/campaigns/${campaignId}`)
+      await api.campaigns.delete(campaignId)
       toast.success('Campaign deleted successfully')
       await fetchCampaigns()
     } catch (error) {
@@ -233,13 +227,12 @@ const UserCampaignManager = () => {
                           <p className="text-sm text-muted-foreground mt-1">{campaign.description}</p>
                         )}
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                        campaign.status === 'active'
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${campaign.status === 'active'
                           ? 'bg-green-900/30 text-green-400'
                           : campaign.status === 'paused'
-                          ? 'bg-yellow-900/30 text-yellow-400'
-                          : 'bg-slate-700 text-slate-300'
-                      }`}>
+                            ? 'bg-yellow-900/30 text-yellow-400'
+                            : 'bg-slate-700 text-slate-300'
+                        }`}>
                         {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
                       </span>
                     </div>

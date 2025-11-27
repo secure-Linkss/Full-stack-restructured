@@ -2,18 +2,19 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
-import { 
-  Target, 
-  Users, 
-  Zap, 
-  Shield, 
-  TrendingUp, 
+import {
+  Target,
+  Users,
+  Zap,
+  Shield,
+  TrendingUp,
   Award,
   Globe,
   Heart,
   Lightbulb,
   CheckCircle,
-  ArrowLeft
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react'
 import Logo from '@/components/Logo'
 
@@ -97,14 +98,14 @@ const AboutPage = () => {
                 <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">
                   Contact
                 </Link>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => navigate("/login")}
                   className="text-slate-300 hover:text-white hover:bg-slate-800"
                 >
                   Sign In
                 </Button>
-                <Button 
+                <Button
                   onClick={() => navigate("/register")}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                 >
@@ -114,7 +115,7 @@ const AboutPage = () => {
 
               {/* Mobile Menu Button - Added a simple back button for mobile view */}
               <div className="md:hidden">
-                <Button 
+                <Button
                   variant="ghost"
                   onClick={() => navigate("/")}
                   className="text-slate-300 hover:text-white hover:bg-slate-800"
@@ -137,7 +138,7 @@ const AboutPage = () => {
               </span>
             </h1>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto mb-8">
-              We're on a mission to give every business—from startups to enterprises—the power to track, 
+              We're on a mission to give every business—from startups to enterprises—the power to track,
               analyze, and optimize their digital campaigns with precision and ease.
             </p>
           </div>
@@ -151,16 +152,16 @@ const AboutPage = () => {
                 <h2 className="text-4xl font-bold text-white mb-6">Our Story</h2>
                 <div className="space-y-4 text-slate-300 text-lg">
                   <p>
-                    Brain Link Tracker was founded in 2020 when our team of marketing professionals and engineers 
+                    Brain Link Tracker was founded in 2020 when our team of marketing professionals and engineers
                     realized there was a gap in the market for truly intelligent link tracking.
                   </p>
                   <p>
-                    We were frustrated with existing solutions that either lacked advanced features or were 
-                    prohibitively expensive. We knew there had to be a better way—a platform that combined 
+                    We were frustrated with existing solutions that either lacked advanced features or were
+                    prohibitively expensive. We knew there had to be a better way—a platform that combined
                     powerful analytics with an intuitive interface, all at a fair price.
                   </p>
                   <p>
-                    Today, we're proud to serve thousands of businesses worldwide, from solo entrepreneurs 
+                    Today, we're proud to serve thousands of businesses worldwide, from solo entrepreneurs
                     to Fortune 500 companies, helping them make data-driven decisions that drive real growth.
                   </p>
                 </div>
@@ -279,7 +280,7 @@ const AboutPage = () => {
               We're always looking for passionate individuals to join our growing team.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
+              <Button
                 size="lg"
                 onClick={() => navigate('/contact')}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-8 py-6"

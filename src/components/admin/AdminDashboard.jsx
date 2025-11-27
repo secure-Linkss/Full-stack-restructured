@@ -5,6 +5,7 @@ import MetricCard from '../ui/MetricCard';
 import api from '../../services/api';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import AdminMap from './AdminMap';
 
 const UserGrowthChart = ({ data }) => (
   <Card>
@@ -37,8 +38,8 @@ const SystemHealth = ({ health }) => (
         <div key={service} className="flex justify-between items-center p-2 border-b border-border last:border-b-0">
           <span className="font-medium capitalize">{service.replace('_', ' ')}</span>
           <span className={`text-sm font-semibold ${status === 'Operational' ? 'text-green-500' :
-              status === 'Degraded' ? 'text-yellow-500' :
-                'text-red-500'
+            status === 'Degraded' ? 'text-yellow-500' :
+              'text-red-500'
             }`}>
             {status}
           </span>
@@ -127,6 +128,9 @@ const AdminDashboard = () => {
           <SystemHealth health={systemHealth} />
         </div>
       </div>
+
+      {/* User Distribution Map */}
+      <AdminMap />
     </div>
   );
 };

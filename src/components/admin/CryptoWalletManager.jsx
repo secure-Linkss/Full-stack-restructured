@@ -18,8 +18,8 @@ const CryptoWalletManager = () => {
     const fetchWallets = async () => {
         setLoading(true);
         try {
-            const response = await api.payments.getCryptoWallets();
-            setWallets(response || []);
+            const response = await api.adminSettings.getCryptoWallets();
+            setWallets(Array.isArray(response) ? response : (response.wallets || []));
         } catch (error) {
             console.error('Error fetching wallets:', error);
             toast.error('Failed to load crypto wallets');
@@ -39,16 +39,13 @@ const CryptoWalletManager = () => {
         }
 
         try {
-            // In a real app, this would be an API call to add a wallet
-            // await api.admin.addCryptoWallet(newWallet);
-
-            // For now, we'll just update the local state to simulate it
-            const addedWallet = { ...newWallet, id: Date.now() };
-            setWallets([...wallets, addedWallet]);
+            await api.adminSettings.addCryptoWallet(newWallet);
+            await fetchWallets(); // Refresh the list
             setNewWallet({ currency: 'BTC', address: '', network: 'Bitcoin' });
             setIsAdding(false);
             toast.success('Crypto wallet added successfully');
         } catch (error) {
+            console.error('Error adding wallet:', error);
             toast.error('Failed to add wallet');
         }
     };
@@ -56,10 +53,11 @@ const CryptoWalletManager = () => {
     const handleDeleteWallet = async (id) => {
         if (window.confirm('Are you sure you want to delete this wallet?')) {
             try {
-                // await api.admin.deleteCryptoWallet(id);
-                setWallets(wallets.filter(w => w.id !== id));
+                await api.adminSettings.deleteCryptoWallet(id);
+                await fetchWallets(); // Refresh the list
                 toast.success('Wallet deleted successfully');
             } catch (error) {
+                console.error('Error deleting wallet:', error);
                 toast.error('Failed to delete wallet');
             }
         }

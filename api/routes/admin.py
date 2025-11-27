@@ -234,6 +234,39 @@ def approve_user(current_user, user_id):
     
     return jsonify(user.to_dict())
 
+@admin_bp.route("/api/admin/users/pending", methods=["GET"])
+@admin_required
+def get_pending_users(current_user):
+    """Get all pending users"""
+    # Pending users are those with status='pending' or is_verified=False
+    pending_users = User.query.filter(
+        (User.status == 'pending') | (User.is_verified == False)
+    ).all()
+    
+    return jsonify({
+        "pending_users": [user.to_dict(include_sensitive=True) for user in pending_users],
+        "count": len(pending_users)
+    })
+
+@admin_bp.route("/api/admin/users/<int:user_id>/reject", methods=["POST"])
+@admin_required
+def reject_user(current_user, user_id):
+    """Reject pending user (delete them)"""
+    user = User.query.get_or_404(user_id)
+    
+    # Admin can only reject members
+    if current_user.role == "admin" and user.role != "member":
+        return jsonify({"error": "Access denied"}), 403
+    
+    user_username = user.username
+    db.session.delete(user)
+    db.session.commit()
+    
+    # Log action
+    log_admin_action(current_user.id, f"Rejected user {user_username}", user_id, "user")
+    
+    return jsonify({"message": f"User {user_username} rejected successfully"})
+
 @admin_bp.route("/api/admin/users/<int:user_id>/change-password", methods=["POST"])
 @admin_bp.route("/api/admin/users/<int:user_id>/reset-password", methods=["POST"])
 @admin_required

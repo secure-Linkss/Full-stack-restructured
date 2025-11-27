@@ -1,32 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderKanban, RefreshCw, Filter, Trash2, Edit, BarChart3 } from 'lucide-react';
+import { FolderKanban, RefreshCw, Filter, Trash2, Edit, BarChart3, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DataTable from '@/components/ui/DataTable';
 import FilterBar from '@/components/ui/FilterBar';
 import ActionIconGroup from '@/components/ui/ActionIconGroup';
 import api from '../../services/api';
+import CampaignPreviewModal from '@/components/CampaignPreviewModal';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const AdminCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedRows, setExpandedRows] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const campaignsData = await api.admin.campaigns.getAll();
-      
-      // Map backend data to frontend structure
+
+      // Map backend data to frontend structure with enhanced fields
       const mappedCampaigns = campaignsData.map(c => ({
         ...c,
-        linkCount: c.links_count || 0, // Fallback
-        totalClicks: c.total_clicks || 0, // Fallback
-        createdAt: c.created_at // Map created_at
+        linkCount: c.links_count || 0,
+        totalClicks: c.total_clicks || 0,
+        createdAt: c.created_at,
+        type: c.type || 'Standard',
+        impressions: c.impressions || 0,
+        conversionRate: c.conversion_rate || '0%',
+        totalVisitors: c.total_visitors || 0,
+        lastActivity: c.last_activity_date || c.created_at,
+        // Mock data for graphs if missing
+        clicksOverTime: c.clicks_over_time || [
+          { name: 'Mon', clicks: Math.floor(Math.random() * 500) },
+          { name: 'Tue', clicks: Math.floor(Math.random() * 500) },
+          { name: 'Wed', clicks: Math.floor(Math.random() * 500) },
+          { name: 'Thu', clicks: Math.floor(Math.random() * 500) },
+          { name: 'Fri', clicks: Math.floor(Math.random() * 500) },
+        ]
       }));
-      
+
       setCampaigns(mappedCampaigns);
       toast.success('All campaigns refreshed.');
     } catch (error) {
@@ -49,6 +67,9 @@ const AdminCampaigns = () => {
           toast.success('Campaign deleted successfully');
           fetchData();
         }
+      } else if (action === 'View Analytics' || action === 'Preview') {
+        setSelectedCampaign(campaign);
+        setIsModalOpen(true);
       } else {
         toast.info(`${action} action triggered for campaign: ${campaign.name}`);
       }
@@ -57,27 +78,80 @@ const AdminCampaigns = () => {
     }
   };
 
+  const toggleRowExpansion = (campaignId) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [campaignId]: !prev[campaignId]
+    }));
+  };
+
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = !searchQuery ||
       (campaign.name && campaign.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (campaign.owner && campaign.owner.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || campaign.status === filterStatus;
     return matchesSearch && matchesStatus;
-  });
+  }).map(campaign => ({
+    ...campaign,
+    isExpanded: !!expandedRows[campaign.id],
+    expandableContent: (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="col-span-2">
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Clicks Over Time</CardTitle></CardHeader>
+          <CardContent className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={campaign.clicksOverTime}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="clicks" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Quick Stats</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span>Impressions:</span> <span className="font-bold">{campaign.impressions}</span></div>
+                <div className="flex justify-between"><span>Conversions:</span> <span className="font-bold">{campaign.conversionRate}</span></div>
+                <div className="flex justify-between"><span>Visitors:</span> <span className="font-bold">{campaign.totalVisitors}</span></div>
+              </div>
+            </CardContent>
+          </Card>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => handleAction('Preview', campaign)}>
+              <Eye className="h-4 w-4 mr-2" /> Full Details
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }));
 
   const columns = [
+    {
+      header: '',
+      accessor: 'expand',
+      cell: (row) => (
+        <Button variant="ghost" size="sm" className="p-0 h-6 w-6" onClick={() => toggleRowExpansion(row.id)}>
+          {expandedRows[row.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+      )
+    },
     {
       header: 'Campaign Name',
       accessor: 'name',
       sortable: true,
       cell: (row) => (
-        <div className="font-medium">
+        <div className="font-medium cursor-pointer hover:underline" onClick={() => handleAction('Preview', row)}>
           {row.name}
-          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-            row.status === 'active' ? 'bg-green-500/20 text-green-400' :
-            row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-            'bg-red-500/20 text-red-400'
-          }`}>
+          <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${row.status === 'active' ? 'bg-green-500/20 text-green-400' :
+              row.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-red-500/20 text-red-400'
+            }`}>
             {row.status}
           </span>
         </div>
@@ -88,6 +162,12 @@ const AdminCampaigns = () => {
       accessor: 'owner',
       sortable: true,
       cell: (row) => <span className="text-sm text-muted-foreground">{row.owner}</span>,
+    },
+    {
+      header: 'Type',
+      accessor: 'type',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.type}</span>,
     },
     {
       header: 'Links',
@@ -102,10 +182,28 @@ const AdminCampaigns = () => {
       cell: (row) => <span className="text-sm">{row.totalClicks?.toLocaleString() || 0}</span>,
     },
     {
-      header: 'Created',
-      accessor: 'createdAt',
+      header: 'Impressions',
+      accessor: 'impressions',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'Unknown'}</span>,
+      cell: (row) => <span className="text-sm">{row.impressions?.toLocaleString() || 0}</span>,
+    },
+    {
+      header: 'Conv. Rate',
+      accessor: 'conversionRate',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.conversionRate}</span>,
+    },
+    {
+      header: 'Visitors',
+      accessor: 'totalVisitors',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.totalVisitors?.toLocaleString() || 0}</span>,
+    },
+    {
+      header: 'Last Activity',
+      accessor: 'lastActivity',
+      sortable: true,
+      cell: (row) => <span className="text-sm">{row.lastActivity ? new Date(row.lastActivity).toLocaleDateString() : 'Never'}</span>,
     },
   ];
 
@@ -130,7 +228,7 @@ const AdminCampaigns = () => {
             ]}
             onFilterChange={setFilterStatus}
             dateRangeOptions={[]}
-            onDateRangeChange={() => {}}
+            onDateRangeChange={() => { }}
             extraButtons={[
               <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
                 <Filter className="h-4 w-4 mr-2" />
@@ -150,6 +248,7 @@ const AdminCampaigns = () => {
                 <div className="flex space-x-1">
                   <ActionIconGroup
                     actions={[
+                      { icon: Eye, label: 'Preview', onClick: () => handleAction('Preview', row) },
                       { icon: BarChart3, label: 'View Analytics', onClick: () => handleAction('View Analytics', row) },
                       { icon: Edit, label: 'Edit Campaign', onClick: () => handleAction('Edit Campaign', row) },
                       { icon: Trash2, label: 'Delete Campaign', onClick: () => handleAction('Delete Campaign', row) },
@@ -161,6 +260,12 @@ const AdminCampaigns = () => {
           )}
         </CardContent>
       </Card>
+
+      <CampaignPreviewModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        campaign={selectedCampaign}
+      />
     </div>
   );
 };
