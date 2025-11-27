@@ -114,7 +114,7 @@ class JSXAnalyzer:
                     rel_path = Path(filepath).relative_to(self.root_dir)
                 except:
                     rel_path = filepath
-                print(f"\n❌ {rel_path}")
+                print(f"\n[ERROR] {rel_path}")
                 for error in error_list:
                     print(f"   {error}")
         
@@ -132,13 +132,13 @@ class JSXAnalyzer:
                     rel_path = Path(filepath).relative_to(self.root_dir)
                 except:
                     rel_path = filepath
-                print(f"\n⚠️  {rel_path}")
+                print(f"\n[WARN]  {rel_path}")
                 for warning in warning_list[:3]:  # Limit warnings per file
                     print(f"   {warning}")
                 count += 1
         
         if not self.errors and not self.warnings:
-            print("\n✅ All JSX/JS files passed basic checks!")
+            print("\n[OK] All JSX/JS files passed basic checks!")
         
         print("\n" + "=" * 80)
 

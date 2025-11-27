@@ -1,7 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Shield, Lock, Eye, Database, UserCheck, FileText, Mail, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Shield, Lock, Eye, Database, UserCheck, FileText, Mail, AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Footer from '@/components/Footer'
 
@@ -258,14 +258,14 @@ const PrivacyPolicyPage = () => {
                 <Link to="/contact" className="text-slate-300 hover:text-white transition-colors">
                   Contact
                 </Link>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => navigate("/login")}
                   className="text-slate-300 hover:text-white hover:bg-slate-800"
                 >
                   Sign In
                 </Button>
-                <Button 
+                <Button
                   onClick={() => navigate("/register")}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                 >
@@ -275,7 +275,7 @@ const PrivacyPolicyPage = () => {
 
               {/* Mobile Menu Button - Added a simple back button for mobile view */}
               <div className="md:hidden">
-                <Button 
+                <Button
                   variant="ghost"
                   onClick={() => navigate("/")}
                   className="text-slate-300 hover:text-white hover:bg-slate-800"
@@ -332,7 +332,7 @@ const PrivacyPolicyPage = () => {
               If you have any concerns about our privacy practices, please contact us.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
+              <Button
                 size="lg"
                 onClick={() => navigate('/contact')}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-8 py-6"
