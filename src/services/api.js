@@ -525,7 +525,10 @@ const api = {
 
   // ==================== ADMIN - LINKS APIs ====================
   adminLinks: {
-    getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/links`),
+    getAll: (filters = {}) => {
+      const params = new URLSearchParams(filters);
+      return fetchWithAuth(`${API_BASE_URL}/admin/links?${params}`);
+    },
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
   },
 
