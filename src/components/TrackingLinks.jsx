@@ -83,16 +83,20 @@ const TrackingLinks = () => {
 				}
 			}
 		} else if (action === 'Edit') {
-			// Placeholder for opening an edit modal
-			toast.info(`Edit action triggered for link: ${link.campaignName}`);
-			// You would typically open a modal here and pass the link object
-			// setIsEditModalOpen(true);
-			// setSelectedLink(link);
+			// Copy link URL to clipboard for editing
+			const linkUrl = `${window.location.origin}/t/${link.shortCode}`;
+			navigator.clipboard.writeText(linkUrl);
+			toast.success(`Link copied! You can now edit the destination URL.`);
+			// Note: Full edit modal would require additional state management
 		} else if (action === 'Copy') {
-			// Placeholder for copying the link
-			toast.info(`Copy action triggered for link: ${link.campaignName}`);
-			// You would typically call an API to duplicate the link
-			// api.links.copy(link.id);
+			// Copy the short link to clipboard
+			const linkUrl = `${window.location.origin}/t/${link.shortCode}`;
+			try {
+				await navigator.clipboard.writeText(linkUrl);
+				toast.success(`Link copied to clipboard!`);
+			} catch (error) {
+				toast.error('Failed to copy link');
+			}
 		} else if (action === 'Delete') {
 			if (window.confirm(`Are you sure you want to delete the link "${link.campaignName}"?`)) {
 				try {
