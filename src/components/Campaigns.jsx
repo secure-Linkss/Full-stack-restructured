@@ -78,11 +78,31 @@ const Campaigns = () => {
     }
   };
 
-  const toggleRowExpansion = (campaignId) => {
+  const [campaignLinks, setCampaignLinks] = useState({});
+  const [loadingLinks, setLoadingLinks] = useState({});
+
+  const toggleRowExpansion = async (campaignId) => {
+    const isExpanding = !expandedRows[campaignId];
     setExpandedRows(prev => ({
       ...prev,
-      [campaignId]: !prev[campaignId]
+      [campaignId]: isExpanding
     }));
+
+    if (isExpanding && !campaignLinks[campaignId]) {
+      setLoadingLinks(prev => ({ ...prev, [campaignId]: true }));
+      try {
+        // Fetch links for this campaign
+        // Note: Assuming api.links.getAll returns an array. If it returns { links: [...] }, adjust accordingly.
+        const response = await api.links.getAll({ campaign_id: campaignId });
+        const links = Array.isArray(response) ? response : (response.links || []);
+        setCampaignLinks(prev => ({ ...prev, [campaignId]: links }));
+      } catch (error) {
+        console.error('Error fetching campaign links:', error);
+        toast.error('Failed to load campaign links');
+      } finally {
+        setLoadingLinks(prev => ({ ...prev, [campaignId]: false }));
+      }
+    }
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -95,38 +115,81 @@ const Campaigns = () => {
     ...campaign,
     isExpanded: !!expandedRows[campaign.id],
     expandableContent: (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="col-span-2">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Clicks Over Time</CardTitle></CardHeader>
-          <CardContent className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={campaign.clicksOverTime}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="clicks" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Performance Summary</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Total Clicks:</span> <span className="font-bold">{campaign.totalClicks}</span></div>
-                <div className="flex justify-between"><span>Links:</span> <span className="font-bold">{campaign.linkCount}</span></div>
-                <div className="flex justify-between"><span>Status:</span> <span className="capitalize">{campaign.status}</span></div>
-              </div>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="col-span-2">
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Clicks Over Time</CardTitle></CardHeader>
+            <CardContent className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={campaign.clicksOverTime}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="clicks" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
-          <div className="flex justify-end">
-            <Button size="sm" onClick={() => handleAction('Preview', campaign)}>
-              <Eye className="h-4 w-4 mr-2" /> Full Details
-            </Button>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Performance Summary</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span>Total Clicks:</span> <span className="font-bold">{campaign.totalClicks}</span></div>
+                  <div className="flex justify-between"><span>Links:</span> <span className="font-bold">{campaign.linkCount}</span></div>
+                  <div className="flex justify-between"><span>Status:</span> <span className="capitalize">{campaign.status}</span></div>
+                </div>
+              </CardContent>
+            </Card>
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => handleAction('Preview', campaign)}>
+                <Eye className="h-4 w-4 mr-2" /> Full Details
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Inline Links Table */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Campaign Links</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingLinks[campaign.id] ? (
+              <div className="text-center py-4 text-sm text-muted-foreground">Loading links...</div>
+            ) : campaignLinks[campaign.id] && campaignLinks[campaign.id].length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
+                    <tr>
+                      <th className="px-4 py-2">Name</th>
+                      <th className="px-4 py-2">Short URL</th>
+                      <th className="px-4 py-2">Clicks</th>
+                      <th className="px-4 py-2">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaignLinks[campaign.id].map(link => (
+                      <tr key={link.id} className="border-b hover:bg-muted/50">
+                        <td className="px-4 py-2 font-medium">{link.name || link.title || 'Untitled'}</td>
+                        <td className="px-4 py-2 text-primary">
+                          <a href={`${window.location.origin}/t/${link.shortCode}`} target="_blank" rel="noopener noreferrer">
+                            {link.shortCode}
+                          </a>
+                        </td>
+                        <td className="px-4 py-2">{link.clicks || 0}</td>
+                        <td className="px-4 py-2">{new Date(link.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-sm text-muted-foreground">No links found for this campaign.</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     )
   }));

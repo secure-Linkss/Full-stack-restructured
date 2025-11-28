@@ -292,35 +292,6 @@ const api = {
     }),
     getLoginHistory: () => fetchWithAuth(`${API_BASE_URL}/security/login-history`),
     getThreats: () => fetchWithAuth(`${API_BASE_URL}/security/threats`),
-    getBlockedIPs: () => fetchWithAuth(`${API_BASE_URL}/security/blocked-ips`),
-    addBlockedIP: (ip) => fetchWithAuth(`${API_BASE_URL}/security/blocked-ips`, {
-      method: 'POST',
-      body: JSON.stringify({ ip }),
-    }),
-    removeBlockedIP: (ip) => fetchWithAuth(`${API_BASE_URL}/security/blocked-ips/${encodeURIComponent(ip)}`, {
-      method: 'DELETE',
-    }),
-    getBlockedCountries: () => fetchWithAuth(`${API_BASE_URL}/security/blocked-countries`),
-    addBlockedCountry: (country) => fetchWithAuth(`${API_BASE_URL}/security/blocked-countries`, {
-      method: 'POST',
-      body: JSON.stringify({ country }),
-    }),
-    removeBlockedCountry: (country) => fetchWithAuth(`${API_BASE_URL}/security/blocked-countries/${encodeURIComponent(country)}`, {
-      method: 'DELETE',
-    }),
-  },
-
-  // Backward compatibility methods for Security component
-  getSecurityMetrics: () => fetchWithAuth(`${API_BASE_URL}/security/metrics`),
-  getSecurityLogs: (days = 7) => fetchWithAuth(`${API_BASE_URL}/security/logs?days=${days}`),
-
-  // ==================== PROFILE APIs ====================
-  profile: {
-    get: () => fetchWithAuth(`${API_BASE_URL}/user/profile`),
-    update: (profileData) => fetchWithAuth(`${API_BASE_URL}/user/profile`, {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    }),
     uploadAvatar: (formData) => {
       const token = getAuthToken();
       return fetch(`${API_BASE_URL}/user/avatar`, {

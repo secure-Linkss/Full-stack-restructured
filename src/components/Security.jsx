@@ -45,8 +45,8 @@ const Security = () => {
 				blockedCountriesData,
 				settingsData
 			] = await Promise.all([
-				api.getSecurityMetrics(),
-				api.getSecurityLogs(days),
+				api.security.getMetrics(),
+				api.security.getLogs(days),
 				api.security.getBlockedIPs(),
 				api.security.getBlockedCountries(),
 				api.security.getSettings()
