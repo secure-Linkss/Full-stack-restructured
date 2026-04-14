@@ -1,0 +1,17 @@
+{
+  "name": "testsprite-tests",
+  "version": "1.0.0",
+  "description": "TestSprite test suite for Brain Link Tracker",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx @testsprite/testsprite-mcp server",
+    "test:run": "npx @testsprite/testsprite-mcp run brain-tracker.test.json"
+  },
+  "keywords": ["testsprite", "testing"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@testsprite/testsprite-mcp": "^0.0.37"
+  }
+}

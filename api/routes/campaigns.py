@@ -1,28 +1,23 @@
+import logging
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, session, g
+from sqlalchemy import func
+from api.database import db
 from api.models.campaign import Campaign
 from api.models.link import Link
 from api.models.tracking_event import TrackingEvent
-from api.database import db
 from api.models.user import User
-from api.services.campaign_intelligence import campaign_intel
-from sqlalchemy import func
-from functools import wraps
-from datetime import datetime, timedelta
+from api.middleware.auth_decorators import login_required
+
+logger = logging.getLogger(__name__)
+
+try:
+    from api.services.campaign_intelligence import campaign_intel
+except ImportError:
+    campaign_intel = None
+    logger.debug("campaign_intelligence not available")
 
 campaigns_bp = Blueprint('campaigns', __name__)
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        user = User.query.get(session['user_id'])
-        if not user:
-            return jsonify({'error': 'User not found'}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated_function
 
 @campaigns_bp.route('/api/campaigns', methods=['GET'])
 @login_required
@@ -452,28 +447,119 @@ def auto_create_campaign(campaign_name, user_id):
     Auto-create a campaign if it doesn't exist.
     Returns the campaign object (existing or newly created).
     """
-    from api.models.campaign import Campaign
-    from api.models.user import db
-    
-    # Check if campaign exists for this user
     existing_campaign = Campaign.query.filter_by(
         name=campaign_name,
-        user_id=user_id
+        owner_id=user_id
     ).first()
-    
+
     if existing_campaign:
         return existing_campaign
-    
-    # Create new campaign
+
     new_campaign = Campaign(
         name=campaign_name,
-        user_id=user_id,
+        owner_id=user_id,
         status='active',
         description=f'Auto-created campaign for {campaign_name}'
     )
-    
+
     db.session.add(new_campaign)
     db.session.commit()
-    
     return new_campaign
 
+
+# ============================================================
+# ID-based campaign routes (frontend uses numeric IDs)
+# ============================================================
+
+@campaigns_bp.route('/api/campaigns/<int:campaign_id>', methods=['GET'])
+@login_required
+def get_campaign_by_id(campaign_id):
+    """Get campaign by numeric ID"""
+    user_id = session.get('user_id')
+    campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
+    if not campaign:
+        return jsonify({'error': 'Campaign not found'}), 404
+
+    links = Link.query.filter_by(campaign_id=campaign_id).all()
+    total_clicks = sum(l.total_clicks or 0 for l in links)
+    real_visitors = sum(l.real_visitors or 0 for l in links)
+
+    result = campaign.to_dict()
+    result['link_count'] = len(links)
+    result['total_clicks'] = total_clicks
+    result['real_visitors'] = real_visitors
+    return jsonify(result), 200
+
+
+@campaigns_bp.route('/api/campaigns/<int:campaign_id>', methods=['PUT', 'PATCH'])
+@login_required
+def update_campaign_by_id(campaign_id):
+    """Update campaign by id"""
+    user_id = session.get('user_id')
+    campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
+    if not campaign:
+        return jsonify({'error': 'Campaign not found'}), 404
+
+    data = request.get_json() or {}
+    if 'name' in data:
+        campaign.name = data['name']
+    if 'description' in data:
+        campaign.description = data['description']
+    if 'status' in data:
+        campaign.status = data['status']
+
+    # Also update link campaign_names if name changed
+    if 'name' in data:
+        old_links = Link.query.filter_by(campaign_id=campaign_id, user_id=user_id).all()
+        for link in old_links:
+            link.campaign_name = data['name']
+
+    db.session.commit()
+    return jsonify({'success': True, 'campaign': campaign.to_dict()}), 200
+
+
+@campaigns_bp.route('/api/campaigns/<int:campaign_id>', methods=['DELETE'])
+@login_required
+def delete_campaign_by_id(campaign_id):
+    """Delete campaign by id"""
+    user_id = session.get('user_id')
+    campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
+    if not campaign:
+        return jsonify({'error': 'Campaign not found'}), 404
+
+    # Unlink associated links (don't delete them)
+    links = Link.query.filter_by(campaign_id=campaign_id).all()
+    for link in links:
+        link.campaign_id = None
+        link.campaign_name = "Untitled Campaign"
+
+    db.session.delete(campaign)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Campaign deleted'}), 200
+
+
+@campaigns_bp.route('/api/campaigns/<int:campaign_id>/performance', methods=['GET'])
+@login_required
+def campaign_performance(campaign_id):
+    """Get performance metrics for a campaign"""
+    user_id = session.get('user_id')
+    campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
+    if not campaign:
+        return jsonify({'error': 'Campaign not found'}), 404
+
+    links = Link.query.filter_by(campaign_id=campaign_id).all()
+    total_clicks = sum(l.total_clicks or 0 for l in links)
+    real_visitors = sum(l.real_visitors or 0 for l in links)
+    captured = sum(1 for l in links if l.capture_email)
+
+    return jsonify({
+        'success': True,
+        'campaign': campaign.to_dict(),
+        'performance': {
+            'total_clicks': total_clicks,
+            'real_visitors': real_visitors,
+            'captured_emails': captured,
+            'link_count': len(links),
+            'conversion_rate': round((captured / total_clicks * 100) if total_clicks > 0 else 0, 2)
+        }
+    }), 200

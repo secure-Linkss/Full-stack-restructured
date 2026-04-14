@@ -1,58 +1,60 @@
-import React from 'react'
-import { Brain, Link } from 'lucide-react'
+import React from 'react';
 
 const Logo = ({ size = 'md', showText = true, className = '' }) => {
   const sizes = {
     sm: {
       container: 'h-8',
-      icon: 'h-6 w-6',
-      text: 'text-lg'
+      img: 'w-6 h-6',
+      title: 'text-[15px]',
+      subtitle: 'text-[9px]'
     },
     md: {
       container: 'h-10',
-      icon: 'h-8 w-8',
-      text: 'text-xl'
+      img: 'w-8 h-8',
+      title: 'text-[18px]',
+      subtitle: 'text-[10px]'
     },
     lg: {
       container: 'h-12',
-      icon: 'h-10 w-10',
-      text: 'text-2xl'
+      img: 'w-10 h-10',
+      title: 'text-[22px]',
+      subtitle: 'text-[11px]'
     },
     xl: {
       container: 'h-16',
-      icon: 'h-12 w-12',
-      text: 'text-3xl'
+      img: 'w-12 h-12',
+      title: 'text-[28px]',
+      subtitle: 'text-[13px]'
     }
-  }
+  };
 
-  const currentSize = sizes[size]
+  const currentSize = sizes[size];
 
   return (
     <div className={`flex items-center gap-3 ${currentSize.container} ${className}`}>
-      {/* Logo Icon */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-lg blur-sm opacity-75"></div>
-        <div className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-lg p-2 shadow-lg">
-          <div className="relative">
-            <Brain className={`${currentSize.icon} text-white`} />
-            <Link className="absolute -bottom-1 -right-1 h-4 w-4 text-white bg-gradient-to-br from-blue-500 to-purple-500 rounded-full p-0.5" />
-          </div>
-        </div>
+      {/* Physical Image Logo */}
+      <div className="relative shrink-0">
+         <div className="absolute inset-0 bg-[#3b82f6] rounded-md blur-md opacity-30"></div>
+         <img 
+            src="/logo.png" 
+            alt="Brain Link Tracker Logo" 
+            className={`${currentSize.img} relative z-10 rounded-md object-contain shadow-[0_0_15px_rgba(59,130,246,0.5)]`}
+         />
       </div>
 
-      {/* Logo Text */}
+      {/* Branded Text */}
       {showText && (
-        <div className="flex flex-col">
-          <h1 className={`${currentSize.text} font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent leading-tight`}>
-            Brain Link
+        <div className="flex flex-col justify-center">
+          <h1 className={`${currentSize.title} font-heading font-black tracking-tight text-white leading-none`}>
+             Brain <span className="text-[#3b82f6]">Link</span>
           </h1>
-          <span className="text-xs text-muted-foreground font-medium tracking-wider uppercase -mt-1">
-            Tracker
+          <span className={`${currentSize.subtitle} text-muted-foreground font-mono tracking-[0.2em] font-medium uppercase mt-0.5`}>
+             Tracker
           </span>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Logo
+export default Logo;

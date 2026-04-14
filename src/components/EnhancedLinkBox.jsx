@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+// ... imports
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Copy, RefreshCw, Edit, ExternalLink, Link as LinkIcon, Mail, Image } from 'lucide-react';
+import { Copy, RefreshCw, Edit, ExternalLink, Link as LinkIcon, Mail, Image, MousePointer2, Users, Shield, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../services/api';
 
-const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onLinkUpdate }) => {
+const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onDelete, onLinkUpdate }) => {
+  // ... (keep logic same)
   const [isEditing, setIsEditing] = useState(false);
   const [landingPageUrl, setLandingPageUrl] = useState(link.targetUrl);
   const [isSaving, setIsSaving] = useState(false);
@@ -15,6 +16,7 @@ const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onLinkUpdate }) => {
   const pixelUrl = link.pixelUrl || "N/A";
   const emailCode = link.emailCode || "N/A";
 
+  // ... (keep helper functions same)
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
     toast.success(`${type} copied to clipboard!`);
@@ -30,7 +32,6 @@ const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onLinkUpdate }) => {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Cancel edit, revert to original URL
       setLandingPageUrl(link.targetUrl);
     }
     setIsEditing(!isEditing);
@@ -39,10 +40,9 @@ const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onLinkUpdate }) => {
   const handleSaveLandingPage = async () => {
     setIsSaving(true);
     try {
-      // Assuming an API endpoint to update the target URL
       await api.links.updateTargetUrl(link.id, landingPageUrl);
       toast.success('Landing page URL updated successfully!');
-      onLinkUpdate({ ...link, targetUrl: landingPageUrl }); // Update parent state
+      onLinkUpdate({ ...link, targetUrl: landingPageUrl });
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating landing page URL:', error);
@@ -70,9 +70,9 @@ const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onLinkUpdate }) => {
             {value}
           </code>
         )}
-        <Button 
-          size="icon" 
-          variant="outline" 
+        <Button
+          size="icon"
+          variant="outline"
           onClick={() => copyToClipboard(value, copyType)}
           className="flex-shrink-0"
         >
@@ -93,53 +93,78 @@ const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onLinkUpdate }) => {
   return (
     <Card className="bg-slate-800 border-slate-700">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg font-bold text-white">{link.campaignName}</CardTitle>
+        <div className="flex items-center space-x-2">
+          <CardTitle className="text-lg font-bold text-white">{link.campaignName}</CardTitle>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${link.status === 'active' ? 'bg-green-500/20 text-green-400' :
+            link.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+              'bg-red-500/20 text-red-400'
+            }`}>
+            {link.status || 'active'}
+          </span>
+        </div>
         <div className="flex space-x-2">
-          <Button size="icon" variant="outline" onClick={testLink} title="Test Link">
+          <Button size="sm" variant="outline" className="h-9 w-9 p-0" onClick={testLink} title="Test Link">
             <ExternalLink className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="outline" onClick={handleEditToggle} title={isEditing ? "Cancel Edit" : "Edit Landing Page URL"}>
-            <Edit className="h-4 w-4" />
+          <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => onRegenerate(link)}>
+            <RefreshCw className="h-4 w-4 mr-1" /> Regenerate
           </Button>
-          <Button size="icon" variant="outline" onClick={() => onRegenerate(link)} title="Regenerate Link">
-            <RefreshCw className="h-4 w-4" />
+          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleEditToggle}>
+            <Edit className="h-4 w-4 mr-1" /> Edit
+          </Button>
+          <Button size="sm" variant="destructive" onClick={() => onDelete(link)}>
+            <Trash2 className="h-4 w-4 mr-1" /> Delete
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Landing Page URL (Editable) */}
+        {/* Landing Page URL */}
         {renderLinkSection(
-          'LANDING PAGE URL (EDITABLE)', 
-          landingPageUrl, 
-          <LinkIcon className="h-4 w-4 text-green-400" />, 
+          'Target',
+          landingPageUrl,
+          <LinkIcon className="h-4 w-4 text-slate-500" />,
           'Landing Page URL',
           true
         )}
 
         {/* Tracking URL */}
         {renderLinkSection(
-          'TRACKING URL', 
-          trackingUrl, 
-          <LinkIcon className="h-4 w-4 text-blue-400" />, 
+          'TRACKING URL',
+          trackingUrl,
+          <LinkIcon className="h-4 w-4 text-slate-500" />,
           'Tracking URL'
         )}
 
         {/* Pixel URL */}
         {renderLinkSection(
-          'PIXEL URL', 
-          pixelUrl, 
-          <Image className="h-4 w-4 text-purple-400" />, 
+          'PIXEL URL',
+          pixelUrl,
+          <Image className="h-4 w-4 text-slate-500" />,
           'Pixel URL'
         )}
 
         {/* Email Code */}
         {renderLinkSection(
-          'EMAIL CODE', 
-          emailCode, 
-          <Mail className="h-4 w-4 text-yellow-400" />, 
+          'EMAIL CODE',
+          emailCode,
+          <Mail className="h-4 w-4 text-slate-500" />,
           'Email Code'
         )}
       </CardContent>
+      <CardFooter className="bg-slate-900/50 py-3 px-6 rounded-b-xl border-t border-slate-700 flex justify-between items-center text-sm text-slate-400">
+        <div className="flex items-center space-x-2">
+          <MousePointer2 className="h-4 w-4" />
+          <span>{link.totalClicks || 0} clicks</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Users className="h-4 w-4" />
+          <span>{link.realVisitors || 0} visitors</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Shield className="h-4 w-4" />
+          <span>{link.botsBlocked || 0} Bot protected</span>
+        </div>
+      </CardFooter>
     </Card>
   );
 };

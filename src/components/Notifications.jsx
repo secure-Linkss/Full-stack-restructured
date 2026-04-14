@@ -1,552 +1,121 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
-import {
-  Bell, MessageSquare, CheckCircle, AlertCircle, Info,
-  Shield, Link2, CreditCard, TrendingUp, Trash2, Filter,
-  Plus, Send, Paperclip, X, Clock, User, RefreshCw, Loader
-} from 'lucide-react';
-import PageHeader from './ui/PageHeader';
-import { toast } from 'sonner';
+import { Bell, CheckCircle, Info, ShieldAlert, CreditCard, Ticket, Clock, Trash2 } from 'lucide-react';
 import api from '../services/api';
+import { toast } from 'sonner';
 
-// --- Helper Components ---
-
-const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
-  const getIcon = (type) => {
-    switch (type) {
-      case 'security': return <Shield className="h-5 w-5 text-red-500" />;
-      case 'link': return <Link2 className="h-5 w-5 text-primary" />;
-      case 'payment': return <CreditCard className="h-5 w-5 text-green-500" />;
-      case 'campaign': return <TrendingUp className="h-5 w-5 text-purple-500" />;
-      case 'system': return <Info className="h-5 w-5 text-blue-500" />;
-      default: return <Info className="h-5 w-5 text-muted-foreground" />;
-    }
-  };
-
-  return (
-    <div
-      className={`p-4 rounded-lg border transition-colors ${notification.read
-          ? 'bg-muted/30 border-border'
-          : 'bg-card-foreground/5 border-primary/50'
-        }`}
-    >
-      <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 mt-1">
-          {getIcon(notification.category)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex-1">
-              <h4 className="text-foreground font-medium">{notification.title}</h4>
-              <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-            </div>
-            {!notification.read && (
-              <div className="w-2 h-2 bg-primary rounded-full ml-2 mt-2"></div>
-            )}
-          </div>
-          <div className="flex items-center justify-between mt-3 border-t border-border pt-2">
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>{new Date(notification.timestamp).toLocaleString()}</span>
-              <Badge variant="secondary" className="text-xs capitalize">
-                {notification.category}
-              </Badge>
-            </div>
-            <div className="flex gap-2">
-              {!notification.read && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onMarkAsRead(notification.id)}
-                >
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Mark Read
-                </Button>
-              )}
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => onDelete(notification.id)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- Main Component ---
-
-const NotificationsAndSupport = () => {
-  const [activeTab, setActiveTab] = useState('notifications');
+const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
-  const [tickets, setTickets] = useState([]);
-  const [selectedTicket, setSelectedTicket] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [createTicketOpen, setCreateTicketOpen] = useState(false);
-  const [ticketMessage, setTicketMessage] = useState('');
-  const [attachments, setAttachments] = useState([]);
-  const [saving, setSaving] = useState(false);
 
-  const [newTicket, setNewTicket] = useState({
-    subject: '',
-    category: 'general',
-    priority: 'medium',
-    description: ''
-  });
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchNotifications = async () => {
     try {
-      const [notificationsData, ticketsData] = await Promise.all([
-        api.notifications.getAll(),
-        api.support.getTickets(),
-      ]);
-      setNotifications(notificationsData);
-      setTickets(ticketsData);
-      toast.success('Data refreshed.');
+      const response = await api.notifications?.getAll() || { notifications: [] };
+      const data = response.notifications || response || [];
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Failed to load data:', error);
-      toast.error('Failed to load data.');
+      toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchNotifications();
   }, []);
 
-  // --- Notification Handlers (Mocked) ---
-  // --- Notification Handlers (Real API) ---
   const handleMarkAsRead = async (id) => {
     try {
-      await api.notifications.markAsRead(id);
-      setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
-      toast.success('Marked as read');
+      if (api.notifications?.markAsRead) await api.notifications.markAsRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     } catch (error) {
-      toast.error('Failed to mark as read');
+      toast.error('Action failed');
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
-      await api.notifications.markAllAsRead();
-      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      if (api.notifications?.markAllAsRead) await api.notifications.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       toast.success('All notifications marked as read');
     } catch (error) {
-      toast.error('Failed to mark all as read');
+      toast.error('Action failed');
     }
   };
 
-  const handleDeleteNotification = async (id) => {
-    try {
-      await api.notifications.delete(id);
-      setNotifications(notifications.filter(n => n.id !== id));
-      toast.success('Notification deleted');
-    } catch (error) {
-      toast.error('Failed to delete notification');
+  const getIcon = (type) => {
+    switch (type) {
+      case 'payment': return <CreditCard className="w-5 h-5 text-[#10b981]" />;
+      case 'security': return <ShieldAlert className="w-5 h-5 text-[#ef4444]" />;
+      case 'ticket': return <Ticket className="w-5 h-5 text-[#f59e0b]" />;
+      default: return <Info className="w-5 h-5 text-[#3b82f6]" />;
     }
   };
 
-  // --- Ticket Handlers (Mocked) ---
-  // --- Ticket Handlers (Real API) ---
-  const handleCreateTicket = async () => {
-    if (!newTicket.subject || !newTicket.description) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const createdTicket = await api.support.createTicket(newTicket);
-
-      // Handle attachments if any
-      if (attachments.length > 0) {
-        const formData = new FormData();
-        attachments.forEach(file => formData.append('files', file));
-        await api.support.uploadAttachment(createdTicket.id, formData);
-      }
-
-      setTickets(prev => [createdTicket, ...prev]);
-      toast.success('Support ticket created successfully');
-      setNewTicket({ subject: '', category: 'general', priority: 'medium', description: '' });
-      setAttachments([]);
-      setCreateTicketOpen(false);
-    } catch (error) {
-      console.error('Failed to create ticket:', error);
-      toast.error('Failed to create ticket');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSendMessage = async (ticketId) => {
-    if (!ticketMessage.trim()) return;
-
-    try {
-      setSaving(true);
-      const response = await api.support.replyToTicket(ticketId, ticketMessage);
-
-      // Assuming response contains the new message object or the updated ticket
-      const newMessage = {
-        sender: 'user',
-        message: ticketMessage,
-        timestamp: new Date().toISOString()
-      };
-
-      setTickets(prev => prev.map(t => t.id === ticketId ? {
-        ...t,
-        messages: [...(t.messages || []), newMessage]
-      } : t));
-
-      toast.success('Message sent');
-      setTicketMessage('');
-      // Update selected ticket state to show new message
-      setSelectedTicket(prev => ({
-        ...prev,
-        messages: [...(prev.messages || []), newMessage]
-      }));
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      toast.error('Failed to send message');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCloseTicket = async (ticketId) => {
-    if (!window.confirm('Are you sure you want to close this ticket?')) return;
-
-    try {
-      await api.support.closeTicket(ticketId);
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'closed' } : t));
-      if (selectedTicket && selectedTicket.id === ticketId) {
-        setSelectedTicket(prev => ({ ...prev, status: 'closed' }));
-      }
-      toast.success('Ticket closed');
-    } catch (error) {
-      console.error('Failed to close ticket:', error);
-      toast.error('Failed to close ticket');
-    }
-  };
-
-  const handleFileAttachment = (e) => {
-    const files = Array.from(e.target.files);
-    setAttachments(prev => [...prev, ...files]);
-  };
-
-  const removeAttachment = (index) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const filteredNotifications = notifications.filter(notif =>
-    filterCategory === 'all' || notif.category === filterCategory
-  );
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const openTicketCount = tickets.filter(t => t.status === 'open').length;
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6 min-h-screen flex items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-foreground">Loading Data...</span>
-      </div>
-    );
-  }
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Notifications & Support"
-        description="Manage your notifications and support tickets"
-      />
+    <div className="space-y-6 animate-fade-in w-full max-w-4xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-heading text-foreground flex items-center">
+             <Bell className="w-6 h-6 mr-3 text-[#3b82f6]" />
+             Account Notifications
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">Updates on payments, security, and support.</p>
+        </div>
+        {unreadCount > 0 && (
+          <button onClick={handleMarkAllAsRead} className="btn-secondary text-xs px-4">
+            <CheckCircle className="w-4 h-4 mr-2" /> Mark All Read
+          </button>
+        )}
+      </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-auto">
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2" /> Live Notifications
-            {unreadCount > 0 && (
-              <Badge className="ml-2 bg-red-600 text-white">{unreadCount}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="tickets">
-            <MessageSquare className="h-4 w-4 mr-2" /> Support Tickets
-            {openTicketCount > 0 && (
-              <Badge className="ml-2 bg-green-600 text-white">{openTicketCount}</Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Live Notifications</CardTitle>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={fetchData}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
-                  <Button
-                    onClick={handleMarkAllAsRead}
-                    variant="outline"
-                    size="sm"
-                    disabled={unreadCount === 0}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Mark All Read
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Filter */}
-              <div className="flex items-center gap-4">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Filter by Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="security">Security</SelectItem>
-                    <SelectItem value="link">Link Activity</SelectItem>
-                    <SelectItem value="payment">Payment</SelectItem>
-                    <SelectItem value="campaign">Campaign</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Notifications List */}
-              <div className="space-y-3">
-                {filteredNotifications.length > 0 ? (
-                  filteredNotifications.map((notif) => (
-                    <NotificationItem
-                      key={notif.id}
-                      notification={notif}
-                      onMarkAsRead={handleMarkAsRead}
-                      onDelete={handleDeleteNotification}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Bell className="h-16 w-16 mx-auto mb-4" />
-                    <p className="text-lg">No notifications</p>
-                    <p className="text-sm mt-1">You're all caught up!</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Support Tickets Tab */}
-        <TabsContent value="tickets" className="mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Tickets List */}
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Your Tickets</CardTitle>
-                  <Dialog open={createTicketOpen} onOpenChange={setCreateTicketOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm">
-                        <Plus className="h-4 w-4 mr-1" />
-                        New
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Create Support Ticket</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div>
-                          <Label>Subject *</Label>
-                          <Input
-                            placeholder="Brief description of your issue"
-                            value={newTicket.subject}
-                            onChange={(e) => setNewTicket(prev => ({ ...prev, subject: e.target.value }))}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Category</Label>
-                            <Select value={newTicket.category} onValueChange={(val) => setNewTicket(prev => ({ ...prev, category: val }))}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="general">General Inquiry</SelectItem>
-                                <SelectItem value="billing">Billing</SelectItem>
-                                <SelectItem value="technical">Technical Support</SelectItem>
-                                <SelectItem value="feature">Feature Request</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>Priority</Label>
-                            <Select value={newTicket.priority} onChange={(val) => setNewTicket(prev => ({ ...prev, priority: val }))}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Priority" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="low">Low</SelectItem>
-                                <SelectItem value="medium">Medium</SelectItem>
-                                <SelectItem value="high">High</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Description *</Label>
-                          <Textarea
-                            placeholder="Detailed description of your issue..."
-                            rows={5}
-                            value={newTicket.description}
-                            onChange={(e) => setNewTicket(prev => ({ ...prev, description: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <Label>Attachments</Label>
-                          <Input type="file" multiple onChange={handleFileAttachment} />
-                          <div className="mt-2 space-y-1">
-                            {attachments.map((file, index) => (
-                              <Badge key={index} variant="secondary" className="mr-2">
-                                {file.name}
-                                <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => removeAttachment(index)} />
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setCreateTicketOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreateTicket} disabled={saving}>
-                          {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                          Submit Ticket
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-                {tickets.length > 0 ? (
-                  tickets.map((ticket) => (
-                    <div
-                      key={ticket.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedTicket?.id === ticket.id ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'
-                        }`}
-                      onClick={() => setSelectedTicket(ticket)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-medium truncate">{ticket.subject}</h4>
-                        <Badge className={`capitalize ${ticket.status === 'open' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                          }`}>
-                          {ticket.status}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {ticket.category} - Created: {new Date(ticket.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <MessageSquare className="h-16 w-16 mx-auto mb-4" />
-                    <p className="text-lg">No support tickets</p>
-                    <p className="text-sm mt-1">Create a new one to get started.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Ticket Detail */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>{selectedTicket ? `Ticket #${selectedTicket.id}` : 'Select a Ticket'}</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[600px] flex flex-col">
-                {selectedTicket ? (
-                  <>
-                    <div className="flex justify-between items-center border-b border-border pb-3 mb-3">
-                      <div>
-                        <h3 className="text-xl font-semibold">{selectedTicket.subject}</h3>
-                        <p className="text-sm text-muted-foreground">{selectedTicket.category} | Priority: {selectedTicket.priority}</p>
-                      </div>
-                      {selectedTicket.status === 'open' && (
-                        <Button variant="destructive" onClick={() => handleCloseTicket(selectedTicket.id)}>
-                          Close Ticket
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto space-y-4 p-2 mb-4">
-                      {selectedTicket.messages.map((msg, index) => (
-                        <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-xs lg:max-w-md p-3 rounded-lg ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                            }`}>
-                            <p className="text-sm">{msg.message}</p>
-                            <p className={`text-xs mt-1 ${msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                              {new Date(msg.timestamp).toLocaleTimeString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Reply Form */}
-                    {selectedTicket.status === 'open' && (
-                      <div className="border-t border-border pt-4">
-                        <Textarea
-                          placeholder="Type your reply here..."
-                          rows={3}
-                          value={ticketMessage}
-                          onChange={(e) => setTicketMessage(e.target.value)}
-                          className="mb-2"
-                        />
-                        <div className="flex justify-end">
-                          <Button onClick={() => handleSendMessage(selectedTicket.id)} disabled={saving || !ticketMessage.trim()}>
-                            {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                            Send Message
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <p>Select a ticket from the list to view details.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+      <div className="enterprise-card overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="w-8 h-8 rounded-full border-4 border-[#3b82f6]/20 border-t-[#3b82f6] animate-spin"></div>
           </div>
-        </TabsContent>
-      </Tabs>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Bell className="w-12 h-12 text-muted-foreground/30 mb-4" />
+            <h3 className="text-lg font-medium text-foreground">You're all caught up!</h3>
+            <p className="text-sm text-muted-foreground mt-1">No new notifications at the moment.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {notifications.map(notification => (
+              <div key={notification.id} className={`p-5 flex gap-4 transition-colors hover:bg-white/5 ${!notification.is_read ? 'bg-[rgba(59,130,246,0.03)]' : ''}`}>
+                <div className={`mt-0.5 shrink-0 ${!notification.is_read ? 'opacity-100' : 'opacity-60'}`}>
+                  {getIcon(notification.type)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className={`text-sm tracking-wide ${!notification.is_read ? 'font-bold text-foreground' : 'font-medium text-foreground/80'}`}>
+                      {notification.title}
+                    </h4>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground whitespace-nowrap ml-4 flex items-center">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {new Date(notification.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className={`text-sm ${!notification.is_read ? 'text-muted-foreground/90' : 'text-muted-foreground/60'}`}>
+                    {notification.message}
+                  </p>
+                </div>
+                {!notification.is_read && (
+                  <div className="shrink-0 flex items-center ml-2">
+                    <button onClick={() => handleMarkAsRead(notification.id)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#3b82f6]/10 text-[#3b82f6] transition-colors" title="Mark as read">
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-export default NotificationsAndSupport;
+export default Notifications;

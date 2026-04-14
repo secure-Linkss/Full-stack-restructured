@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Settings as SettingsIcon, User, Lock, CreditCard, Bell, Code, Trash2, Palette, TestTube, CheckCircle, XCircle } from 'lucide-react';
+import { Settings as SettingsIcon, User, Lock, CreditCard, Bell, Code, Trash2, Palette, TestTube, CheckCircle, XCircle, Globe } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -12,6 +12,7 @@ import AccountSettings from './AccountSettings';
 import SecuritySettings from './SecuritySettings';
 import AppearanceSettings from './AppearanceSettings';
 import BillingAndSubscription from './BillingAndSubscription';
+import UserDomains from './UserDomains';
 import api from '../services/api';
 
 
@@ -279,7 +280,29 @@ const ApiSettings = () => (
   </Card>
 );
 
-const DangerZone = () => (
+const DangerZone = () => {
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm('Are you ABSOLUTELY sure? This will permanently delete your account and ALL data. This action cannot be undone.');
+    if (!confirmed) return;
+    const secondConfirm = window.prompt('Type "DELETE" to confirm account deletion:');
+    if (secondConfirm !== 'DELETE') return toast.error('Deletion cancelled.');
+    try {
+      await fetch('/api/user/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      toast.success('Account deletion initiated. You will be logged out.');
+      setTimeout(() => { localStorage.clear(); window.location.href = '/login'; }, 2000);
+    } catch (error) {
+      toast.error('Failed to delete account. Please contact support.');
+    }
+  };
+
+  return (
   <Card className="border-red-500/50 bg-red-500/10">
     <CardHeader>
       <CardTitle className="flex items-center text-red-400"><Trash2 className="h-5 w-5 mr-2" /> Danger Zone</CardTitle>
@@ -291,11 +314,12 @@ const DangerZone = () => (
           <p className="font-medium text-foreground">Delete Account</p>
           <p className="text-sm text-muted-foreground">Permanently delete your account and all associated data.</p>
         </div>
-        <Button variant="destructive" onClick={() => toast.error('Account deletion initiated (Mock)')}>Delete Account</Button>
+        <Button variant="destructive" onClick={handleDeleteAccount}>Delete Account</Button>
       </div>
     </CardContent>
   </Card>
-);
+  );
+};
 
 // --- Appearance Settings Component ---
 
@@ -306,10 +330,11 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('account');
 
 	  const settingsTabs = [
-		    { id: 'account', title: 'Account', icon: User, component: AccountSettings },
-		    { id: 'appearance', title: 'Appearance', icon: Palette, component: AppearanceSettings },
-		    { id: 'security', title: 'Security', icon: Lock, component: SecuritySettings },
-		    { id: 'billing', title: 'Billing', icon: CreditCard, component: BillingAndSubscription },
+	    { id: 'account', title: 'Account', icon: User, component: AccountSettings },
+	    { id: 'domains', title: 'Custom Domains', icon: Globe, component: UserDomains },
+	    { id: 'appearance', title: 'Appearance', icon: Palette, component: AppearanceSettings },
+	    { id: 'security', title: 'Security', icon: Lock, component: SecuritySettings },
+	    { id: 'billing', title: 'Billing', icon: CreditCard, component: BillingAndSubscription },
 	    { id: 'notifications', title: 'Notifications', icon: Bell, component: NotificationSettings },
 	    { id: 'api', title: 'API Access', icon: Code, component: ApiSettings },
 	    { id: 'danger', title: 'Danger Zone', icon: Trash2, component: DangerZone },

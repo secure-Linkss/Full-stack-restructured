@@ -19,6 +19,12 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 import base64
 import os
+import logging
+
+from api.services.placeholder_engine import expand_placeholders, has_placeholders
+from api.services.channel_adaptive import get_channel_profile
+
+logger = logging.getLogger(__name__)
 
 # Database connection for nonce storage
 import psycopg2
@@ -48,9 +54,9 @@ class QuantumRedirectSystem:
                     sslmode='require'
                 )
                 self._ensure_nonce_table()
-                print("✓ Quantum Redirect using Neon Database for nonce storage")
+                logger.info("Quantum Redirect using Neon Database for nonce storage")
             except Exception as e:
-                print(f"⚠ Database connection failed, using memory cache: {e}")
+                logger.warning(f"Database connection failed, using memory cache: {e}")
                 self.db_pool = None
                 self._memory_cache = {}
         else:
@@ -111,7 +117,7 @@ class QuantumRedirectSystem:
                         """)
                         conn.commit()
         except Exception as e:
-            print(f"Warning: Could not create nonce table: {e}")
+            logger.warning(f"Could not create nonce table: {e}")
 
     def _hash_value(self, value: str) -> str:
         """Create SHA-256 hash of a value for security"""
@@ -349,7 +355,7 @@ class QuantumRedirectSystem:
                 }
             
             if lenient_mode and (ip_mismatch or ua_mismatch):
-                print(f"Warning: IP/UA mismatch in lenient mode for click {payload['sub']}")
+                logger.debug(f"IP/UA mismatch in lenient mode for click {payload['sub']}")
             
             # Generate transit token for routing gateway
             transit_payload = {
@@ -389,14 +395,17 @@ class QuantumRedirectSystem:
                 'stage': 'validation_failed'
             }
 
-    def stage3_routing_gateway(self, transit_token: str, tracking_params: Dict = None) -> Dict:
+    def stage3_routing_gateway(self, transit_token: str, tracking_params: Dict = None,
+                               visitor_context: Dict = None) -> Dict:
         """
         Stage 3: Routing Gateway Processing
-        Final decision making and commercial tracking parameter injection
+        Final decision making, tracking parameter injection, and placeholder expansion.
+        visitor_context keys (all optional): email, ip, country, country_name, city,
+          region, timezone, device, browser, os, user_agent, referrer, domain.
         Target execution time: <100ms
         """
         start_time = time.time()
-        
+
         try:
             # Verify transit token
             is_valid, payload, error_reason = self._verify_advanced_jwt(
@@ -404,7 +413,7 @@ class QuantumRedirectSystem:
                 self.SECRET_KEY_2,
                 'routing-gateway'
             )
-            
+
             if not is_valid:
                 self.performance_metrics['security_violations'][error_reason] += 1
                 self.performance_metrics['blocked_attempts'] += 1
@@ -416,10 +425,10 @@ class QuantumRedirectSystem:
                     'security_violation': error_reason,
                     'click_id': payload.get('sub') if payload else None
                 }
-            
+
             # Get link configuration from database
             link_config = self._get_link_configuration(payload['link_id'])
-            
+
             if not link_config:
                 return {
                     'success': False,
@@ -428,23 +437,51 @@ class QuantumRedirectSystem:
                     'stage': 'routing_failed',
                     'click_id': payload['sub']
                 }
-            
+
             # Get original parameters from JWT payload
             original_params = payload.get('original_params', {})
-            
+
             # Merge original parameters with tracking parameters
             all_params = {**(tracking_params or {}), **original_params}
-            
+
+            # ── Placeholder expansion ─────────────────────────────────────────
+            ctx = visitor_context or {}
+            email_val = ctx.get('email') or original_params.get('email') or ''
+
+            destination_url = expand_placeholders(
+                link_config['destination_url'],
+                email=email_val,
+                ip=ctx.get('ip'),
+                country=ctx.get('country'),
+                country_name=ctx.get('country_name'),
+                city=ctx.get('city'),
+                region=ctx.get('region'),
+                timezone_str=ctx.get('timezone'),
+                device=ctx.get('device'),
+                browser=ctx.get('browser'),
+                os_name=ctx.get('os'),
+                user_agent=ctx.get('user_agent'),
+                referrer=ctx.get('referrer'),
+                short_code=link_config.get('short_code'),
+                click_id=payload['sub'],
+                domain=ctx.get('domain'),
+            )
+
+            # ── Channel Adaptive Mode™ ────────────────────────────────────────
+            channel = link_config.get('channel_type', 'general')
+            profile = get_channel_profile(channel)
+            destination_url = profile.apply(destination_url, ctx)
+
             # Build final URL with ALL parameters (original + tracking)
             final_url = self._build_final_url(
-                link_config['destination_url'],
+                destination_url,
                 payload['sub'],  # click_id
                 all_params  # Include original parameters
             )
-            
+
             # Update success metrics
             self.performance_metrics['successful_redirects'] += 1
-            
+
             return {
                 'success': True,
                 'final_url': final_url,
@@ -452,7 +489,7 @@ class QuantumRedirectSystem:
                 'processing_time_ms': (time.time() - start_time) * 1000,
                 'stage': 'routing_complete'
             }
-            
+
         except Exception as e:
             self.performance_metrics['blocked_attempts'] += 1
             return {
@@ -469,19 +506,21 @@ class QuantumRedirectSystem:
                 if conn:
                     with conn.cursor() as cursor:
                         cursor.execute("""
-                            SELECT target_url, short_code 
-                            FROM links 
+                            SELECT target_url, short_code,
+                                   COALESCE(channel_type, 'general') AS channel_type
+                            FROM links
                             WHERE id = %s AND status = 'active'
                         """, (link_id,))
                         result = cursor.fetchone()
                         if result:
                             return {
                                 'destination_url': result[0],
-                                'short_code': result[1],
+                                'short_code':      result[1],
+                                'channel_type':    result[2],
                                 'tracking_enabled': True
                             }
         except Exception as e:
-            print(f"Error fetching link configuration: {e}")
+            logger.error(f"Error fetching link configuration: {e}")
         return None
 
     def _build_final_url(self, base_url: str, click_id: str, additional_params: Dict) -> str:

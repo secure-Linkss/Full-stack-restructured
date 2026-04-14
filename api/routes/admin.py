@@ -1,82 +1,59 @@
-from flask import Blueprint, request, jsonify, session, make_response
+import logging
+from flask import Blueprint, request, jsonify, session, make_response, g
 from werkzeug.security import generate_password_hash
-from functools import wraps
 from api.database import db
 from api.models.user import User
 from api.models.campaign import Campaign
 from api.models.audit_log import AuditLog
 from api.models.link import Link
 from api.models.domain import Domain
+from api.models.payment import Payment
+from api.models.notification import Notification
+from api.middleware.auth_decorators import login_required, admin_required, main_admin_required
 from datetime import datetime, timedelta
 
+logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
 
-def get_current_user():
-    """Get current user from token or session"""
-    # Try token first
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ")[1]
-        user = User.verify_token(token)
-        if user:
-            return user
-    
-    # Fall back to session
-    if "user_id" in session:
-        return User.query.get(session["user_id"])
-    
-    return None
-
-def admin_required(f):
-    """Decorator to require admin or main_admin role"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user = get_current_user()
-        if not user:
-            return jsonify({"error": "Authentication required"}), 401
-        
-        if user.role not in ["admin", "main_admin"]:
-            return jsonify({"error": "Admin access required"}), 403
-        
-        return f(user, *args, **kwargs)
-    return decorated_function
-
-def main_admin_required(f):
-    """Decorator to require main_admin role only"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user = get_current_user()
-        if not user:
-            return jsonify({"error": "Authentication required"}), 401
-        
-        if user.role != "main_admin":
-            return jsonify({"error": "Main admin access required"}), 403
-        
-        return f(user, *args, **kwargs)
-    return decorated_function
 
 def log_admin_action(actor_id, action, target_id=None, target_type=None):
     """Log admin actions to audit_logs"""
-    audit_log = AuditLog(
-        actor_id=actor_id,
-        action=action,
-        target_id=target_id,
-        target_type=target_type
-    )
-    db.session.add(audit_log)
-    db.session.commit()
+    try:
+        db.session.add(AuditLog(
+            actor_id=actor_id, action=action,
+            target_id=target_id, target_type=target_type,
+            ip_address=request.remote_addr
+        ))
+        db.session.commit()
+    except Exception as e:
+        logger.error(f"Audit log error: {e}")
 
 # User Management Endpoints
 @admin_bp.route("/api/admin/users", methods=["GET"])
 @admin_required
 def get_users(current_user):
-    """Get all users (Main Admin: all users, Admin: members only)"""
-    if current_user.role == "main_admin":
-        users = User.query.all()
-    else:
-        users = User.query.filter_by(role="member").all()
-    
-    return jsonify([user.to_dict(include_sensitive=True) for user in users])
+    """Get all users (with pagination)"""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    status_filter = request.args.get("status")
+    role_filter = request.args.get("role")
+
+    query = User.query
+    if current_user.role != "main_admin":
+        query = query.filter_by(role="member")
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if role_filter:
+        query = query.filter_by(role=role_filter)
+
+    users = query.order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    return jsonify({
+        "success": True,
+        "users": [u.to_dict(include_sensitive=True) for u in users.items],
+        "total": users.total,
+        "page": page,
+        "pages": users.pages
+    })
 
 @admin_bp.route("/api/admin/users/<int:user_id>", methods=["GET"])
 @admin_required
@@ -627,7 +604,7 @@ def delete_all_system_data(current_user):
 
 # ==================== DOMAIN MANAGEMENT ====================
 
-@admin_bp.route('/domains', methods=['GET'])
+@admin_bp.route('/api/admin/domains', methods=['GET'])
 @admin_required
 def get_domains(current_user):
     """Get all domains (admin can see all, users see their own)"""
@@ -642,7 +619,7 @@ def get_domains(current_user):
         return jsonify({'error': str(e)}), 500
 
 
-@admin_bp.route('/domains', methods=['POST'])
+@admin_bp.route('/api/admin/domains', methods=['POST'])
 @admin_required
 def create_domain(current_user):
     """Create a new domain"""
@@ -681,7 +658,7 @@ def create_domain(current_user):
         return jsonify({'error': str(e)}), 500
 
 
-@admin_bp.route('/domains/<int:domain_id>', methods=['GET'])
+@admin_bp.route('/api/admin/domains/<int:domain_id>', methods=['GET'])
 @admin_required
 def get_domain(current_user, domain_id):
     """Get a specific domain"""
@@ -699,7 +676,7 @@ def get_domain(current_user, domain_id):
         return jsonify({'error': str(e)}), 500
 
 
-@admin_bp.route('/domains/<int:domain_id>', methods=['PUT'])
+@admin_bp.route('/api/admin/domains/<int:domain_id>', methods=['PUT'])
 @admin_required
 def update_domain(current_user, domain_id):
     """Update a domain"""
@@ -746,7 +723,7 @@ def update_domain(current_user, domain_id):
         return jsonify({'error': str(e)}), 500
 
 
-@admin_bp.route('/domains/<int:domain_id>', methods=['DELETE'])
+@admin_bp.route('/api/admin/domains/<int:domain_id>', methods=['DELETE'])
 @admin_required
 def delete_domain(current_user, domain_id):
     """Delete a domain"""
@@ -776,7 +753,7 @@ def delete_domain(current_user, domain_id):
         return jsonify({'error': str(e)}), 500
 
 
-@admin_bp.route('/domains/<int:domain_id>/verify', methods=['POST'])
+@admin_bp.route('/api/admin/domains/<int:domain_id>/verify', methods=['POST'])
 @admin_required
 def verify_domain(current_user, domain_id):
     """Verify a domain (for DNS verification)"""
@@ -803,25 +780,587 @@ def verify_domain(current_user, domain_id):
         return jsonify({'error': str(e)}), 500
 
 
-@admin_bp.route('/domains/stats', methods=['GET'])
+
+# ============================================================
+# MISSING ENDPOINTS — Added for full frontend compatibility
+# ============================================================
+
+@admin_bp.route("/api/admin/metrics", methods=["GET"])
 @admin_required
-def get_domains_stats(current_user):
-    """Get domain statistics"""
+def admin_metrics(current_user):
+    """Admin dashboard metrics — full KPI summary"""
     try:
-        if current_user.role == 'main_admin':
-            total_domains = Domain.query.count()
-            active_domains = Domain.query.filter_by(is_active=True).count()
-            verified_domains = Domain.query.filter_by(is_verified=True).count()
-        else:
-            total_domains = Domain.query.filter_by(created_by=current_user.id).count()
-            active_domains = Domain.query.filter_by(created_by=current_user.id, is_active=True).count()
-            verified_domains = Domain.query.filter_by(created_by=current_user.id, is_verified=True).count()
-        
+        from api.models.tracking_event import TrackingEvent
+        from sqlalchemy import func
+
+        now = datetime.utcnow()
+        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        this_week = now - timedelta(days=7)
+        this_month = now - timedelta(days=30)
+
+        total_users = User.query.count()
+        active_users = User.query.filter_by(status="active").count()
+        pending_users = User.query.filter_by(status="pending").count()
+        new_users_today = User.query.filter(User.created_at >= today).count()
+        new_users_week = User.query.filter(User.created_at >= this_week).count()
+
+        total_links = Link.query.count()
+        active_links = Link.query.filter_by(status="active").count()
+
+        total_clicks = db.session.query(func.sum(Link.total_clicks)).scalar() or 0
+        total_events = TrackingEvent.query.count()
+        events_today = TrackingEvent.query.filter(TrackingEvent.timestamp >= today).count()
+
+        total_revenue = db.session.query(func.sum(Payment.amount))\
+            .filter_by(status="confirmed").scalar() or 0
+        revenue_month = db.session.query(func.sum(Payment.amount))\
+            .filter(Payment.status == "confirmed", Payment.created_at >= this_month).scalar() or 0
+
+        crypto_pending = Payment.query.filter_by(status="pending", payment_type="crypto").count()
+
         return jsonify({
-            'total_domains': total_domains,
-            'active_domains': active_domains,
-            'verified_domains': verified_domains,
-            'inactive_domains': total_domains - active_domains
+            "success": True,
+            "users": {
+                "total": total_users, "active": active_users,
+                "pending": pending_users, "new_today": new_users_today,
+                "new_week": new_users_week
+            },
+            "links": {"total": total_links, "active": active_links},
+            "tracking": {"total_clicks": total_clicks, "total_events": total_events, "events_today": events_today},
+            "revenue": {"total": float(total_revenue), "this_month": float(revenue_month), "crypto_pending": crypto_pending}
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"admin_metrics error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/users/graph", methods=["GET"])
+@admin_required
+def user_registrations_graph(current_user):
+    """User registrations over last 30 days for chart"""
+    try:
+        from sqlalchemy import func, cast, Date
+        days = int(request.args.get("days", 30))
+        start = datetime.utcnow() - timedelta(days=days)
+
+        rows = db.session.query(
+            cast(User.created_at, Date).label("date"),
+            func.count(User.id).label("count")
+        ).filter(User.created_at >= start)\
+         .group_by(cast(User.created_at, Date))\
+         .order_by(cast(User.created_at, Date)).all()
+
+        return jsonify({
+            "success": True,
+            "data": [{"date": str(r.date), "count": r.count} for r in rows]
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/users/<int:user_id>/block", methods=["POST"])
+@admin_required
+def block_user(current_user, user_id):
+    """Block (suspend) a user — alias for suspend"""
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    if user.role == "main_admin":
+        return jsonify({"success": False, "error": "Cannot block main admin"}), 403
+
+    user.status = "suspended"
+    user.is_active = False
+    db.session.commit()
+    log_admin_action(current_user.id, f"Blocked user {user.username}", user.id, "user")
+    db.session.add(Notification(
+        user_id=user.id, title="Account Suspended",
+        message="Your account has been suspended. Contact support for assistance.",
+        type="error", priority="high"
+    ))
+    db.session.commit()
+    return jsonify({"success": True, "message": f"{user.username} has been blocked"}), 200
+
+
+@admin_bp.route("/api/admin/users/<int:user_id>/unblock", methods=["POST"])
+@admin_required
+def unblock_user(current_user, user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    user.status = "active"
+    user.is_active = True
+    db.session.commit()
+    log_admin_action(current_user.id, f"Unblocked user {user.username}", user.id, "user")
+    return jsonify({"success": True, "message": f"{user.username} has been unblocked"}), 200
+
+
+@admin_bp.route("/api/admin/users/<int:user_id>/impersonate", methods=["POST"])
+@main_admin_required
+def impersonate_user(current_user, user_id):
+    """Issue a short-lived token for the target user (main admin only)"""
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    log_admin_action(current_user.id, f"Impersonated user {user.username}", user.id, "user")
+    token = user.generate_token()
+    return jsonify({"success": True, "token": token, "user": user.to_dict()}), 200
+
+
+@admin_bp.route("/api/admin/pending-users", methods=["GET"])
+@admin_required
+def get_pending_users(current_user):
+    users = User.query.filter_by(status="pending").order_by(User.created_at.desc()).all()
+    return jsonify({"success": True, "users": [u.to_dict(include_sensitive=True) for u in users], "count": len(users)})
+
+
+@admin_bp.route("/api/admin/subscriptions", methods=["GET"])
+@admin_required
+def admin_list_subscriptions(current_user):
+    """All users with their subscription details"""
+    users = User.query.filter(User.plan_type != "free").order_by(User.subscription_expiry.desc()).all()
+    return jsonify({
+        "success": True,
+        "subscriptions": [{
+            "user_id": u.id, "username": u.username, "email": u.email,
+            "plan_type": u.plan_type, "status": u.subscription_status,
+            "expiry": u.subscription_expiry.isoformat() if u.subscription_expiry else None
+        } for u in users]
+    })
+
+
+@admin_bp.route("/api/admin/invoices", methods=["GET"])
+@admin_required
+def admin_list_invoices(current_user):
+    """All confirmed payments as invoices"""
+    payments = Payment.query.filter_by(status="confirmed")\
+        .order_by(Payment.created_at.desc()).all()
+    return jsonify({
+        "success": True,
+        "invoices": [p.to_dict() for p in payments]
+    })
+
+
+@admin_bp.route("/api/admin/transactions", methods=["GET"])
+@admin_required
+def admin_list_transactions(current_user):
+    """All payments (any status)"""
+    from api.models.crypto_payment_transaction import CryptoPaymentTransaction
+    crypto = CryptoPaymentTransaction.query.order_by(
+        CryptoPaymentTransaction.created_at.desc()).all()
+    stripe_payments = Payment.query.filter_by(payment_type="stripe")\
+        .order_by(Payment.created_at.desc()).all()
+    return jsonify({
+        "success": True,
+        "crypto_transactions": [t.to_dict() for t in crypto],
+        "stripe_payments": [p.to_dict() for p in stripe_payments]
+    })
+
+
+@admin_bp.route("/api/admin/subscription-plans", methods=["GET"])
+@admin_required
+def admin_list_plans(current_user):
+    """Return plan configuration"""
+    from api.routes.payments import PLANS
+    return jsonify({"success": True, "plans": [
+        {"id": k, **v} for k, v in PLANS.items()
+    ]})
+
+
+@admin_bp.route("/api/admin/system/health", methods=["GET"])
+@admin_required
+def system_health(current_user):
+    """Basic system health check"""
+    try:
+        db.session.execute(db.text("SELECT 1"))
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return jsonify({
+        "success": True,
+        "database": "ok" if db_ok else "error",
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ADMIN INTELLIGENCE LAYER
+# ═══════════════════════════════════════════════════════════════
+
+@admin_bp.route("/api/admin/intelligence", methods=["GET"])
+@admin_required
+def admin_intelligence(current_user):
+    """Platform-wide intelligence: inbox scores, scanner rates, bot %, quantum stats."""
+    try:
+        from api.models.tracking_event import TrackingEvent
+        from api.services.honeypot import honeypot_service
+
+        now = datetime.utcnow()
+        last_24h = now - timedelta(hours=24)
+        last_7d  = now - timedelta(days=7)
+
+        # --- Tracking event stats ---
+        total_events   = TrackingEvent.query.count()
+        events_24h     = TrackingEvent.query.filter(TrackingEvent.timestamp >= last_24h).count()
+        bot_events_24h = TrackingEvent.query.filter(
+            TrackingEvent.timestamp >= last_24h, TrackingEvent.is_bot == True
+        ).count()
+        scanner_events = TrackingEvent.query.filter(
+            TrackingEvent.timestamp >= last_24h, TrackingEvent.status == 'scanner_deflected'
+        ).count()
+        honeypot_events = TrackingEvent.query.filter(
+            TrackingEvent.timestamp >= last_24h, TrackingEvent.status == 'honeypot'
+        ).count()
+        quantum_violations = TrackingEvent.query.filter(
+            TrackingEvent.timestamp >= last_24h,
+            TrackingEvent.quantum_security_violation.isnot(None)
+        ).count()
+
+        bot_pct     = round((bot_events_24h / events_24h * 100), 1) if events_24h else 0
+        scanner_pct = round((scanner_events / events_24h * 100), 1) if events_24h else 0
+
+        # --- Link & user counts ---
+        total_links  = Link.query.count()
+        active_links = Link.query.filter_by(status='active').count()
+        total_users  = User.query.count()
+        active_users = User.query.filter(User.last_login_at >= last_7d).count() if hasattr(User, 'last_login_at') else 0
+
+        # --- Inbox score distribution (sampled from active links) ---
+        try:
+            from api.services.inbox_score import compute_inbox_score
+            sample_links = Link.query.filter_by(status='active').limit(50).all()
+            scores = []
+            for lnk in sample_links:
+                try:
+                    result = compute_inbox_score(lnk.id)
+                    if result and 'inbox_score' in result:
+                        scores.append(result['inbox_score'])
+                except Exception:
+                    pass
+            avg_inbox_score = round(sum(scores) / len(scores), 1) if scores else None
+            score_distribution = {
+                'excellent': len([s for s in scores if s >= 80]),
+                'good':      len([s for s in scores if 60 <= s < 80]),
+                'warning':   len([s for s in scores if 40 <= s < 60]),
+                'critical':  len([s for s in scores if s < 40]),
+            }
+        except Exception:
+            avg_inbox_score = None
+            score_distribution = {}
+
+        # --- Honeypot in-memory stats ---
+        hp_stats = honeypot_service.get_stats()
+
+        return jsonify({
+            "success": True,
+            "platform": {
+                "total_users":   total_users,
+                "active_users_7d": active_users,
+                "total_links":   total_links,
+                "active_links":  active_links,
+                "total_events":  total_events,
+            },
+            "traffic_24h": {
+                "total":     events_24h,
+                "bots":      bot_events_24h,
+                "bot_pct":   bot_pct,
+                "scanners":  scanner_events,
+                "scanner_pct": scanner_pct,
+                "honeypot_hits": honeypot_events,
+                "quantum_violations": quantum_violations,
+            },
+            "inbox_score": {
+                "average": avg_inbox_score,
+                "distribution": score_distribution,
+                "sample_size": len(scores) if 'scores' in dir() else 0,
+            },
+            "honeypot": hp_stats,
+            "generated_at": now.isoformat(),
+        })
+    except Exception as e:
+        logger.error(f"Admin intelligence error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/users/risk-analysis", methods=["GET"])
+@admin_required
+def users_risk_analysis(current_user):
+    """Per-user risk profile: bot ratio, honeypot hits, anomaly flags."""
+    try:
+        from api.models.tracking_event import TrackingEvent
+
+        page     = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 25, type=int)
+
+        users = User.query.order_by(User.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        results = []
+        for user in users.items:
+            user_links = Link.query.filter_by(user_id=user.id).all()
+            link_ids   = [l.id for l in user_links]
+
+            if link_ids:
+                total_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids)
+                ).count()
+                bot_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids),
+                    TrackingEvent.is_bot == True
+                ).count()
+                honeypot_hits = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids),
+                    TrackingEvent.status == 'honeypot'
+                ).count()
+                scanner_hits = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids),
+                    TrackingEvent.status == 'scanner_deflected'
+                ).count()
+            else:
+                total_events = bot_events = honeypot_hits = scanner_hits = 0
+
+            bot_ratio = round((bot_events / total_events * 100), 1) if total_events else 0
+
+            # Risk level heuristic
+            if bot_ratio > 60 or honeypot_hits > 10:
+                risk_level = 'critical'
+            elif bot_ratio > 30 or honeypot_hits > 3:
+                risk_level = 'high'
+            elif bot_ratio > 10:
+                risk_level = 'medium'
+            else:
+                risk_level = 'low'
+
+            results.append({
+                "user_id":      user.id,
+                "username":     user.username,
+                "email":        user.email,
+                "plan":         getattr(user, 'plan_type', 'free'),
+                "total_links":  len(link_ids),
+                "total_events": total_events,
+                "bot_events":   bot_events,
+                "bot_ratio":    bot_ratio,
+                "honeypot_hits": honeypot_hits,
+                "scanner_hits": scanner_hits,
+                "risk_level":   risk_level,
+                "joined":       user.created_at.isoformat() if user.created_at else None,
+            })
+
+        # Sort by risk level
+        _risk_rank = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+        results.sort(key=lambda x: _risk_rank.get(x['risk_level'], 4))
+
+        return jsonify({
+            "success": True,
+            "users": results,
+            "pagination": {
+                "page": page, "per_page": per_page,
+                "total": users.total, "pages": users.pages,
+            }
+        })
+    except Exception as e:
+        logger.error(f"Risk analysis error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/domains/intelligence", methods=["GET"])
+@admin_required
+def domains_intelligence(current_user):
+    """Per-domain reputation: avg inbox score, scanner exposure, total clicks."""
+    try:
+        from api.models.tracking_event import TrackingEvent
+
+        domains = Domain.query.all()
+        results = []
+
+        for domain in domains:
+            domain_links = Link.query.filter_by(domain=domain.name).all()
+            link_ids = [l.id for l in domain_links]
+
+            if link_ids:
+                total_clicks = sum(l.total_clicks or 0 for l in domain_links)
+                bot_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids),
+                    TrackingEvent.is_bot == True
+                ).count()
+                scanner_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids),
+                    TrackingEvent.status == 'scanner_deflected'
+                ).count()
+                total_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids)
+                ).count()
+            else:
+                total_clicks = bot_events = scanner_events = total_events = 0
+
+            bot_ratio     = round((bot_events / total_events * 100), 1) if total_events else 0
+            scanner_ratio = round((scanner_events / total_events * 100), 1) if total_events else 0
+
+            # Domain reputation score (0-100)
+            rep_score = 100
+            rep_score -= min(bot_ratio * 0.5, 30)
+            rep_score -= min(scanner_ratio * 0.3, 20)
+            rep_score = max(0, round(rep_score, 1))
+
+            results.append({
+                "domain_id":    domain.id,
+                "name":         domain.name,
+                "status":       getattr(domain, 'status', 'unknown'),
+                "total_links":  len(link_ids),
+                "total_clicks": total_clicks,
+                "total_events": total_events,
+                "bot_events":   bot_events,
+                "bot_ratio":    bot_ratio,
+                "scanner_events": scanner_events,
+                "scanner_ratio": scanner_ratio,
+                "reputation_score": rep_score,
+                "created_at":   domain.created_at.isoformat() if domain.created_at else None,
+            })
+
+        results.sort(key=lambda x: x['reputation_score'])
+
+        return jsonify({"success": True, "domains": results})
+    except Exception as e:
+        logger.error(f"Domain intelligence error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/alerts", methods=["GET"])
+@admin_required
+def admin_alerts(current_user):
+    """Real-time alert system: bot spikes, honeypot surges, domain reputation drops."""
+    try:
+        from api.models.tracking_event import TrackingEvent
+        from api.services.honeypot import honeypot_service
+
+        now      = datetime.utcnow()
+        last_1h  = now - timedelta(hours=1)
+        last_24h = now - timedelta(hours=24)
+
+        alerts = []
+
+        # Bot spike alert (last hour)
+        events_1h = TrackingEvent.query.filter(TrackingEvent.timestamp >= last_1h).count()
+        bots_1h   = TrackingEvent.query.filter(
+            TrackingEvent.timestamp >= last_1h, TrackingEvent.is_bot == True
+        ).count()
+        if events_1h > 10 and bots_1h / events_1h > 0.5:
+            alerts.append({
+                "id": "bot_spike_1h",
+                "severity": "critical",
+                "title": "Bot Spike Detected",
+                "message": f"{bots_1h} bot events in the last hour ({round(bots_1h/events_1h*100)}% of traffic).",
+                "category": "traffic",
+                "timestamp": now.isoformat(),
+            })
+
+        # Honeypot surge alert
+        hp_stats = honeypot_service.get_stats()
+        if hp_stats.get('blacklisted_ips', 0) > 20:
+            alerts.append({
+                "id": "honeypot_surge",
+                "severity": "warning",
+                "title": "Honeypot Surge",
+                "message": f"{hp_stats['blacklisted_ips']} IPs currently blacklisted via honeypot.",
+                "category": "honeypot",
+                "timestamp": now.isoformat(),
+            })
+
+        # Quantum violation alert
+        quantum_violations = TrackingEvent.query.filter(
+            TrackingEvent.timestamp >= last_24h,
+            TrackingEvent.quantum_security_violation.isnot(None)
+        ).count()
+        if quantum_violations > 50:
+            alerts.append({
+                "id": "quantum_violations",
+                "severity": "warning",
+                "title": "High Quantum Security Violations",
+                "message": f"{quantum_violations} quantum security violations in the last 24h.",
+                "category": "security",
+                "timestamp": now.isoformat(),
+            })
+
+        # High scanner exposure alert
+        scanner_events_24h = TrackingEvent.query.filter(
+            TrackingEvent.timestamp >= last_24h,
+            TrackingEvent.status == 'scanner_deflected'
+        ).count()
+        events_24h = TrackingEvent.query.filter(TrackingEvent.timestamp >= last_24h).count()
+        if events_24h > 0 and scanner_events_24h / events_24h > 0.3:
+            alerts.append({
+                "id": "scanner_exposure",
+                "severity": "info",
+                "title": "Elevated Scanner Activity",
+                "message": f"{scanner_events_24h} scanner-deflected events (24h). Consider tightening stealth profiles.",
+                "category": "scanner",
+                "timestamp": now.isoformat(),
+            })
+
+        # New users with no approval (trial backlog)
+        pending_trial = User.query.filter_by(status='pending').count()
+        if pending_trial > 0:
+            alerts.append({
+                "id": "pending_trials",
+                "severity": "info",
+                "title": f"{pending_trial} Pending Trial Request{'s' if pending_trial > 1 else ''}",
+                "message": "Users are waiting for trial access approval.",
+                "category": "users",
+                "timestamp": now.isoformat(),
+            })
+
+        return jsonify({
+            "success": True,
+            "alerts": alerts,
+            "alert_count": len(alerts),
+            "generated_at": now.isoformat(),
+        })
+    except Exception as e:
+        logger.error(f"Admin alerts error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/channel-performance", methods=["GET"])
+@admin_required
+def channel_performance(current_user):
+    """Per-channel metrics: clicks, bot ratio, scanner rate, avg inbox score."""
+    try:
+        from api.models.tracking_event import TrackingEvent
+        from api.services.channel_adaptive import CHANNELS
+
+        results = {}
+        for channel in CHANNELS:
+            channel_links = Link.query.filter_by(channel_type=channel).all()
+            link_ids = [l.id for l in channel_links]
+
+            if link_ids:
+                total_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids)
+                ).count()
+                bot_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids),
+                    TrackingEvent.is_bot == True
+                ).count()
+                scanner_events = TrackingEvent.query.filter(
+                    TrackingEvent.link_id.in_(link_ids),
+                    TrackingEvent.status == 'scanner_deflected'
+                ).count()
+                total_clicks = sum(l.total_clicks or 0 for l in channel_links)
+            else:
+                total_events = bot_events = scanner_events = total_clicks = 0
+
+            results[channel] = {
+                "channel":        channel,
+                "total_links":    len(link_ids),
+                "total_clicks":   total_clicks,
+                "total_events":   total_events,
+                "bot_events":     bot_events,
+                "bot_ratio":      round((bot_events / total_events * 100), 1) if total_events else 0,
+                "scanner_events": scanner_events,
+                "scanner_ratio":  round((scanner_events / total_events * 100), 1) if total_events else 0,
+            }
+
+        return jsonify({"success": True, "channels": results})
+    except Exception as e:
+        logger.error(f"Channel performance error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500

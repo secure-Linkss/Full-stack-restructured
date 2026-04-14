@@ -1,137 +1,173 @@
-from flask import Blueprint, request, jsonify, session
+"""
+user.py — User profile and settings routes.
+Aliases /api/user/profile for frontend compatibility.
+"""
+import logging
+from flask import Blueprint, request, jsonify, session, g
 from api.database import db
 from api.models.user import User
-from functools import wraps
 from api.middleware.auth_decorators import login_required
-import re
 
+logger = logging.getLogger(__name__)
 user_bp = Blueprint("user", __name__)
 
 
+def _get_user():
+    return User.query.get(session.get("user_id"))
 
-def validate_email(email):
-    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
-    return re.match(pattern, email) is not None
 
-def sanitize_input(text):
-    if not text:
-        return ""
-    return text.strip()
+# ---------- Profile — both /user/profile and /profile are supported ----------
 
 @user_bp.route("/user/profile", methods=["GET"])
+@user_bp.route("/profile", methods=["GET"])
+@user_bp.route("/auth/profile", methods=["GET"])
 @login_required
 def get_profile():
-    """Get user profile"""
-    try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+    user = _get_user()
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    user_data = user.to_dict()
+    # Flatten user fields to root level for API compatibility (data.username, data.email, etc.)
+    return jsonify({"success": True, "user": user_data, **user_data}), 200
 
-        if not user:
-            return jsonify({"error": "User not found"}), 404
 
-        return jsonify(user.to_dict()), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@user_bp.route("/user/profile", methods=["PATCH"])
+@user_bp.route("/user/profile", methods=["PATCH", "PUT"])
+@user_bp.route("/profile", methods=["PATCH", "PUT"])
 @login_required
 def update_profile():
-    """Update user profile"""
-    try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+    user = _get_user()
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
 
-        if not user:
-            return jsonify({"error": "User not found"}), 404
+    data = request.get_json() or {}
+    allowed = ["email", "phone", "country", "timezone", "language", "theme", "bio",
+               "avatar", "profile_picture", "notification_settings", "preferences"]
 
-        data = request.get_json()
+    for field in allowed:
+        if field in data:
+            # Email uniqueness check
+            if field == "email":
+                existing = User.query.filter_by(email=data["email"]).first()
+                if existing and existing.id != user.id:
+                    return jsonify({"success": False, "error": "Email already in use"}), 400
+            setattr(user, field, data[field])
 
-        if "email" in data:
-            existing = User.query.filter_by(email=data["email"]).first()
-            if existing and existing.id != user.id:
-                return jsonify({"error": "Email already in use"}), 400
-            user.email = data["email"]
+    db.session.commit()
+    return jsonify({"success": True, "user": user.to_dict()}), 200
 
-        if "settings" in data:
-            user.settings = data["settings"]
-
-        db.session.commit()
-
-        return jsonify(user.to_dict()), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
 
 @user_bp.route("/user/password", methods=["PATCH"])
 @login_required
 def change_password():
-    """Change user password"""
+    user = _get_user()
+    data = request.get_json() or {}
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+
+    if not current_password or not new_password:
+        return jsonify({"success": False, "error": "current_password and new_password required"}), 400
+
+    if not user.check_password(current_password):
+        return jsonify({"success": False, "error": "Current password is incorrect"}), 400
+
+    from api.utils.validation import validate_password
+    is_strong, msg = validate_password(new_password)
+    if not is_strong:
+        return jsonify({"success": False, "error": msg}), 400
+
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Password updated successfully"}), 200
+
+
+@user_bp.route("/user/telegram", methods=["GET"])
+@login_required
+def get_telegram_settings():
+    user = _get_user()
+    return jsonify({
+        "success": True,
+        "telegram_enabled": user.telegram_enabled,
+        "telegram_chat_id": user.telegram_chat_id or "",
+        "has_bot_token": bool(user.telegram_bot_token)
+    }), 200
+
+
+@user_bp.route("/user/telegram", methods=["PATCH"])
+@login_required
+def update_telegram_settings():
+    user = _get_user()
+    data = request.get_json() or {}
+
+    if "telegram_enabled" in data:
+        user.telegram_enabled = data["telegram_enabled"]
+    if "telegram_chat_id" in data:
+        user.telegram_chat_id = data["telegram_chat_id"]
+    if "telegram_bot_token" in data and data["telegram_bot_token"]:
+        user.telegram_bot_token = data["telegram_bot_token"]
+
+    db.session.commit()
+    return jsonify({"success": True, "message": "Telegram settings updated"}), 200
+
+
+@user_bp.route("/api/telegram/test", methods=["POST"])
+@login_required
+def test_telegram():
+    """Test Telegram bot connection and save credentials if successful"""
+    import requests as http_requests
+    user = _get_user()
+    data = request.get_json() or {}
+    bot_token = data.get("bot_token")
+    chat_id = data.get("chat_id")
+
+    if not bot_token or not chat_id:
+        return jsonify({"success": False, "error": "bot_token and chat_id required"}), 400
+
     try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
-
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-
-        data = request.get_json()
-        current_password = data.get("current_password")
-        new_password = data.get("new_password")
-
-        if not current_password or not new_password:
-            return jsonify({"error": "Current and new password required"}), 400
-
-        if not user.check_password(current_password):
-            return jsonify({"error": "Current password is incorrect"}), 400
-
-        if len(new_password) < 6:
-            return jsonify({"error": "Password must be at least 6 characters"}), 400
-
-        user.set_password(new_password)
-        db.session.commit()
-
-        return jsonify({"message": "Password updated successfully"}), 200
-
+        msg = (
+            "🔗 <b>Brain Link Tracker</b>\n\n"
+            "✅ Telegram integration is working!\n"
+            "You will now receive tracking alerts here."
+        )
+        resp = http_requests.post(
+            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML"},
+            timeout=10
+        )
+        if resp.status_code == 200:
+            user.telegram_bot_token = bot_token
+            user.telegram_chat_id = chat_id
+            user.telegram_enabled = True
+            db.session.commit()
+            return jsonify({"success": True, "message": "Test message sent successfully!"}), 200
+        else:
+            err = resp.json().get("description", "Unknown error")
+            return jsonify({"success": False, "error": f"Telegram API error: {err}"}), 400
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
-# Admin-related user management routes (from the 00392b0 version)
-# These routes should ideally be in an admin-specific blueprint and protected by admin role checks.
-# For now, they are included here, but note that they lack authentication/authorization.
 
-@user_bp.route("/users", methods=["GET"])
-def get_users():
-    users = User.query.all()
-    return jsonify([user.to_dict() for user in users])
+@user_bp.route("/api/telegram/settings", methods=["GET"])
+@login_required
+def telegram_settings_get():
+    user = _get_user()
+    return jsonify({
+        "success": True,
+        "telegram_enabled": user.telegram_enabled,
+        "telegram_chat_id": user.telegram_chat_id or "",
+        "has_bot_token": bool(user.telegram_bot_token)
+    }), 200
 
-@user_bp.route("/users", methods=["POST"])
-def create_user():
-    data = request.json
-    user = User(username=data["username"], email=data["email"])
-    db.session.add(user)
+
+@user_bp.route("/api/telegram/settings", methods=["POST"])
+@login_required
+def telegram_settings_post():
+    user = _get_user()
+    data = request.get_json() or {}
+    if "telegram_enabled" in data:
+        user.telegram_enabled = data["telegram_enabled"]
+    if "telegram_chat_id" in data:
+        user.telegram_chat_id = data["telegram_chat_id"]
+    if data.get("telegram_bot_token"):
+        user.telegram_bot_token = data["telegram_bot_token"]
     db.session.commit()
-    return jsonify(user.to_dict()), 201
-
-@user_bp.route("/users/<int:user_id>", methods=["GET"])
-def get_user(user_id):
-    user = User.query.get_or_404(user_id)
-    return jsonify(user.to_dict())
-
-@user_bp.route("/users/<int:user_id>", methods=["PUT"])
-def update_user(user_id):
-    user = User.query.get_or_404(user_id)
-    data = request.json
-    user.username = data.get("username", user.username)
-    user.email = data.get("email", user.email)
-    db.session.commit()
-    return jsonify(user.to_dict())
-
-@user_bp.route("/users/<int:user_id>", methods=["DELETE"])
-def delete_user(user_id):
-    user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
-    return "", 204
-
+    return jsonify({"success": True, "message": "Telegram settings updated"}), 200

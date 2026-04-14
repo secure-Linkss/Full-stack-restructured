@@ -3,9 +3,14 @@ from datetime import datetime
 
 class TrackingEvent(db.Model):
     __tablename__ = 'tracking_events'
-    
+    __table_args__ = (
+        db.Index('ix_tracking_events_link_id', 'link_id'),
+        db.Index('ix_tracking_events_timestamp', 'timestamp'),
+        db.Index('ix_tracking_events_quantum_click_id', 'quantum_click_id'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
-    link_id = db.Column(db.Integer, db.ForeignKey("links.id"), nullable=False)
+    link_id = db.Column(db.Integer, db.ForeignKey("links.id", ondelete='CASCADE'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     ip_address = db.Column(db.String(45))
     user_agent = db.Column(db.Text)
@@ -50,6 +55,10 @@ class TrackingEvent(db.Model):
     quantum_error = db.Column(db.Text, nullable=True)  # Any quantum processing errors
     quantum_security_score = db.Column(db.Integer, nullable=True)  # Quantum security score (0-100)
     is_verified_human = db.Column(db.Boolean, default=False)  # Verified as human by quantum system
+
+    # Browser fingerprint fields
+    fingerprint_hash  = db.Column(db.String(64),  nullable=True)  # SHA-256 of high-entropy signals
+    fingerprint_score = db.Column(db.Integer,     nullable=True)  # 0-100 humanness score
 
     def __repr__(self):
         return f"<TrackingEvent {self.id} for link {self.link_id}>"

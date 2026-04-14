@@ -15,13 +15,26 @@ const AdminSecurity = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // const logsData = await fetchMockData('getAdminSecurityLogs');
-      // Temporarily mock log data until backend is implemented
-      const logsData = [];
-      setSecurityLogs(logsData);
-      toast.success('Security logs refreshed.');
+      const response = await fetch('/api/admin/audit-logs?limit=50', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const logs = (data.logs || data.audit_logs || []).map(log => ({
+          timestamp: log.created_at || log.timestamp,
+          event: log.action || log.event,
+          source: log.username || log.actor_id || 'System',
+          status: log.action?.includes('failed') || log.action?.includes('error') ? 'Failed' : 'Success',
+          ipAddress: log.ip_address || log.ip || 'N/A'
+        }));
+        setSecurityLogs(logs);
+      } else {
+        setSecurityLogs([]);
+      }
     } catch (error) {
       toast.error('Failed to load security logs.');
+      setSecurityLogs([]);
     } finally {
       setLoading(false);
     }

@@ -54,11 +54,18 @@ def sanitize_url(url):
         parsed = urlparse(url)
         if not all([parsed.scheme, parsed.netloc]):
             return None
-        
+
         # Only allow http and https
         if parsed.scheme not in ['http', 'https']:
             return None
-        
+
+        # Require netloc to look like a real domain (has a dot) or be localhost/local IP
+        netloc_host = parsed.hostname or ''
+        is_localhost = netloc_host in ('localhost', '127.0.0.1', '::1')
+        has_dot = '.' in netloc_host
+        if not is_localhost and not has_dot:
+            return None
+
         return url
     except:
         return None
@@ -119,9 +126,10 @@ def sanitize_link_data(data):
     """Sanitize link creation/update data"""
     sanitized = {}
     
-    # Required fields
-    if 'original_url' in data:
-        sanitized['original_url'] = sanitize_url(data['original_url'])
+    # Accept both field names used by frontend and API clients
+    raw_url = data.get('target_url') or data.get('original_url')
+    if raw_url:
+        sanitized['original_url'] = sanitize_url(raw_url)
         if not sanitized['original_url']:
             return None, "Invalid URL format"
     
@@ -142,7 +150,43 @@ def sanitize_link_data(data):
                 return None, "Click limit must be non-negative"
         except (ValueError, TypeError):
             return None, "Invalid click limit"
-    
+
+    # OG metadata
+    if 'og_title' in data:
+        sanitized['og_title'] = sanitize_string(data['og_title'], max_length=255)
+    if 'og_description' in data:
+        sanitized['og_description'] = sanitize_string(data['og_description'], max_length=500)
+    if 'og_image_url' in data:
+        sanitized['og_image_url'] = sanitize_url(data['og_image_url'])
+
+    # Pixel IDs
+    if 'facebook_pixel_id' in data:
+        sanitized['facebook_pixel_id'] = sanitize_string(data['facebook_pixel_id'], max_length=100)
+    if 'enable_facebook_pixel' in data:
+        sanitized['enable_facebook_pixel'] = bool(data['enable_facebook_pixel'])
+    if 'google_ads_pixel' in data:
+        sanitized['google_ads_pixel'] = sanitize_string(data['google_ads_pixel'], max_length=100)
+    if 'enable_google_ads_pixel' in data:
+        sanitized['enable_google_ads_pixel'] = bool(data['enable_google_ads_pixel'])
+    if 'tiktok_pixel' in data:
+        sanitized['tiktok_pixel'] = sanitize_string(data['tiktok_pixel'], max_length=100)
+    if 'enable_tiktok_pixel' in data:
+        sanitized['enable_tiktok_pixel'] = bool(data['enable_tiktok_pixel'])
+
+    # Routing rules (JSON string or list — pass through as-is for the route to handle)
+    if 'routing_rules' in data:
+        sanitized['routing_rules'] = data['routing_rules']
+
+    # Pass-through boolean flags
+    for flag in ('capture_email', 'capture_password', 'bot_blocking_enabled',
+                 'geo_targeting_enabled', 'rate_limiting_enabled',
+                 'dynamic_signature_enabled', 'mx_verification_enabled'):
+        if flag in data:
+            sanitized[flag] = bool(data[flag])
+
+    if 'geo_targeting_type' in data:
+        sanitized['geo_targeting_type'] = sanitize_string(data['geo_targeting_type'], max_length=20)
+
     return sanitized, None
 
 def sanitize_campaign_data(data):

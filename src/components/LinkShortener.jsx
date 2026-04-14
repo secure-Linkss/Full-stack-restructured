@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import CreateLinkForm from './forms/CreateLink'; // Reusing the form component
+import GeneratedLinkCardModal from './GeneratedLinkCardModal';
 
 
 // --- Main LinkShortener Component ---
@@ -24,6 +25,7 @@ const LinkShortener = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	  const [metrics, setMetrics] = useState({ totalLinks: 0, activeLinks: 0, totalClicks: 0 });
 	  const [selectedLink, setSelectedLink] = useState(null); // State for the link to display in the box
+	  const [recentlyCreatedLink, setRecentlyCreatedLink] = useState(null); // For Success Card
 
 	  const fetchData = async () => {
 	    setLoading(true);
@@ -290,11 +292,18 @@ const LinkShortener = () => {
           </DialogHeader>
 	          	          <CreateLinkForm 
 	            onClose={() => setIsCreateModalOpen(false)} 
-	            onLinkCreated={fetchData} 
+	            onLinkCreated={(link) => { fetchData(); setRecentlyCreatedLink(link); }}
 	            type="shortener" // Explicitly set type to shortener
 	          />
 	        </DialogContent>
-		      </Dialog>
+		  </Dialog>
+		  
+		  {recentlyCreatedLink && (
+        <GeneratedLinkCardModal 
+           link={recentlyCreatedLink} 
+           onClose={() => setRecentlyCreatedLink(null)} 
+        />
+      )}
     </div>
   );
 };

@@ -1,121 +1,102 @@
-from flask import Blueprint, request, jsonify
+"""
+payments.py — Unified payment plans & subscription routes
+"""
+import os
+import logging
+from flask import Blueprint, request, jsonify, session
 from api.database import db
 from api.models.user import User
-from functools import wraps
+from api.models.payment import Payment
+from api.middleware.auth_decorators import login_required
 from datetime import datetime, timedelta
-import os
 
+logger = logging.getLogger(__name__)
 payments_bp = Blueprint("payments", __name__)
 
-# FIXED: Added token_required decorator
-def get_current_user():
-    """Get current user from token"""
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ")[1]
-        user = User.verify_token(token)
-        if user:
-            return user
-    return None
-
-def token_required(f):
-    """Decorator to require authentication"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user = get_current_user()
-        if not user:
-            return jsonify({"error": "Authentication required"}), 401
-        return f(user, *args, **kwargs)
-    return decorated_function
-
-# Define plan details
 PLANS = {
-    'weekly': {'price': 35, 'duration_days': 7, 'stripe_price_id': os.environ.get('STRIPE_WEEKLY_PRICE_ID')},
-    'biweekly': {'price': 68, 'duration_days': 14, 'stripe_price_id': os.environ.get('STRIPE_BIWEEKLY_PRICE_ID')},
-    'monthly': {'price': 150, 'duration_days': 30, 'stripe_price_id': os.environ.get('STRIPE_MONTHLY_PRICE_ID')},
-    'quarterly': {'price': 420, 'duration_days': 90, 'stripe_price_id': os.environ.get('STRIPE_QUARTERLY_PRICE_ID')},
+    'weekly':    {'price': 35,  'duration_days': 7,   'name': 'Weekly'},
+    'biweekly':  {'price': 68,  'duration_days': 14,  'name': 'Bi-Weekly'},
+    'monthly':   {'price': 150, 'duration_days': 30,  'name': 'Monthly'},
+    'quarterly': {'price': 420, 'duration_days': 90,  'name': 'Quarterly'},
+    'pro':       {'price': 150, 'duration_days': 30,  'name': 'Pro'},
+    'enterprise':{'price': 500, 'duration_days': 365, 'name': 'Enterprise'},
 }
 
-@payments_bp.route("/payments/plans", methods=["GET"])
+
+@payments_bp.route("/api/payments/plans", methods=["GET"])
 def get_plans():
-    """Returns the list of available subscription plans."""
-    # Return only the safe plan details, excluding sensitive keys
-    safe_plans = {k: {'price': v['price'], 'duration_days': v['duration_days']} for k, v in PLANS.items()}
-    return jsonify({"plans": safe_plans}), 200
-
-@payments_bp.route("/payments/subscription", methods=["GET"])
-@token_required
-def get_subscription_status(current_user):
-    """Returns the current user's subscription status."""
+    """Public: list available subscription plans"""
     return jsonify({
-        "plan_type": current_user.plan_type,
-        "status": current_user.status,
-        "subscription_expiry": current_user.subscription_expiry.isoformat() if current_user.subscription_expiry else None,
-        "is_active": current_user.is_active
+        "success": True,
+        "plans": [
+            {"id": k, "name": v["name"], "price": v["price"], "duration_days": v["duration_days"]}
+            for k, v in PLANS.items()
+        ]
     }), 200
 
-@payments_bp.route("/payments/subscribe/crypto", methods=["POST"])
-@token_required
-def subscribe_crypto(current_user):
-    """Initiates a crypto payment process (mock/placeholder)."""
-    data = request.get_json()
-    plan_type = data.get('plan_type')
-    
-    if plan_type not in PLANS:
-        return jsonify({"error": "Invalid plan type"}), 400
 
-    # In a real application, this would call a crypto payment gateway API
-    # and return a payment address and amount.
-    
-    # For now, we'll simulate a pending verification ID
-    verification_id = f"CRYPTO_PENDING_{current_user.id}_{datetime.utcnow().timestamp()}"
-    
-    # Update user status to pending verification
-    current_user.status = 'crypto_pending'
-    db.session.commit()
-
+@payments_bp.route("/api/payments/subscription", methods=["GET"])
+@login_required
+def get_subscription_status():
+    """Get current user subscription status"""
+    user = User.query.get(session.get("user_id"))
     return jsonify({
-        "msg": "Crypto payment initiated. Waiting for verification.",
-        "verification_id": verification_id
+        "success": True,
+        "plan_type": user.plan_type,
+        "status": user.subscription_status,
+        "subscription_expiry": user.subscription_expiry.isoformat() if user.subscription_expiry else None,
+        "is_active": user.is_active,
+        "days_remaining": (
+            max(0, (user.subscription_expiry - datetime.utcnow()).days)
+            if user.subscription_expiry else None
+        )
     }), 200
 
-@payments_bp.route("/payments/crypto/verify", methods=["POST"])
-@token_required
-def verify_crypto_payment(current_user):
-    """Verifies a crypto payment (mock/placeholder)."""
-    # In a real application, this would handle the uploaded screenshot/proof
-    # and wait for manual or automated confirmation.
-    
-    # For now, we'll simulate success and activate the user
-    
-    if current_user.status != 'crypto_pending':
-        return jsonify({"error": "No pending crypto payment to verify"}), 400
 
-    # Simulate successful verification
-    plan_type = 'monthly'  # Assuming monthly for this mock
-    duration_days = PLANS[plan_type]['duration_days']
-    
-    current_user.plan_type = plan_type
-    current_user.status = 'active'
-    current_user.is_active = True
-    current_user.subscription_expiry = datetime.utcnow() + timedelta(days=duration_days)
-    
-    db.session.commit()
+@payments_bp.route("/api/payments/history", methods=["GET"])
+@login_required
+def get_payment_history():
+    """Get all payments for current user"""
+    user_id = session.get("user_id")
+    payments = Payment.query.filter_by(user_id=user_id).order_by(Payment.created_at.desc()).all()
+    return jsonify({"success": True, "payments": [p.to_dict() for p in payments]}), 200
 
-    return jsonify({"msg": "Crypto payment verified and subscription activated!"}), 200
 
-@payments_bp.route("/payments/subscribe/stripe", methods=["POST"])
-@token_required
-def subscribe_stripe(current_user):
-    """Placeholder for Stripe subscription initiation."""
-    data = request.get_json()
-    plan_type = data.get('plan_type')
-    
+@payments_bp.route("/api/payments/subscribe/stripe", methods=["POST"])
+@login_required
+def subscribe_stripe():
+    """Initiate Stripe checkout — delegates to stripe_bp"""
+    data = request.get_json() or {}
+    plan_type = data.get("plan_type")
     if plan_type not in PLANS:
-        return jsonify({"error": "Invalid plan type"}), 400
+        return jsonify({"success": False, "error": "Invalid plan type"}), 400
 
-    # In a real application, this would call the Stripe API to create a checkout session
-    # and return the session URL for the frontend to redirect to.
-    
-    # For now, we'll return a placeholder success
-    return jsonify({"msg": "Stripe checkout session created (placeholder)"}), 200
+    # Forward to stripe blueprint logic
+    from api.routes.stripe_payments import create_checkout_session
+    return create_checkout_session()
+
+
+@payments_bp.route("/api/payments/subscribe/crypto", methods=["POST"])
+@login_required
+def subscribe_crypto():
+    """Get crypto wallet info for selected plan"""
+    from api.models.crypto_wallet_address import CryptoWalletAddress
+    data = request.get_json() or {}
+    plan_type = data.get("plan_type")
+    currency = data.get("currency", "ETH").upper()
+
+    if plan_type not in PLANS:
+        return jsonify({"success": False, "error": "Invalid plan type"}), 400
+
+    wallet = CryptoWalletAddress.query.filter_by(currency=currency, is_active=True).first()
+    plan = PLANS[plan_type]
+
+    return jsonify({
+        "success": True,
+        "plan": {"id": plan_type, "price": plan["price"], "duration_days": plan["duration_days"]},
+        "wallet": wallet.to_dict() if wallet else None,
+        "instructions": (
+            f"Send exactly ${plan['price']} USD worth of {currency} to the wallet address above, "
+            "then submit your transaction hash via /api/crypto-payments/submit-proof"
+        )
+    }), 200

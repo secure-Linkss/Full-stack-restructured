@@ -1,31 +1,23 @@
 """
-FIXED ANALYTICS ROUTES
-======================
-This file fixes the 500 error in /api/analytics/dashboard
-Ensures proper admin vs user data separation
+Analytics Routes — Production implementation
+Fixes: canonical auth, broken geo query, proper logging
 """
 
+import json
+import logging
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, session
+from sqlalchemy import func, desc, extract
+from api.database import db
 from api.models.link import Link
 from api.models.tracking_event import TrackingEvent
 from api.models.campaign import Campaign
-from api.database import db
 from api.models.user import User
 from api.utils.country_flags import get_country_flag, COUNTRY_FLAGS
-from sqlalchemy import func, desc, extract
-from functools import wraps
-from datetime import datetime, timedelta
-import json
+from api.middleware.auth_decorators import login_required
 
+logger = logging.getLogger(__name__)
 analytics_bp = Blueprint("analytics", __name__)
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
-            return jsonify({"error": "Authentication required"}), 401
-        return f(*args, **kwargs)
-    return decorated_function
 
 @analytics_bp.route("/analytics/dashboard", methods=["GET"])
 @login_required
@@ -664,54 +656,48 @@ def get_geography_analytics():
 
 
 @analytics_bp.route('/analytics/geographic-distribution', methods=['GET'])
+@login_required
 def get_geographic_distribution():
-    """Get visitor distribution by country"""
+    """Get visitor distribution by country — uses actual 'country' column"""
     try:
         user_id = session.get('user_id')
-        if not user_id:
-            return jsonify({'error': 'Not authenticated'}), 401
-        
-        # Query tracking events grouped by country
-        from sqlalchemy import func
-        from api.models.tracking_event import TrackingEvent
-        
+
         results = db.session.query(
-            TrackingEvent.country_name,
-            TrackingEvent.country_code,
+            TrackingEvent.country,
             func.count(TrackingEvent.id).label('visitors'),
             func.count(func.distinct(TrackingEvent.city)).label('city_count')
         ).join(
             Link, TrackingEvent.link_id == Link.id
         ).filter(
             Link.user_id == user_id,
-            TrackingEvent.country_name.isnot(None)
+            TrackingEvent.country.isnot(None)
         ).group_by(
-            TrackingEvent.country_name,
-            TrackingEvent.country_code
+            TrackingEvent.country
         ).all()
-        
+
         countries = []
-        for result in results:
+        for r in results:
             countries.append({
-                'country_name': result.country_name or 'Unknown',
-                'country_code': result.country_code or 'XX',
-                'visitors': result.visitors,
-                'city_count': result.city_count or 0
+                'country_name': r.country or 'Unknown',
+                'country_code': r.country[:2].upper() if r.country else 'XX',
+                'visitors': r.visitors,
+                'city_count': r.city_count or 0,
+                'flag': COUNTRY_FLAGS.get(r.country, '🌍')
             })
-        
+
         return jsonify({
+            'success': True,
             'countries': countries,
-            'total': len(countries),
-            'success': True
+            'total': len(countries)
         })
-    
+
     except Exception as e:
-        print(f"Error in geographic-distribution: {str(e)}")
+        logger.error(f"geographic-distribution error: {e}")
         return jsonify({
+            'success': False,
             'error': str(e),
             'countries': [],
-            'total': 0,
-            'success': False
+            'total': 0
         }), 500
 
 @analytics_bp.route("/analytics/visitor-flow", methods=["GET"])

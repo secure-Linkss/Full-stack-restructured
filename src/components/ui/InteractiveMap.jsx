@@ -3,24 +3,29 @@ import { Card } from './card';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { MapPin } from 'lucide-react';
 
-// URL to a world map topology file (assuming it exists in the public folder)
-const geoUrl = "/world-50m.json";
+// Use a stable CDN for world atlas topology to ensure it always renders
+const geoUrl = "https://unpkg.com/world-atlas@2.0.2/countries-110m.json";
 
 const InteractiveMap = ({ data = [] }) => {
   const [tooltipContent, setTooltipContent] = useState('');
 
   // Function to determine the color of a country based on traffic
   const getCountryColor = (geo) => {
-    if (!data || data.length === 0) return "#374151";
+    if (!data || data.length === 0) return "rgba(255,255,255,0.05)";
     
-    const country = data.find(d => d.name === geo.properties.name);
+    // Attempt to match names like "United States of America" or "United States"
+    const country = data.find(d => 
+      d.name === geo.properties.name || 
+      geo.properties.name.includes(d.name) || 
+      (d.name || '').includes(geo.properties.name)
+    );
+    
     if (country) {
-      // Simple color scale based on clicks
-      if (country.clicks > 4000) return "#4ade80"; // Green for high traffic
-      if (country.clicks > 1000) return "#facc15"; // Yellow for medium traffic
-      return "#f97316"; // Orange for low traffic
+      if (country.clicks > 4000) return "#10b981"; // Green for high traffic
+      if (country.clicks > 1000) return "#f59e0b"; // Yellow for medium traffic
+      return "#3b82f6"; // Blue for low traffic
     }
-    return "#374151"; // Default dark gray for no traffic
+    return "rgba(255,255,255,0.05)"; // Empty state
   };
 
   return (
@@ -51,45 +56,40 @@ const InteractiveMap = ({ data = [] }) => {
                     setTooltipContent('');
                   }}
                   style={{
-                    default: {
-                      fill: getCountryColor(geo),
-                      stroke: "#2d3748",
-                      outline: "none"
-                    },
-                    hover: {
-                      fill: "#60a5fa",
-                      stroke: "#2d3748",
-                      outline: "none"
-                    },
-                    pressed: {
-                      fill: "#3b82f6",
-                      stroke: "#2d3748",
-                      outline: "none"
-                    }
+                    default: { fill: getCountryColor(geo), stroke: "rgba(255,255,255,0.1)", outline: "none" },
+                    hover: { fill: "#141d2e", stroke: "#3b82f6", outline: "none" },
+                    pressed: { fill: "#1e2d47", stroke: "#3b82f6", outline: "none" }
                   }}
                 />
               ))
             }
           </Geographies>
-          {data && data.map(({ name, coordinates, clicks }) => (
-            <Marker key={name} coordinates={coordinates}>
-              <MapPin className="h-4 w-4 text-red-500" />
-              <text
-                textAnchor="middle"
-                y={-10}
-                style={{ fontFamily: "system-ui", fill: "#fff", fontSize: "10px" }}
-              >
-                {name}
-              </text>
-            </Marker>
-          ))}
+          {data && data.map(({ name, coordinates, clicks }) => {
+            if (!coordinates) return null;
+            return (
+              <Marker key={name} coordinates={coordinates}>
+                <MapPin className="h-4 w-4 text-[#ef4444]" />
+                <text textAnchor="middle" y={-10} style={{ fontFamily: "Inter, sans-serif", fill: "#fff", fontSize: "10px" }}>
+                  {name}
+                </text>
+              </Marker>
+            )
+          })}
         </ComposableMap>
-        <div className="absolute top-4 left-4 bg-black/50 text-white p-3 rounded-lg text-sm">
-          <h4 className="font-bold mb-1">Traffic Legend</h4>
-          <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: "#4ade80"}}></span> High Traffic</div>
-          <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: "#facc15"}}></span> Medium Traffic</div>
-          <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: "#f97316"}}></span> Low Traffic</div>
-          <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-2" style={{backgroundColor: "#374151"}}></span> No Traffic</div>
+        
+        {/* Tooltip implementation */}
+        {tooltipContent && (
+          <div className="absolute bottom-4 right-4 bg-[#141d2e] border border-[#1e2d47]/60 text-white px-3 py-2 rounded-lg text-sm shadow-xl font-mono">
+            {tooltipContent}
+          </div>
+        )}
+
+        <div className="absolute top-4 left-4 bg-[#141d2e]/80 backdrop-blur-md border border-border text-white p-3 rounded-lg text-[11px] font-medium">
+          <h4 className="font-bold mb-2 text-xs uppercase tracking-widest text-[#3b82f6]">Traffic Density</h4>
+          <div className="flex items-center mb-1"><span className="w-2.5 h-2.5 rounded bg-[#10b981] mr-2"></span> High Traffic (&gt;4k)</div>
+          <div className="flex items-center mb-1"><span className="w-2.5 h-2.5 rounded bg-[#f59e0b] mr-2"></span> Medium Traffic</div>
+          <div className="flex items-center mb-1"><span className="w-2.5 h-2.5 rounded bg-[#3b82f6] mr-2"></span> Low Traffic</div>
+          <div className="flex items-center"><span className="w-2.5 h-2.5 rounded bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] mr-2"></span> No Signals</div>
         </div>
       </div>
     </Card>

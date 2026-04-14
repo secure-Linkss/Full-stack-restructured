@@ -3,12 +3,13 @@ QUANTUM REDIRECT ROUTES
 Super advanced 4-stage redirect system with cryptographic verification
 """
 
-from flask import Blueprint, request, jsonify, redirect, g
+from flask import Blueprint, request, jsonify, redirect, g, session
 from api.services.quantum_redirect import quantum_redirect
 from api.models.link import Link
 from api.models.tracking_event import TrackingEvent
 from api.database import db
 from api.models.user import User
+from api.middleware.auth_decorators import login_required
 from functools import wraps
 import time
 from datetime import datetime
@@ -167,24 +168,57 @@ def stage3_routing_gateway():
     Target: <100ms execution time
     """
     start_time = time.time()
-    
+
     try:
         # Get transit token from query parameters
         transit_token = request.args.get('transit_token')
         if not transit_token:
             return jsonify({'error': 'Missing transit token'}), 400
-        
+
         # Get additional tracking parameters from request
         tracking_params = {
             'utm_source': request.args.get('utm_source', 'quantum_redirect'),
             'utm_medium': request.args.get('utm_medium', 'verified_link'),
             'utm_campaign': request.args.get('utm_campaign', 'quantum_system')
         }
-        
+
+        # Build visitor context for placeholder expansion
+        from api.utils.geoip import get_geo_info
+        from api.utils.user_agent_parser import parse_user_agent
+        client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr) or ''
+        client_ip = client_ip.split(',')[0].strip()
+        ua_str = request.headers.get('User-Agent', '')
+        geo = {}
+        ua_info = {}
+        try:
+            geo = get_geo_info(client_ip) or {}
+        except Exception:
+            pass
+        try:
+            ua_info = parse_user_agent(ua_str) or {}
+        except Exception:
+            pass
+
+        visitor_context = {
+            'ip':           client_ip,
+            'country':      geo.get('countryCode', geo.get('country', '')),
+            'country_name': geo.get('country', ''),
+            'city':         geo.get('city', ''),
+            'region':       geo.get('regionName', ''),
+            'timezone':     geo.get('timezone', ''),
+            'device':       ua_info.get('device_type', 'desktop'),
+            'browser':      ua_info.get('browser', ''),
+            'os':           ua_info.get('os', ''),
+            'user_agent':   ua_str,
+            'referrer':     request.headers.get('Referer', ''),
+            'domain':       request.host,
+        }
+
         # Process through routing gateway
         result = quantum_redirect.stage3_routing_gateway(
             transit_token=transit_token,
-            tracking_params=tracking_params
+            tracking_params=tracking_params,
+            visitor_context=visitor_context,
         )
         
         if not result['success']:
@@ -232,6 +266,7 @@ def stage3_routing_gateway():
         }), 500
 
 @quantum_bp.route('/api/quantum/metrics')
+@login_required
 def get_quantum_metrics():
     """Get quantum redirect system performance metrics"""
     try:
@@ -276,6 +311,7 @@ def get_quantum_metrics():
         }), 500
 
 @quantum_bp.route('/api/quantum/security-dashboard')
+@login_required
 def get_quantum_security_dashboard():
     """Get comprehensive quantum security dashboard data"""
     try:
@@ -331,17 +367,24 @@ def get_quantum_security_dashboard():
         }), 500
 
 @quantum_bp.route('/api/quantum/test-redirect')
+@login_required
 def test_quantum_redirect():
-    """Test endpoint for quantum redirect system"""
+    """Test endpoint for quantum redirect system — requires authentication"""
     try:
-        # Create a test link for demonstration
-        test_link = Link.query.filter_by(short_code='test123').first()
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
+        # Use the authenticated user's id — never hardcode
+        test_short_code = f'qtest_{user_id}'
+        test_link = Link.query.filter_by(short_code=test_short_code, user_id=user_id).first()
         if not test_link:
             test_link = Link(
-                user_id=1,  # Assuming user ID 1 exists
+                user_id=user_id,
                 target_url='https://example.com/test-destination',
-                short_code='test123',
-                status='active'
+                short_code=test_short_code,
+                status='active',
+                campaign_name='Quantum Test Link',
             )
             db.session.add(test_link)
             db.session.commit()

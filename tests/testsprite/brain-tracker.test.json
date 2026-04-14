@@ -1,0 +1,854 @@
+{
+  "testSuite": "Brain Link Tracker - Full Production Validation Suite",
+  "baseUrl": "http://localhost:3000",
+
+  "global": {
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+
+  "variables": {
+    "username": "testuser_{{timestamp}}",
+    "email": "test_{{timestamp}}@test.com",
+    "password": "Test123!",
+    "adminUsername": "admin_{{timestamp}}",
+    "adminEmail": "admin_{{timestamp}}@test.com"
+  },
+
+  "tests": [
+
+    {
+      "name": "1. Register User",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/auth/register",
+          "body": {
+            "username": "{{username}}",
+            "email": "{{email}}",
+            "password": "{{password}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 201 }
+      ]
+    },
+
+    {
+      "name": "2. Login User",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/auth/login",
+          "body": {
+            "username": "{{email}}",
+            "password": "{{password}}"
+          },
+          "save": {
+            "token": "body.token"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.token": "exists" }
+      ]
+    },
+
+    {
+      "name": "3. Reject Unauthenticated Link Creation",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/links",
+          "body": {
+            "target_url": "https://example.com",
+            "campaign_name": "Unauth Test"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 401 }
+      ]
+    },
+
+    {
+      "name": "4. Create Tracking Link",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/links",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "target_url": "https://example.com",
+            "campaign_name": "Test Campaign"
+          },
+          "save": {
+            "shortCode": "body.short_code",
+            "linkId": "body.id"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 201 },
+        { "body.short_code": "exists" },
+        { "body.id": "exists" }
+      ]
+    },
+
+    {
+      "name": "5. Get Link List",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.links": "exists" }
+      ]
+    },
+
+    {
+      "name": "6. Redirect Test (Genesis Link)",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/t/{{shortCode}}"
+        }
+      ],
+      "expect": [
+        { "status": 302 }
+      ]
+    },
+
+    {
+      "name": "7. Pixel Capture",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/p/{{shortCode}}?email=test%40test.com"
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "contentType": "image/png" }
+      ]
+    },
+
+    {
+      "name": "8. QR Code Generation (PNG)",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/{{linkId}}/qr?format=png",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "contentType": "image/png" }
+      ]
+    },
+
+    {
+      "name": "9. QR Code Generation (SVG)",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/{{linkId}}/qr?format=svg",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "contentType": "image/svg+xml" }
+      ]
+    },
+
+    {
+      "name": "10. Link Health Check (Manual Trigger)",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/links/{{linkId}}/health-check",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true },
+        { "body.data.status": "exists" }
+      ]
+    },
+
+    {
+      "name": "11. Get Link Health Status",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/{{linkId}}/health",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "12. Get Pixel Settings",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/{{linkId}}/pixels",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "13. Update Pixel Settings",
+      "steps": [
+        {
+          "action": "PUT",
+          "endpoint": "/api/links/{{linkId}}/pixels",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "facebook_pixel": "123456789012345",
+            "enable_facebook_pixel": true
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "14. Reject Invalid Pixel ID",
+      "steps": [
+        {
+          "action": "PUT",
+          "endpoint": "/api/links/{{linkId}}/pixels",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "facebook_pixel": "<script>alert(1)</script>"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 400 }
+      ]
+    },
+
+    {
+      "name": "15. Get OG Metadata",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/{{linkId}}/og-metadata",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "16. Update OG Metadata",
+      "steps": [
+        {
+          "action": "PUT",
+          "endpoint": "/api/links/{{linkId}}/og-metadata",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "og_title": "Test OG Title",
+            "og_description": "Test OG Description",
+            "og_image_url": "https://example.com/image.png"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "17. Reject JavaScript URL in OG Image",
+      "steps": [
+        {
+          "action": "PUT",
+          "endpoint": "/api/links/{{linkId}}/og-metadata",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "og_image_url": "javascript:alert(1)"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 400 }
+      ]
+    },
+
+    {
+      "name": "18. Get Routing Rules",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/{{linkId}}/routing-rules",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "19. Update Routing Rules",
+      "steps": [
+        {
+          "action": "PUT",
+          "endpoint": "/api/links/{{linkId}}/routing-rules",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "rules": [
+              {
+                "condition": "device",
+                "value": "mobile",
+                "destination": "https://m.example.com"
+              }
+            ]
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "20. Export Links as CSV",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/export",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "contentType": "text/csv" }
+      ]
+    },
+
+    {
+      "name": "21. Generate PURLs (JSON)",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/purl/generate",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "link_id": "{{linkId}}",
+            "recipients": [
+              { "name": "Alice Smith", "email": "alice@example.com" },
+              { "name": "Bob Jones", "email": "bob@example.com" }
+            ]
+          },
+          "save": {
+            "purlId": "body.purls.0.id"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 201 },
+        { "body.success": true },
+        { "body.created": 2 }
+      ]
+    },
+
+    {
+      "name": "22. Reject Invalid Email in PURL Generation",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/purl/generate",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "link_id": "{{linkId}}",
+            "recipients": [
+              { "name": "Bad Email", "email": "notanemail" }
+            ]
+          }
+        }
+      ],
+      "expect": [
+        { "status": 201 },
+        { "body.created": 0 },
+        { "body.skipped": 1 }
+      ]
+    },
+
+    {
+      "name": "23. Duplicate PURL Skipped",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/purl/generate",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "link_id": "{{linkId}}",
+            "recipients": [
+              { "name": "Alice Smith", "email": "alice@example.com" }
+            ]
+          }
+        }
+      ],
+      "expect": [
+        { "status": 201 },
+        { "body.created": 0 },
+        { "body.skipped": 1 }
+      ]
+    },
+
+    {
+      "name": "24. List PURLs",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/purl/list?link_id={{linkId}}",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true },
+        { "body.purls": "exists" }
+      ]
+    },
+
+    {
+      "name": "25. Export PURLs as CSV",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/purl/export?link_id={{linkId}}",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "contentType": "text/csv" }
+      ]
+    },
+
+    {
+      "name": "26. Delete PURL",
+      "steps": [
+        {
+          "action": "DELETE",
+          "endpoint": "/api/purl/{{purlId}}",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "27. Honeypot Stats",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/analytics/honeypot-stats",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true },
+        { "body.total": "exists" }
+      ]
+    },
+
+    {
+      "name": "28. Email Intelligence Stats",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/analytics/email-intelligence",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "29. Email Client Distribution",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/analytics/email-clients",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "30. Link Decay Analytics",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/analytics/link-decay/{{linkId}}?days=30",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true },
+        { "body.data.daily_buckets": "exists" }
+      ]
+    },
+
+    {
+      "name": "31. Click Latency Analytics",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/analytics/click-latency",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "32. Fetch Live Events",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/events/live",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "33. Stripe Config (Public)",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/payments/stripe/config"
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.publishableKey": "exists" }
+      ]
+    },
+
+    {
+      "name": "34. Stripe Checkout Session Creation",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/payments/stripe/create-checkout-session",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "plan_type": "monthly"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.url": "exists" }
+      ]
+    },
+
+    {
+      "name": "35. Crypto Payment Wallets (Public)",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/crypto-payments/wallets"
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "36. Mock Crypto Payment Submission (TEST_ hash)",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/crypto-payments/submit-proof",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "plan_type": "monthly",
+            "currency": "ETH",
+            "tx_hash": "TEST_abc123_mock_payment",
+            "amount_usd": 29.99,
+            "amount_crypto": 0.01
+          }
+        }
+      ],
+      "expect": [
+        { "status": 201 },
+        { "body.success": true },
+        { "body.blockchain_verified": true }
+      ]
+    },
+
+    {
+      "name": "37. Reject Empty Crypto TX Hash",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/crypto-payments/submit-proof",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "plan_type": "monthly",
+            "currency": "ETH",
+            "tx_hash": "",
+            "amount_usd": 29.99
+          }
+        }
+      ],
+      "expect": [
+        { "status": 400 }
+      ]
+    },
+
+    {
+      "name": "38. Reject Duplicate Crypto TX Hash",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/crypto-payments/submit-proof",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "plan_type": "monthly",
+            "currency": "ETH",
+            "tx_hash": "TEST_abc123_mock_payment",
+            "amount_usd": 29.99
+          }
+        }
+      ],
+      "expect": [
+        { "status": 400 },
+        { "body.success": false }
+      ]
+    },
+
+    {
+      "name": "39. Quantum Redirect Metrics Requires Auth",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/quantum/metrics"
+        }
+      ],
+      "expect": [
+        { "status": 401 }
+      ]
+    },
+
+    {
+      "name": "40. Quantum Redirect Metrics (Authenticated)",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/quantum/metrics",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    },
+
+    {
+      "name": "41. Bulk Import Requires Auth",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/links/bulk-import"
+        }
+      ],
+      "expect": [
+        { "status": 401 }
+      ]
+    },
+
+    {
+      "name": "42. Link Not Found Returns 404",
+      "steps": [
+        {
+          "action": "GET",
+          "endpoint": "/api/links/999999/health",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 404 }
+      ]
+    },
+
+    {
+      "name": "43. PURL Generate Without link_id Returns 400",
+      "steps": [
+        {
+          "action": "POST",
+          "endpoint": "/api/purl/generate",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "recipients": [{ "name": "Test", "email": "test@test.com" }]
+          }
+        }
+      ],
+      "expect": [
+        { "status": 400 },
+        { "body.success": false }
+      ]
+    },
+
+    {
+      "name": "44. Delete PURL Not Found Returns 404",
+      "steps": [
+        {
+          "action": "DELETE",
+          "endpoint": "/api/purl/999999",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 404 }
+      ]
+    },
+
+    {
+      "name": "45. Delete Tracking Link",
+      "steps": [
+        {
+          "action": "DELETE",
+          "endpoint": "/api/links/{{linkId}}",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          }
+        }
+      ],
+      "expect": [
+        { "status": 200 },
+        { "body.success": true }
+      ]
+    }
+
+  ]
+}

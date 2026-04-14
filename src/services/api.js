@@ -5,11 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  if (!token) {
-    console.warn('[API] No authentication token found in storage');
-  }
-  return token;
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
 };
 
 // Helper function to make authenticated requests
@@ -23,9 +19,6 @@ const fetchWithAuth = async (url, options = {}) => {
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-    console.log('[API] Request with token:', url);
-  } else {
-    console.warn('[API] Request WITHOUT token:', url);
   }
 
   try {
@@ -35,21 +28,12 @@ const fetchWithAuth = async (url, options = {}) => {
       credentials: 'include', // Include cookies for session-based auth
     });
 
-    console.log(`[API] Response status for ${url}:`, response.status);
-
     // Handle 401 Unauthorized
     if (response.status === 401) {
-      console.error('[API] 401 Unauthorized - Authentication failed');
-      console.error('[API] Token in storage:', token ? 'EXISTS' : 'MISSING');
-      console.error('[API] Request URL:', url);
-
-      // Clear invalid token
       localStorage.removeItem('token');
       sessionStorage.removeItem('token');
 
-      // Redirect to login if not already there
       if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-        console.log('[API] Redirecting to login...');
         window.location.href = '/login';
       }
 
@@ -60,15 +44,11 @@ const fetchWithAuth = async (url, options = {}) => {
       const error = await response.json().catch(() => ({
         message: `HTTP ${response.status}: ${response.statusText}`
       }));
-      console.error('[API] Request failed:', error);
       throw new Error(error.message || `HTTP ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('[API] Request successful:', url);
-    return data;
+    return await response.json();
   } catch (error) {
-    console.error('[API] Request error:', error.message);
     throw error;
   }
 };
@@ -78,19 +58,14 @@ const api = {
   // ==================== AUTH APIs ====================
   auth: {
     login: async (credentials) => {
-      console.log('[API] Login attempt for:', credentials.username);
       const response = await fetchWithAuth(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         body: JSON.stringify(credentials),
       });
 
-      // Store token if present in response
       const tokenToStore = response.token || response.access_token;
       if (tokenToStore) {
         localStorage.setItem('token', tokenToStore);
-        console.log('[API] Token stored successfully');
-      } else {
-        console.warn('[API] No token in login response:', Object.keys(response));
       }
 
       return response;
@@ -102,7 +77,6 @@ const api = {
     logout: () => {
       localStorage.removeItem('token');
       sessionStorage.removeItem('token');
-      console.log('[API] Token cleared on logout');
       return fetchWithAuth(`${API_BASE_URL}/auth/logout`, { method: 'POST' });
     },
     getCurrentUser: () => fetchWithAuth(`${API_BASE_URL}/user/profile`),
@@ -201,6 +175,10 @@ const api = {
       method: 'PUT',
       body: JSON.stringify(linkData),
     }),
+    updateTargetUrl: (id, url) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ original_url: url })
+    }),
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
     regenerate: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/regenerate`, { method: 'POST' }),
     getAnalytics: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/analytics`),
@@ -208,6 +186,100 @@ const api = {
       method: 'POST',
       body: JSON.stringify({ ids }),
     }),
+
+    // QR Code
+    getQR: (id, format = 'png', size = 300) => {
+      const token = getAuthToken();
+      const url = `${API_BASE_URL}/links/${id}/qr?format=${format}&size=${size}`;
+      return fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
+    },
+    getQRUrl: (id, format = 'png', size = 300) =>
+      `${API_BASE_URL}/links/${id}/qr?format=${format}&size=${size}`,
+
+    // Health monitoring
+    getHealth: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/health`),
+    checkHealth: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/health-check`, { method: 'POST' }),
+
+    // Pixel injection
+    getPixels: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/pixels`),
+    updatePixels: (id, data) => fetchWithAuth(`${API_BASE_URL}/links/${id}/pixels`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+    // OG metadata
+    getOgMetadata: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/og-metadata`),
+    updateOgMetadata: (id, data) => fetchWithAuth(`${API_BASE_URL}/links/${id}/og-metadata`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+    // Dynamic routing rules
+    getRoutingRules: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/routing-rules`),
+    updateRoutingRules: (id, rules) => fetchWithAuth(`${API_BASE_URL}/links/${id}/routing-rules`, {
+      method: 'PUT',
+      body: JSON.stringify({ routing_rules: rules }),
+    }),
+
+    // Bulk import / export
+    bulkImport: (links) => fetchWithAuth(`${API_BASE_URL}/links/bulk-import`, {
+      method: 'POST',
+      body: JSON.stringify({ links }),
+    }),
+    bulkImportCSV: (formData) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/links/bulk-import`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+        credentials: 'include',
+      }).then(res => res.json());
+    },
+    exportAll: () => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/links/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+    },
+
+    // ── Inbox Survival Score™ ──────────────────────────────────
+    getInboxScore: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/inbox-score`),
+    getAllInboxScores: () => fetchWithAuth(`${API_BASE_URL}/links/inbox-scores`),
+    optimize: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/optimize`, { method: 'POST' }),
+  },
+
+  // ==================== PURL ENGINE APIs ====================
+  purl: {
+    generate: (data) => fetchWithAuth(`${API_BASE_URL}/purl/generate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    generateCSV: (linkId, formData) => {
+      const token = getAuthToken();
+      formData.append('link_id', linkId);
+      return fetch(`${API_BASE_URL}/purl/generate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+        credentials: 'include',
+      }).then(res => res.json());
+    },
+    getList: (linkId, page = 1) => {
+      const params = new URLSearchParams({ page });
+      if (linkId) params.append('link_id', linkId);
+      return fetchWithAuth(`${API_BASE_URL}/purl/list?${params}`);
+    },
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/purl/${id}`, { method: 'DELETE' }),
+    export: (linkId) => {
+      const token = getAuthToken();
+      const params = linkId ? `?link_id=${linkId}` : '';
+      return fetch(`${API_BASE_URL}/purl/export${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+    },
+    getHoneypotStats: () => fetchWithAuth(`${API_BASE_URL}/analytics/honeypot-stats`),
   },
 
   // Alias for backward compatibility
@@ -226,6 +298,19 @@ const api = {
     getBrowsers: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview`), // Placeholder
     getOperatingSystems: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview`), // Placeholder
     exportData: (format = 'csv') => fetchWithAuth(`${API_BASE_URL}/analytics/export?format=${format}`),
+    getABTestPerformance: () => fetchWithAuth(`${API_BASE_URL}/analytics/ab-test`),
+    getVisitorFlow: () => fetchWithAuth(`${API_BASE_URL}/analytics/visitor-flow`),
+
+    // Email intelligence
+    getEmailClients: () => fetchWithAuth(`${API_BASE_URL}/analytics/email-clients`),
+    getClickLatency: (linkId) => {
+      const params = linkId ? `?link_id=${linkId}` : '';
+      return fetchWithAuth(`${API_BASE_URL}/analytics/click-latency${params}`);
+    },
+    getLinkDecay: (linkId, period = '30d') =>
+      fetchWithAuth(`${API_BASE_URL}/analytics/link-decay/${linkId}?period=${period}`),
+    getEmailIntelligence: () => fetchWithAuth(`${API_BASE_URL}/analytics/email-intelligence`),
+    getHoneypotStats: () => fetchWithAuth(`${API_BASE_URL}/analytics/honeypot-stats`),
   },
 
   // ==================== CAMPAIGNS APIs ====================
@@ -553,6 +638,12 @@ const api = {
     getSubscriptions: () => fetchWithAuth(`${API_BASE_URL}/admin/subscriptions`),
     getInvoices: () => fetchWithAuth(`${API_BASE_URL}/admin/invoices`),
     getTransactions: () => fetchWithAuth(`${API_BASE_URL}/admin/transactions`),
+    getFailedPayments: () => fetchWithAuth(`${API_BASE_URL}/admin/payments/failed`),
+    refundTransaction: (id, reason) => fetchWithAuth(`${API_BASE_URL}/admin/transactions/${id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+    getBillingHistory: (userId) => fetchWithAuth(`${API_BASE_URL}/admin/users/${userId}/billing`),
     getPlans: () => fetchWithAuth(`${API_BASE_URL}/admin/subscription-plans`),
     createPlan: (planData) => fetchWithAuth(`${API_BASE_URL}/admin/subscription-plans`, {
       method: 'POST',
@@ -562,10 +653,27 @@ const api = {
       method: 'PUT',
       body: JSON.stringify(planData),
     }),
-    getCryptoPayments: () => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments`),
-    verifyCryptoPayment: (id, verified) => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/${id}/verify`, {
+    getCryptoPayments: () => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/all`),
+    getPendingCryptoPayments: () => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/pending`),
+    confirmCryptoPayment: (id) => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/${id}/confirm`, { method: 'POST' }),
+    rejectCryptoPayment: (id, reason) => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/${id}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ verified }),
+      body: JSON.stringify({ reason }),
+    }),
+    recheckCryptoPayment: (id) => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/${id}/recheck`, { method: 'POST' }),
+    getCryptoSettings: () => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/settings`),
+    updateCryptoSettings: (data) => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/settings`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    getAdminWallets: () => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/wallets`),
+    upsertCryptoWallet: (currency, address, network = '') => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/wallets`, {
+      method: 'POST',
+      body: JSON.stringify({ currency, wallet_address: address, network, is_active: true }),
+    }),
+    verifyCryptoPayment: (id, verified) => fetchWithAuth(`${API_BASE_URL}/admin/crypto-payments/${id}/${verified ? 'confirm' : 'reject'}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: 'Admin decision' }),
     }),
   },
 
@@ -620,6 +728,18 @@ const api = {
     }),
   },
 
+  // ==================== SYSTEM MONITORING APIs (NEW MODULE) ====================
+  adminMonitoring: {
+    getSystemHealth: () => fetchWithAuth(`${API_BASE_URL}/admin/monitoring/health`),
+    getAPIPerformance: (period = '24h') => fetchWithAuth(`${API_BASE_URL}/admin/monitoring/api-performance?period=${period}`),
+    getErrorRates: (period = '24h') => fetchWithAuth(`${API_BASE_URL}/admin/monitoring/errors?period=${period}`),
+    getIngestionRates: () => fetchWithAuth(`${API_BASE_URL}/admin/monitoring/ingestion`),
+    getActiveConnections: () => fetchWithAuth(`${API_BASE_URL}/admin/monitoring/connections`),
+    restartService: (serviceName) => fetchWithAuth(`${API_BASE_URL}/admin/monitoring/services/${serviceName}/restart`, {
+      method: 'POST',
+    }),
+  },
+
   // ==================== QUANTUM REDIRECT APIs ====================
   quantum: {
     getMetrics: () => fetchWithAuth(`${API_BASE_URL}/quantum/metrics`),
@@ -650,31 +770,30 @@ const api = {
   domains: {
     getAll: () => fetchWithAuth(`${API_BASE_URL}/domains`),
     getAvailable: () => fetchWithAuth(`${API_BASE_URL}/domains/available`),
+    add: (domainData) => fetchWithAuth(`${API_BASE_URL}/domains/custom`, {
+      method: 'POST',
+      body: JSON.stringify(domainData),
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/domains/${id}`, { method: 'DELETE' }),
+    verify: (id) => fetchWithAuth(`${API_BASE_URL}/domains/${id}/verify`, { method: 'POST' }),
+    getUsage: (id) => fetchWithAuth(`${API_BASE_URL}/domains/${id}/usage`),
+    healthCheck: (id) => fetchWithAuth(`${API_BASE_URL}/domains/${id}/health-check`, { method: 'POST' }),
+    setDefault: (id) => fetchWithAuth(`${API_BASE_URL}/domains/${id}/set-default`, { method: 'POST' }),
   },
 
-  auth,
-  dashboard,
-  links,
-  analytics,
-  campaigns,
-  liveActivity,
-  geography,
-  security,
-  profile,
-  notifications,
-  settings,
-  admin,
-  adminUsers,
-  adminCampaigns,
-  adminLinks,
-  adminPayments,
-  adminTickets,
-  adminLogs,
-  adminSecurity,
-  adminSettings,
-  quantum,
-  shortener,
-  domains,
-  payments,
-  tickets,
-} = api;
+  // ==================== USER PAYMENTS APIs ====================
+  payments: {
+    getHistory: () => fetchWithAuth(`${API_BASE_URL}/payments/history`),
+    createCheckoutSession: (planId) => fetchWithAuth(`${API_BASE_URL}/payments/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({ plan_id: planId }),
+    }),
+    submitCryptoHash: (txHash, network) => fetchWithAuth(`${API_BASE_URL}/payments/crypto/verify`, {
+      method: 'POST',
+      body: JSON.stringify({ tx_hash: txHash, network }),
+    }),
+    getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/crypto-payments/wallets`),
+  },
+};
+
+export default api;

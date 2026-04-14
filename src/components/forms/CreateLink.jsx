@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Shield, Flame, Info, Radio } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
@@ -9,7 +9,7 @@ import { Checkbox } from '../ui/checkbox';
 import { toast } from 'sonner';
 import api from '../../services/api'; // Assuming api service is available at this path
 
-const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
+const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink = null }) => {
   // The new project's form is a component, the old one was a modal. 
   // We'll merge the fields from the old modal into the new form's state.
   const [loading, setLoading] = useState(false);
@@ -36,8 +36,13 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
     // Capture Options
     captureEmail: false,
     capturePassword: false,
-    // Expiration
+    // Channel Adaptive Mode™
+    channelType: 'general',
+    // Zero-Knowledge
+    zeroKnowledgeEnabled: false,
+    // Burner Links (Expiration)
     expirationPeriod: 'never',
+    expireAfterClicks: '',
   });
 
   useEffect(() => {
@@ -47,7 +52,9 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
         const response = await api.domains.getAll();
         if (response.success && response.domains.length > 0) {
           setDomains(response.domains);
-          setFormData(prev => ({ ...prev, domain: response.domains[0].name }));
+          if (!editingLink) {
+             setFormData(prev => ({ ...prev, domain: response.domains[0].name }));
+          }
         }
       } catch (error) {
         console.error('Error fetching domains:', error);
@@ -55,7 +62,33 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
       }
     };
     fetchDomains();
-  }, []);
+
+    if (editingLink) {
+       setFormData(prev => ({
+          ...prev,
+          targetUrl: editingLink.targetUrl || editingLink.original_url || editingLink.target_url || '',
+          previewUrl: editingLink.preview_url || '',
+          campaignName: editingLink.campaignName || editingLink.campaign_name || '',
+          customCode: editingLink.custom_slug || editingLink.short_code || '',
+          domain: editingLink.domain || '',
+          botBlockingEnabled: editingLink.bot_blocking_enabled ?? true,
+          rateLimitingEnabled: editingLink.rate_limiting_enabled ?? false,
+          dynamicSignatureEnabled: editingLink.dynamic_signature_enabled ?? false,
+          mxVerificationEnabled: editingLink.mx_verification_enabled ?? false,
+          geoTargetingEnabled: editingLink.geo_targeting_enabled ?? false,
+          geoTargetingMode: editingLink.geo_targeting_mode || 'allow',
+          allowedCountries: editingLink.allowed_countries ? editingLink.allowed_countries.join(',') : '',
+          blockedCountries: editingLink.blocked_countries ? editingLink.blocked_countries.join(',') : '',
+          captureEmail: editingLink.capture_email ?? false,
+          capturePassword: editingLink.capture_password ?? false,
+          channelType: editingLink.channel_type || 'general',
+          zeroKnowledgeEnabled: editingLink.zero_knowledge_enabled ?? false,
+          expirationPeriod: editingLink.expiration_period || 'never',
+          expireAfterClicks: editingLink.expire_after_clicks || '',
+       }));
+       if (editingLink.bot_blocking_enabled !== undefined || editingLink.zero_knowledge_enabled) setShowAdvanced(true);
+    }
+  }, [editingLink]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -95,6 +128,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
         domain: formData.domain,
         capture_email: formData.captureEmail,
         capture_password: formData.capturePassword,
+        channel_type: formData.channelType,
         bot_blocking_enabled: formData.botBlockingEnabled,
         rate_limiting_enabled: formData.rateLimitingEnabled,
         dynamic_signature_enabled: formData.dynamicSignatureEnabled,
@@ -105,14 +139,20 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
         geo_targeting_mode: formData.geoTargetingMode,
         allowed_countries: formData.geoTargetingEnabled && formData.geoTargetingMode === 'allow' ? formData.allowedCountries.split(',').map(c => c.trim().toUpperCase()).filter(c => c) : undefined,
         blocked_countries: formData.geoTargetingEnabled && formData.geoTargetingMode === 'block' ? formData.blockedCountries.split(',').map(c => c.trim().toUpperCase()).filter(c => c) : undefined,
-        // Note: The old project also had cities/regions, but for now, we focus on the core country-level geo-targeting as the most critical part.
+        zero_knowledge_enabled: formData.zeroKnowledgeEnabled,
+        expire_after_clicks: formData.expireAfterClicks ? parseInt(formData.expireAfterClicks) : undefined,
       };
 
       // Determine API endpoint based on type
-      const response = await (type === 'tracking' ? api.links.create(payload) : api.shortener.shorten(formData.targetUrl, payload)); 
+      let response;
+      if (editingLink) {
+         response = await api.links.update(editingLink.id, payload);
+      } else {
+         response = await (type === 'tracking' ? api.links.create(payload) : api.shortener.shorten(formData.targetUrl, payload)); 
+      }
       
-      if (response.success) {
-        toast.success('Link created successfully!');
+      if (response && (response.success || response.id || response.tracking_url)) {
+        toast.success(`Link ${editingLink ? 'updated' : 'created'} successfully!`);
         // Reset form and close modal
         setFormData(prev => ({
           ...prev,
@@ -130,9 +170,12 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
           blockedCountries: '',
           captureEmail: false,
           capturePassword: false,
+          channelType: 'general',
+          zeroKnowledgeEnabled: false,
           expirationPeriod: 'never',
+          expireAfterClicks: '',
         }));
-        onLinkCreated();
+        onLinkCreated(response.link || response.data || payload);
         onClose();
       } else {
         toast.error(response.error || 'Failed to create link.');
@@ -162,22 +205,37 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
 
 		      {/* Domain Selection */}
 		      <div>
-		        <Label htmlFor="domain" className="text-foreground">Select Domain *</Label>
+		        <Label htmlFor="domain" className="text-foreground flex items-center justify-between">
+		           <span>Select Domain *</span>
+		           <span className="text-[10px] text-muted-foreground/50">Routing Hostname</span>
+		        </Label>
 		        <Select value={formData.domain} onValueChange={(value) => handleSelectChange('domain', value)}>
-		          <SelectTrigger id="domain">
+		          <SelectTrigger id="domain" className="font-mono text-sm bg-black/20 border-border">
 		            <SelectValue placeholder="Select a domain" />
 		          </SelectTrigger>
 		          <SelectContent>
-		            {domains.map(d => (
-		              <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
-		            ))}
+		            {domains.filter(d => d.type === 'custom' || d.is_custom).length > 0 && (
+		              <optgroup label="Your Custom Domains" className="text-xs font-semibold text-[#3b82f6] px-2 py-1.5 uppercase tracking-wider">
+		                {domains.filter(d => d.type === 'custom' || d.is_custom).map(d => (
+		                  <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
+		                ))}
+		              </optgroup>
+		            )}
+		            <optgroup label="Global Routing Core" className="text-xs font-semibold text-muted-foreground px-2 py-1.5 uppercase tracking-wider mt-2">
+		               {domains.filter(d => d.type !== 'custom' && !d.is_custom).map(d => (
+		                 <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
+		               ))}
+		            </optgroup>
 		          </SelectContent>
 		        </Select>
 		      </div>
 
 		      {/* Preview URL */}
 		      <div>
-		        <Label htmlFor="previewUrl" className="text-foreground">Preview URL (Optional)</Label>
+		        <Label htmlFor="previewUrl" className="text-foreground flex items-center justify-between">
+		           <span>Preview URL</span>
+		           <span className="text-[10px] text-muted-foreground/50">Optional Fallback</span>
+		        </Label>
 		        <Input
 		          id="previewUrl"
 		          type="url"
@@ -212,32 +270,88 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
 	        />
 	      </div>
 
-		      {/* Link Expiration */}
-		      <div>
-		        <Label htmlFor="expirationPeriod" className="text-foreground">Link Expiration (Optional)</Label>
-		        <Select value={formData.expirationPeriod} onValueChange={(value) => handleSelectChange('expirationPeriod', value)}>
-		          <SelectTrigger id="expirationPeriod">
-		            <SelectValue placeholder="Select expiration" />
-		          </SelectTrigger>
-		          <SelectContent>
-		            <SelectItem value="never">Never Expires</SelectItem>
-		            <SelectItem value="5hrs">5 Hours</SelectItem>
-		            <SelectItem value="10hrs">10 Hours</SelectItem>
-		            <SelectItem value="24hrs">24 Hours</SelectItem>
-		            <SelectItem value="48hrs">48 Hours</SelectItem>
-		            <SelectItem value="72hrs">72 Hours</SelectItem>
-		            <SelectItem value="weekly">Weekly</SelectItem>
-		            <SelectItem value="monthly">Monthly</SelectItem>
-		            <SelectItem value="yearly">Yearly</SelectItem>
-		            <SelectItem value="custom">Custom Date</SelectItem>
-		          </SelectContent>
-		        </Select>
+		      {/* Burner Link & Expiration */}
+		      <div className="bg-[#ef4444]/5 border border-[#ef4444]/20 p-4 rounded-lg space-y-4">
+		        <div className="flex items-center gap-2 mb-1">
+		           <Flame className="w-5 h-5 text-[#ef4444]" />
+		           <h3 className="text-sm font-semibold text-[#ef4444]">Burner Link Options (Auto-Destruct)</h3>
+		        </div>
+		        <p className="text-[11px] text-muted-foreground ml-7 -mt-4 mb-2">Destructive. Link database records and analytics auto-wipe after threshold.</p>
+		        
+		        <div className="grid grid-cols-2 gap-4">
+		           <div>
+		             <Label htmlFor="expirationPeriod" className="text-foreground text-xs">Self-Destruct Timer</Label>
+		             <Select value={formData.expirationPeriod} onValueChange={(value) => handleSelectChange('expirationPeriod', value)}>
+		               <SelectTrigger id="expirationPeriod" className="mt-1 h-9 text-xs">
+		                 <SelectValue placeholder="Select expiration" />
+		               </SelectTrigger>
+		               <SelectContent>
+		                 <SelectItem value="never">Permanent (Never Expires)</SelectItem>
+		                 <SelectItem value="1hr">1 Hour</SelectItem>
+		                 <SelectItem value="5hrs">5 Hours</SelectItem>
+		                 <SelectItem value="24hrs">24 Hours</SelectItem>
+		                 <SelectItem value="weekly">1 Week</SelectItem>
+		                 <SelectItem value="monthly">1 Month</SelectItem>
+		               </SelectContent>
+		             </Select>
+		           </div>
+		           <div>
+		             <Label htmlFor="expireAfterClicks" className="text-foreground text-xs flex items-center justify-between">
+		                <span>Click Threshold</span>
+		                <span className="text-[9px] opacity-50">Limits visits</span>
+		             </Label>
+		             <Input
+		               id="expireAfterClicks"
+		               type="number"
+		               placeholder="e.g. 100"
+		               className="mt-1 h-9 text-xs"
+		               value={formData.expireAfterClicks}
+		               onChange={handleChange}
+		               min="1"
+		             />
+		           </div>
+		        </div>
 		      </div>
 
+        {/* Channel Adaptive Mode™ */}
+        <div className="bg-[#3b82f6]/5 border border-[#3b82f6]/20 p-4 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Radio className="w-4 h-4 text-[#3b82f6]" />
+            <h3 className="text-sm font-semibold text-[#3b82f6]">Channel Adaptive Mode™</h3>
+            <span className="ml-auto text-[10px] uppercase font-bold tracking-widest text-[#3b82f6] bg-[#3b82f6]/10 px-2 py-0.5 rounded">Pro+</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+            Adjusts scanner deflection, param stripping, delay range, and stealth headers to match your distribution channel.
+          </p>
+          <Select value={formData.channelType} onValueChange={(value) => handleSelectChange('channelType', value)}>
+            <SelectTrigger className="h-9 text-sm bg-black/20 border-border">
+              <SelectValue placeholder="Select channel" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">
+                <span className="font-medium">General</span>
+                <span className="text-muted-foreground text-xs ml-2">— Full tracking, balanced stealth</span>
+              </SelectItem>
+              <SelectItem value="email">
+                <span className="font-medium">Email</span>
+                <span className="text-muted-foreground text-xs ml-2">— Max scanner deflection, strip UTM</span>
+              </SelectItem>
+              <SelectItem value="linkedin">
+                <span className="font-medium">LinkedIn</span>
+                <span className="text-muted-foreground text-xs ml-2">— Ultra-clean URL, trust-optimised</span>
+              </SelectItem>
+              <SelectItem value="sms">
+                <span className="font-medium">SMS</span>
+                <span className="text-muted-foreground text-xs ml-2">— Lightning fast, mobile-first</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
 		      {/* Advanced Settings Toggle */}
-		      <Button 
-		        type="button" 
-		        variant="ghost" 
+		      <Button
+		        type="button"
+		        variant="ghost"
 		        className="w-full justify-start text-blue-500 hover:text-blue-400"
 		        onClick={() => setShowAdvanced(!showAdvanced)}
 		      >
@@ -246,10 +360,30 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
 		      </Button>
 
 		      {showAdvanced && (
-		        <div className="space-y-4 pt-2 border-t border-border">
+		        <div className="space-y-6 pt-2 border-t border-border mt-4">
+		          
+		          {/* Zero-Knowledge Mode */}
+		          <div className="bg-[#8b5cf6]/5 border border-[#8b5cf6]/20 p-4 rounded-lg">
+		             <div className="flex items-center justify-between pointer-events-none mb-1">
+		                <div className="flex items-center">
+		                   <Shield className="w-4 h-4 mr-2 text-[#8b5cf6]" />
+		                   <h3 className="text-sm font-semibold text-[#8b5cf6]">Zero-Knowledge Telemetry</h3>
+		                </div>
+		                <Checkbox
+		                  id="zeroKnowledgeEnabled"
+		                  className="pointer-events-auto"
+		                  checked={formData.zeroKnowledgeEnabled}
+		                  onCheckedChange={(checked) => handleCheckboxChange('zeroKnowledgeEnabled', checked)}
+		                />
+		             </div>
+		             <p className="text-[11px] text-muted-foreground ml-6 leading-relaxed">
+		               Encrypts viewer IP logs via one-way salted hashing immediately. Absolutely NO PII (Personally Identifiable Information) or plain-text IPs will be viewable in your dashboard or stored in databases. Ideal for GDPR compliance.
+		             </p>
+		          </div>
+
 		          {/* Security Features */}
-		          <div className="pt-2">
-		            <h3 className="text-lg font-semibold text-foreground">Security Features</h3>
+		          <div>
+		            <h3 className="text-sm font-semibold text-foreground border-b border-border/50 pb-2 mb-3">Threat Mitigation Stack</h3>
 		            <div className="space-y-2 mt-2">
 		              {[
 		                { id: 'botBlockingEnabled', label: 'Bot Blocking' },
@@ -341,7 +475,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking' }) => {
 	      <DialogFooter className="pt-4">
 	        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
 	        <Button type="submit" disabled={loading}>
-	          {loading ? 'Creating...' : `Create ${type === 'tracking' ? 'Tracking' : 'Short'} Link`}
+	          {loading ? 'Saving...' : editingLink ? 'Update Configuration' : `Create ${type === 'tracking' ? 'Tracking' : 'Short'} Link`}
 	        </Button>
 	      </DialogFooter>
     </form>

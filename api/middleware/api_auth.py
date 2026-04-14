@@ -104,7 +104,7 @@ def check_api_permissions(required_permissions):
             import json
             try:
                 key_permissions = json.loads(api_key.permissions)
-            except:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 key_permissions = []
             
             # Check if all required permissions are present

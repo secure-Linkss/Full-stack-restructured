@@ -1,29 +1,23 @@
-from flask import Blueprint, request, jsonify, session, g
-from datetime import datetime, timedelta
 import json
+import logging
+from datetime import datetime, timedelta
+from flask import Blueprint, request, jsonify, session, g
 from api.database import db
 from api.models.user import User
 from api.models.security import SecuritySettings, BlockedIP, BlockedCountry
 from api.models.link import Link
 from api.models.tracking_event import TrackingEvent
-from api.services.threat_intelligence import threat_intel
-from functools import wraps
+from api.middleware.auth_decorators import login_required as require_auth
+
+logger = logging.getLogger(__name__)
+
+try:
+    from api.services.threat_intelligence import threat_intel
+except ImportError:
+    threat_intel = None
+    logger.debug("threat_intelligence service not available")
 
 security_bp = Blueprint("security", __name__)
-
-def require_auth(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
-            return jsonify({"error": "Not authenticated"}), 401
-        
-        user = User.query.get(session["user_id"])
-        if not user:
-            return jsonify({"error": "User not found"}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    
-    return decorated_function
 
 @security_bp.route("/api/security", methods=["GET"])
 @require_auth
@@ -136,7 +130,7 @@ def get_security_settings():
         print(f"Error fetching security settings: {e}")
         return jsonify({"error": "Failed to fetch security settings"}), 500
 
-@security_bp.route("/security/settings", methods=["PUT"])
+@security_bp.route("/security/settings", methods=["PUT", "PATCH"])
 @require_auth
 def update_security_settings():
     """Update security settings"""

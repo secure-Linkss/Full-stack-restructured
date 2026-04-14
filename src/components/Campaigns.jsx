@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import CreateCampaignForm from './forms/CreateCampaign'; // Placeholder for the new form component
+import EditCampaignModal from './EditCampaignModal';
 
 // --- Main Component ---
 const Campaigns = () => {
@@ -19,6 +20,8 @@ const Campaigns = () => {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [metrics, setMetrics] = useState({ totalCampaigns: 0, activeCampaigns: 0, totalClicks: 0 });
 
   const fetchData = async () => {
@@ -51,9 +54,23 @@ const Campaigns = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleAction = (action, campaign) => {
-    toast.info(`${action} action triggered for campaign: ${campaign.name}`);
-    // Mock action logic
+  const handleAction = async (action, campaign) => {
+    if (action === 'Edit') {
+       setSelectedCampaign(campaign);
+       setIsEditModalOpen(true);
+    } else if (action === 'Delete') {
+       if (window.confirm(`Are you absolutely sure you want to delete campaign ${campaign.name}?`)) {
+          try {
+             await api.campaigns.delete(campaign.id);
+             toast.success('Campaign deleted successfully.');
+             fetchData();
+          } catch (e) {
+             toast.error('Failed to delete campaign.');
+          }
+       }
+    } else {
+       toast.info(`${action} action triggered for campaign: ${campaign.name}`);
+    }
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -198,6 +215,14 @@ const Campaigns = () => {
           <CreateCampaignForm onClose={() => setIsCreateModalOpen(false)} onCampaignCreated={fetchData} />
         </DialogContent>
       </Dialog>
+      
+      {/* Edit Campaign Modal */}
+      <EditCampaignModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+        onSuccess={fetchData} 
+        campaign={selectedCampaign} 
+      />
     </div>
   );
 };

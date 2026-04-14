@@ -23,7 +23,7 @@ class CryptoPaymentTransaction(db.Model):
     verified_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'))
     verified_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
-    metadata = db.Column(db.JSON)
+    extra_metadata = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
@@ -48,7 +48,7 @@ class CryptoPaymentTransaction(db.Model):
             'verified_by': self.verified_by,
             'verified_at': self.verified_at.isoformat() if self.verified_at else None,
             'rejection_reason': self.rejection_reason,
-            'metadata': self.metadata,
+            'extra_metadata': self.extra_metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

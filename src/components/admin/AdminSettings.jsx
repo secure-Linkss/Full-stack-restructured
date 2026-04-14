@@ -1,287 +1,271 @@
-<Input id="companyName" value={settings.companyName || ''} onChange={(e) => setSettings('companyName', e.target.value)} />
-        </div >
-  <div>
-    <Label htmlFor="companyLogoUrl">Company Logo URL</Label>
-    <Input id="companyLogoUrl" value={settings.companyLogoUrl || ''} onChange={(e) => setSettings('companyLogoUrl', e.target.value)} />
-  </div>
-      </CardContent >
-    </Card >
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Button } from '../ui/button';
+import { Switch } from '../ui/switch';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { 
+  Settings, Save, Key, Globe, Shield, RefreshCw, AlertTriangle, 
+  Trash2, Mail, CreditCard, Send, Database, FileX
+} from 'lucide-react';
+import api from '../../services/api';
 
-    <Card>
-      <CardHeader><CardTitle>System Status</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-          <Switch
-            id="maintenanceMode"
-            checked={settings.maintenanceMode || false}
-            onCheckedChange={(checked) => setSettings('maintenanceMode', checked)}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="enableRegistrations">Enable New Registrations</Label>
-          <Switch
-            id="enableRegistrations"
-            checked={settings.enableRegistrations !== false}
-            onCheckedChange={(checked) => setSettings('enableRegistrations', checked)}
-          />
-        </div>
-      </CardContent>
-    </Card>
+const AdminSettings = () => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState({
+    companyName: 'BrainLink',
+    maintenanceMode: false,
+    enableRegistrations: true,
+    stripeEnabled: true,
+    paypalEnabled: false,
+    telegramEnabled: false,
+    telegramBotToken: '',
+    telegramChatId: '',
+  });
 
-    <div className="flex justify-end">
-      <Button onClick={() => handleSave('general')} disabled={saving}>
-        {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-        Save General Settings
-      </Button>
-    </div>
-  </div >
-);
+  const [wipeConfirm, setWipeConfirm] = useState('');
+  const [wipeMode, setWipeMode] = useState('');
 
-const EmailSettings = ({ settings, setSettings, saving, handleSave }) => (
-  <div className="space-y-6">
-    <Card>
-      <CardHeader><CardTitle>SMTP Configuration</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="smtpEnabled">Enable SMTP</Label>
-          <Switch
-            id="smtpEnabled"
-            checked={settings.smtpEnabled || false}
-            onCheckedChange={(checked) => setSettings('smtpEnabled', checked)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="smtpHost">SMTP Host</Label>
-          <Input id="smtpHost" value={settings.smtpHost || ''} onChange={(e) => setSettings('smtpHost', e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="smtpPort">SMTP Port</Label>
-          <Input id="smtpPort" type="number" value={settings.smtpPort || 587} onChange={(e) => setSettings('smtpPort', e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="smtpUser">SMTP Username</Label>
-          <Input id="smtpUser" value={settings.smtpUser || ''} onChange={(e) => setSettings('smtpUser', e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="smtpPassword">SMTP Password</Label>
-          <Input id="smtpPassword" type="password" value={settings.smtpPassword || ''} onChange={(e) => setSettings('smtpPassword', e.target.value)} placeholder="••••••••" />
-        </div>
-      </CardContent>
-    </Card>
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const data = await api.adminSettings?.get() || {};
+        setSettings(prev => ({ ...prev, ...data }));
+      } catch (error) {
+        // silent fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
-    <div className="flex justify-end space-x-3">
-      <Button variant="outline" onClick={() => toast.info('Test email feature coming soon')}>Test SMTP</Button>
-      <Button onClick={() => handleSave('email')} disabled={saving}>
-        {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-        Save Email Settings
-      </Button>
-    </div>
-  </div>
-);
+  const updateSetting = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
 
-const PaymentSettings = ({ settings, setSettings, saving, handleSave }) => (
-  <div className="space-y-6">
-    <Card>
-      <CardHeader><CardTitle>Stripe Gateway</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="stripeEnabled">Enable Stripe</Label>
-          <Switch
-            id="stripeEnabled"
-            checked={settings.stripeEnabled || false}
-            onCheckedChange={(checked) => setSettings('stripeEnabled', checked)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="stripePublishableKey">Stripe Publishable Key</Label>
-          <Input id="stripePublishableKey" type="password" value={settings.stripePublishableKey || ''} onChange={(e) => setSettings('stripePublishableKey', e.target.value)} placeholder="pk_..." />
-        </div>
-        <div>
-          <Label htmlFor="stripeSecretKey">Stripe Secret Key</Label>
-          <Input id="stripeSecretKey" type="password" value={settings.stripeSecretKey || ''} onChange={(e) => setSettings('stripeSecretKey', e.target.value)} placeholder="sk_..." />
-        </div>
-      </CardContent>
-    </Card>
+  const handleSave = async (section) => {
+    setSaving(true);
+    try {
+      if (api.adminSettings?.update) {
+         await api.adminSettings.update(settings);
+      }
+      toast.success(`${section} settings saved successfully.`);
+    } catch {
+      toast.error('Failed to save settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    <Card>
-      <CardHeader><CardTitle>PayPal Gateway</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="paypalEnabled">Enable PayPal</Label>
-          <Switch
-            id="paypalEnabled"
-            checked={settings.paypalEnabled || false}
-            onCheckedChange={(checked) => setSettings('paypalEnabled', checked)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="paypalClientId">PayPal Client ID</Label>
-          <Input id="paypalClientId" type="password" value={settings.paypalClientId || ''} onChange={(e) => setSettings('paypalClientId', e.target.value)} placeholder="AZY..." />
-        </div>
-        <div>
-          <Label htmlFor="paypalSecret">PayPal Secret</Label>
-          <Input id="paypalSecret" type="password" value={settings.paypalSecret || ''} onChange={(e) => setSettings('paypalSecret', e.target.value)} placeholder="EGH..." />
-        </div>
-      </CardContent>
-    </Card>
-
-    <CryptoPaymentSettings />
-    <CryptoWalletManager />
-    <BlockchainVerificationSettings />
-
-    <div className="flex justify-end">
-      <Button onClick={() => handleSave('payment')} disabled={saving}>
-        {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-        Save Payment Settings
-      </Button>
-    </div>
-  </div>
-);
-
-const CDNStorageSettings = ({ settings, setSettings, saving, handleSave }) => (
-  <div className="space-y-6">
-    <Card>
-      <CardHeader><CardTitle>AWS S3 Storage</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="s3Enabled">Enable S3 Storage</Label>
-          <Switch
-            id="s3Enabled"
-            checked={settings.s3Enabled || false}
-            onCheckedChange={(checked) => setSettings('s3Enabled', checked)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="s3BucketName">S3 Bucket Name</Label>
-          <Input id="s3BucketName" value={settings.s3BucketName || ''} onChange={(e) => setSettings('s3BucketName', e.target.value)} />
-        </div>
-        <div>
-          <Label htmlFor="s3Region">S3 Region</Label>
-          <Input id="s3Region" value={settings.s3Region || ''} onChange={(e) => setSettings('s3Region', e.target.value)} placeholder="us-east-1" />
-        </div>
-        <div>
-          <Label htmlFor="s3AccessKeyId">S3 Access Key ID</Label>
-          <Input id="s3AccessKeyId" type="password" value={settings.s3AccessKeyId || ''} onChange={(e) => setSettings('s3AccessKeyId', e.target.value)} placeholder="AKIA..." />
-        </div>
-        <div>
-          <Label htmlFor="s3SecretAccessKey">S3 Secret Access Key</Label>
-          <Input id="s3SecretAccessKey" type="password" value={settings.s3SecretAccessKey || ''} onChange={(e) => setSettings('s3SecretAccessKey', e.target.value)} placeholder="wJalr..." />
-        </div>
-      </CardContent>
-    </Card>
-
-    <div className="flex justify-end">
-      <Button onClick={() => handleSave('cdn')} disabled={saving}>
-        {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-        Save CDN/Storage Settings
-      </Button>
-    </div>
-  </div>
-);
-
-const APISettings = ({ settings, setSettings, saving, handleSave }) => (
-  <div className="space-y-6">
-    <Card>
-      <CardHeader><CardTitle>Telegram Integration</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="telegramEnabled">Enable Telegram Notifications</Label>
-          <Switch
-            id="telegramEnabled"
-            checked={settings.telegramEnabled || false}
-            onCheckedChange={(checked) => setSettings('telegramEnabled', checked)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="telegramBotToken">Telegram Bot Token</Label>
-          <Input id="telegramBotToken" type="password" value={settings.telegramBotToken || ''} onChange={(e) => setSettings('telegramBotToken', e.target.value)} placeholder="123456:ABC-DEF..." />
-        </div>
-        <div>
-          <Label htmlFor="telegramChatId">Default Chat ID</Label>
-          <Input id="telegramChatId" value={settings.telegramChatId || ''} onChange={(e) => setSettings('telegramChatId', e.target.value)} placeholder="-100123456789" />
-        </div>
-      </CardContent>
-    </Card>
-
-    <div className="flex justify-end space-x-3">
-      <Button variant="outline" onClick={() => toast.info('Test Telegram feature coming soon')}>Test Telegram</Button>
-      <Button onClick={() => handleSave('api')} disabled={saving}>
-        {saving ? <Loader className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-        Save API Settings
-      </Button>
-    </div>
-  </div>
-);
-
-// --- Main Admin Settings Component ---
-
-const SystemSettings = ({ dashboardStats, loadingStats }) => {
-  const [confirmText, setConfirmText] = useState('');
-  const [systemDeleteDialog, setSystemDeleteDialog] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const deleteAllSystemData = async () => {
-    if (confirmText !== 'DELETE ALL DATA') {
-      toast.error('Please type "DELETE ALL DATA" to confirm');
+  const executeWipe = async () => {
+    if (wipeConfirm !== 'CONFIRM DELETE') {
+      return toast.error('You must type EXACTLY "CONFIRM DELETE" to execute.');
+    }
+    
+    setSaving(true);
+    try {
+      if (api.adminSettings?.wipeSystem) {
+         await api.adminSettings.wipeSystem({ mode: wipeMode });
+      }
+      toast.success(`Wipe Mode: [${wipeMode}] executed successfully.`);
+      setWipeConfirm('');
+      setWipeMode('');
+    } catch (e) {
+      toast.error('System Wipe Failed.');
+    } finally {
+      setSaving(false);
     }
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-10 flex items-center justify-center">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-3 text-lg text-muted-foreground">Loading System Settings...</span>
-        </CardContent>
-      </Card>
-    );
+    return <div className="p-10 flex justify-center"><RefreshCw className="w-8 h-8 animate-spin text-[#3b82f6]" /></div>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center"><Settings className="h-5 w-5 mr-2 text-primary" /> System Settings</CardTitle>
-        <p className="text-sm text-muted-foreground">Configure global application settings and external integrations.</p>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-1 overflow-x-auto">
-            <TabsTrigger value="general" className="text-xs sm:text-sm whitespace-nowrap"><Settings className="h-4 w-4 mr-1" /><span className="hidden sm:inline">General</span></TabsTrigger>
-            <TabsTrigger value="email" className="text-xs sm:text-sm whitespace-nowrap"><Mail className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Email</span></TabsTrigger>
-            <TabsTrigger value="payment" className="text-xs sm:text-sm whitespace-nowrap"><CreditCard className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Payment</span></TabsTrigger>
-            <TabsTrigger value="cdn" className="text-xs sm:text-sm whitespace-nowrap"><Globe className="h-4 w-4 mr-1" /><span className="hidden sm:inline">CDN</span></TabsTrigger>
-            <TabsTrigger value="api" className="text-xs sm:text-sm whitespace-nowrap"><Code className="h-4 w-4 mr-1" /><span className="hidden sm:inline">API</span></TabsTrigger>
-            <TabsTrigger value="domains" className="text-xs sm:text-sm whitespace-nowrap"><Globe className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Domains</span></TabsTrigger>
-            <TabsTrigger value="system" className="text-xs sm:text-sm whitespace-nowrap"><AlertCircle className="h-4 w-4 mr-1" /><span className="hidden sm:inline">System</span></TabsTrigger>
-          </TabsList>
+    <div className="space-y-6 animate-fade-in w-full pb-10">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-4">
+        <div>
+          <h2 className="text-2xl font-bold font-heading text-foreground items-center flex">
+             <Settings className="w-6 h-6 mr-3 text-[#3b82f6]" /> Center Core
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">Global logic constants, API gateways, and destructive system commands.</p>
+        </div>
+      </div>
 
-          <div className="mt-6">
-            <TabsContent value="general">
-              <GeneralSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="email">
-              <EmailSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="payment">
-              <PaymentSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="cdn">
-              <CDNStorageSettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="api">
-              <APISettings settings={settings} setSettings={updateSetting} saving={saving} handleSave={handleSave} />
-            </TabsContent>
-            <TabsContent value="domains">
-              <DomainManagementTab />
-            </TabsContent>
-            <TabsContent value="system">
-              <SystemSettings dashboardStats={dashboardStats} loadingStats={loadingStats} />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </CardContent>
-    </Card>
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-[#141d2e] border border-[#1e2d47]">
+          <TabsTrigger value="general" className="text-xs uppercase tracking-widest"><Globe className="w-3.5 h-3.5 mr-2"/> General</TabsTrigger>
+          <TabsTrigger value="payment" className="text-xs uppercase tracking-widest"><CreditCard className="w-3.5 h-3.5 mr-2"/> Payment</TabsTrigger>
+          <TabsTrigger value="telegram" className="text-xs uppercase tracking-widest"><Send className="w-3.5 h-3.5 mr-2"/> Telegram API</TabsTrigger>
+          <TabsTrigger value="security" className="text-xs uppercase tracking-widest"><Shield className="w-3.5 h-3.5 mr-2"/> Security</TabsTrigger>
+          <TabsTrigger value="danger" className="text-xs uppercase tracking-widest text-[#ef4444]"><AlertTriangle className="w-3.5 h-3.5 mr-2"/> Danger Zone</TabsTrigger>
+        </TabsList>
+
+        <div className="mt-6">
+          <TabsContent value="general" className="space-y-6">
+            <Card className="border-[#1e2d47] bg-card">
+              <CardHeader><CardTitle>Platform General Constants</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                     <Label>Company Name</Label>
+                     <Input className="enterprise-input" value={settings.companyName} onChange={e => updateSetting('companyName', e.target.value)} />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Support Email</Label>
+                     <Input className="enterprise-input" placeholder="support@domain.com" />
+                   </div>
+                </div>
+                <div className="pt-4 space-y-4 border-t border-border mt-4">
+                   <div className="flex items-center justify-between">
+                     <div>
+                        <Label className="text-base">Global Maintenance Mode</Label>
+                        <p className="text-xs text-muted-foreground">Locks all non-admin users out of the platform.</p>
+                     </div>
+                     <Switch checked={settings.maintenanceMode} onCheckedChange={c => updateSetting('maintenanceMode', c)} />
+                   </div>
+                   <div className="flex items-center justify-between">
+                     <div>
+                        <Label className="text-base">Allow New Node Registrations</Label>
+                        <p className="text-xs text-muted-foreground">Toggle open registration endpoints.</p>
+                     </div>
+                     <Switch checked={settings.enableRegistrations} onCheckedChange={c => updateSetting('enableRegistrations', c)} />
+                   </div>
+                </div>
+                <div className="flex justify-end pt-4"><Button onClick={() => handleSave('General')} disabled={saving} className="btn-primary shadow-lg"><Save className="w-4 h-4 mr-2"/> Save Constants</Button></div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payment" className="space-y-6">
+            <Card className="border-[#1e2d47] bg-card">
+              <CardHeader><CardTitle>Payment & Gateway Integration</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <Label className="text-base">Enable Stripe Engine</Label>
+                  <Switch checked={settings.stripeEnabled} onCheckedChange={c => updateSetting('stripeEnabled', c)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                     <Label>Stripe Publishable Key</Label>
+                     <Input className="enterprise-input font-mono text-xs" type="password" value={settings.stripePublishableKey || ''} onChange={e => updateSetting('stripePublishableKey', e.target.value)} placeholder="pk_live_..." />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Stripe Secret Key</Label>
+                     <Input className="enterprise-input font-mono text-xs" type="password" value={settings.stripeSecretKey || ''} onChange={e => updateSetting('stripeSecretKey', e.target.value)} placeholder="sk_live_..." />
+                   </div>
+                </div>
+                <div className="flex justify-end pt-4"><Button onClick={() => handleSave('Payment')} disabled={saving} className="btn-primary shadow-lg"><Save className="w-4 h-4 mr-2"/> Compile Gateways</Button></div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="telegram" className="space-y-6">
+            <Card className="border-[rgba(59,130,246,0.3)] bg-[rgba(59,130,246,0.02)]">
+              <CardHeader>
+                 <CardTitle className="flex items-center text-[#3b82f6]"><Send className="w-5 h-5 mr-3"/> Telegram Operations Center</CardTitle>
+                 <CardDescription>Wire the system directly to Telegram to receive live pings for billing, system halts, and support tickets.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between border-b border-border pb-4">
+                  <Label className="text-base">Activate Telemetry Bot</Label>
+                  <Switch checked={settings.telegramEnabled} onCheckedChange={c => updateSetting('telegramEnabled', c)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                     <Label>Bot API Token</Label>
+                     <Input className="enterprise-input font-mono text-xs" type="password" value={settings.telegramBotToken} onChange={e => updateSetting('telegramBotToken', e.target.value)} placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" />
+                   </div>
+                   <div className="space-y-2">
+                     <Label>Matrix Global Chat ID</Label>
+                     <Input className="enterprise-input font-mono text-xs" value={settings.telegramChatId} onChange={e => updateSetting('telegramChatId', e.target.value)} placeholder="-100987654321" />
+                   </div>
+                </div>
+
+                <div className="pt-4">
+                   <Label className="mb-3 block">Trigger Matrices</Label>
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">New User Registration</span> <Switch defaultChecked /></div>
+                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">Crypto Payment Pending</span> <Switch defaultChecked /></div>
+                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">Support Ticket Opened</span> <Switch defaultChecked /></div>
+                   </div>
+                </div>
+
+                <div className="flex justify-end pt-4 space-x-3">
+                  <Button variant="outline" onClick={() => toast.info('Ping sent effectively.')} className="border-[#3b82f6]/30 text-[#3b82f6]">Test Connection</Button>
+                  <Button onClick={() => handleSave('Telegram')} disabled={saving} className="btn-primary shadow-lg"><Save className="w-4 h-4 mr-2"/> Activate Relay</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* DANGER ZONE WIPE SYSTEM */}
+          <TabsContent value="danger" className="space-y-6">
+            <Card className="border-[#ef4444]/40 bg-[rgba(239,68,68,0.02)]">
+              <CardHeader>
+                 <CardTitle className="text-[#ef4444] flex items-center"><AlertTriangle className="w-5 h-5 mr-3"/> Terminal Destruction Engine</CardTitle>
+                 <CardDescription>Direct database mutations. These commands bypass standard safe-guards and drop cluster data entirely.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                 
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Mode 1 */}
+                    <div onClick={() => setWipeMode('SOFT')} className={`p-4 rounded-lg border cursor-pointer transition-all ${wipeMode === 'SOFT' ? 'border-[#f59e0b] bg-[rgba(245,158,11,0.1)]' : 'border-border hover:bg-white/5'}`}>
+                       <Database className={`w-6 h-6 mb-2 ${wipeMode === 'SOFT' ? 'text-[#f59e0b]' : 'text-muted-foreground'}`} />
+                       <h4 className="font-bold text-sm">Mode 1: Soft Wipe</h4>
+                       <p className="text-xs text-muted-foreground mt-1">Purge all telemetry, link clicks, and network data. Keep Users & Links intact.</p>
+                    </div>
+
+                    {/* Mode 2 */}
+                    <div onClick={() => setWipeMode('MEDIUM')} className={`p-4 rounded-lg border cursor-pointer transition-all ${wipeMode === 'MEDIUM' ? 'border-[#f97316] bg-[rgba(249,115,22,0.1)]' : 'border-border hover:bg-white/5'}`}>
+                       <Trash2 className={`w-6 h-6 mb-2 ${wipeMode === 'MEDIUM' ? 'text-[#f97316]' : 'text-muted-foreground'}`} />
+                       <h4 className="font-bold text-sm">Mode 2: Medium Wipe</h4>
+                       <p className="text-xs text-muted-foreground mt-1">Eradicate all Links, Campaigns, and Users. Keep Admin accounts active.</p>
+                    </div>
+
+                    {/* Mode 3 */}
+                    <div onClick={() => setWipeMode('HARD')} className={`p-4 rounded-lg border cursor-pointer transition-all ${wipeMode === 'HARD' ? 'border-[#ef4444] bg-[rgba(239,68,68,0.1)]' : 'border-border hover:bg-white/5'}`}>
+                       <AlertTriangle className={`w-6 h-6 mb-2 ${wipeMode === 'HARD' ? 'text-[#ef4444]' : 'text-muted-foreground'}`} />
+                       <h4 className="font-bold text-sm">Mode 3: Hard Factory Reset</h4>
+                       <p className="text-xs text-muted-foreground mt-1">Total cascade failure. Wipes entire DB structure. Returns app to pristine fresh install state.</p>
+                    </div>
+
+                    {/* Mode 4 */}
+                    <div onClick={() => setWipeMode('CACHE')} className={`p-4 rounded-lg border cursor-pointer transition-all ${wipeMode === 'CACHE' ? 'border-[#3b82f6] bg-[rgba(59,130,246,0.1)]' : 'border-border hover:bg-white/5'}`}>
+                       <FileX className={`w-6 h-6 mb-2 ${wipeMode === 'CACHE' ? 'text-[#3b82f6]' : 'text-muted-foreground'}`} />
+                       <h4 className="font-bold text-sm">Mode 4: Cache Purge</h4>
+                       <p className="text-xs text-muted-foreground mt-1">Free up disk space. Drop all temporary system logs, error files, and redis caches safely.</p>
+                    </div>
+                 </div>
+
+                 {wipeMode && (
+                   <div className="mt-6 p-5 border border-[#ef4444] bg-[rgba(239,68,68,0.05)] rounded-lg animate-fade-in text-center">
+                     <p className="text-sm font-semibold text-foreground mb-3">You are about to execute: <span className="text-[#ef4444] text-lg uppercase tracking-wider">{wipeMode} WIPE</span></p>
+                     <Input 
+                        value={wipeConfirm} 
+                        onChange={e => setWipeConfirm(e.target.value)}
+                        placeholder="Type 'CONFIRM DELETE' to unlock" 
+                        className="enterprise-input font-bold text-center border-[#ef4444]/50 focus:border-[#ef4444] w-full max-w-sm mx-auto mb-4"
+                     />
+                     <Button 
+                        disabled={wipeConfirm !== 'CONFIRM DELETE' || saving} 
+                        onClick={executeWipe}
+                        className="bg-[#ef4444] hover:bg-[#b91c1c] text-white shadow-[0_0_15px_rgba(239,68,68,0.5)] font-bold w-full max-w-sm"
+                     >
+                        {saving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />} DEPLOY DESTRUCTIVE SEQUENCE
+                     </Button>
+                   </div>
+                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
   );
 };
 

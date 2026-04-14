@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Plus, RefreshCw, Filter, Trash2, Edit, Lock, Mail, UserCheck, Clock } from 'lucide-react';
+import { Users, Plus, RefreshCw, Filter, Trash2, Edit, Lock, Mail, UserCheck, Clock, Activity, ShieldBan, MonitorPlay } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import DataTable from '@/components/ui/DataTable';
 import FilterBar from '@/components/ui/FilterBar';
-import ActionIconGroup from '@/components/ui/ActionIconGroup';
 import CreateUserModal from './CreateUserModal';
+import EditUserModal from './EditUserModal';
 import PendingUsersTable from './PendingUsersTable';
 import api from '../../services/api';
 
@@ -17,6 +18,8 @@ const AdminUsers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -46,7 +49,10 @@ const AdminUsers = () => {
 
   const handleAction = async (action, user) => {
     try {
-      if (action === 'Delete User') {
+      if (action === 'Edit User') {
+         setSelectedUser(user);
+         setIsEditModalOpen(true);
+      } else if (action === 'Delete User') {
         if (window.confirm(`Are you sure you want to delete user ${user.username}?`)) {
           await api.adminUsers.delete(user.id);
           toast.success(`User ${user.username} deleted.`);
@@ -189,36 +195,86 @@ const AdminUsers = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="border-[#1e2d47] bg-[#141d2e] shadow-lg">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Total Users</p>
+              <h3 className="text-2xl font-heading font-bold text-foreground">{users.length || 0}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-[#3b82f6]/20 flex items-center justify-center shrink-0">
+               <Users className="w-5 h-5 text-[#3b82f6]" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-[#1e2d47] bg-[#141d2e] shadow-lg">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Active Now</p>
+              <h3 className="text-2xl font-heading font-bold text-foreground">{users.filter(u => u.status === 'active').length || 0}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-[#10b981]/20 flex items-center justify-center shrink-0">
+               <Activity className="w-5 h-5 text-[#10b981]" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#1e2d47] bg-[#141d2e] shadow-lg">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Pending Sync</p>
+              <h3 className="text-2xl font-heading font-bold text-foreground">{users.filter(u => u.status === 'pending').length || 0}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-[#f59e0b]/20 flex items-center justify-center shrink-0">
+               <Clock className="w-5 h-5 text-[#f59e0b]" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-[#1e2d47] bg-[#141d2e] shadow-lg">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Suspended</p>
+              <h3 className="text-2xl font-heading font-bold text-foreground">{users.filter(u => u.status === 'suspended').length || 0}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-[#ef4444]/20 flex items-center justify-center shrink-0">
+               <ShieldBan className="w-5 h-5 text-[#ef4444]" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="all-users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
           <TabsTrigger value="all-users" className="flex items-center">
-            <Users className="h-4 w-4 mr-2" />
-            All Users
+            <Users className="h-4 w-4 mr-2" /> All Network Users
           </TabsTrigger>
           <TabsTrigger value="pending" className="flex items-center">
-            <Clock className="h-4 w-4 mr-2" />
-            Pending Approvals
+            <Clock className="h-4 w-4 mr-2" /> Pending Approvals
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all-users">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 mr-2 text-primary" />
-                User Management
+        <TabsContent value="all-users" className="mt-4">
+          <Card className="border-[#1e2d47]">
+            <CardHeader className="border-b border-[#1e2d47] bg-[#141d2e] rounded-t-lg">
+              <CardTitle className="flex items-center text-lg">
+                <MonitorPlay className="h-5 w-5 mr-2 text-[#3b82f6]" />
+                User Database Operations
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                View, edit, and manage all user accounts.
+              <p className="text-sm text-muted-foreground mt-1">
+                View, edit, and forcefully manage all remote tenant endpoints.
               </p>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6 bg-background">
               <FilterBar
-                searchPlaceholder="Search by username or email..."
+                searchPlaceholder="Deep search username, identity, or IP..."
                 onSearch={setSearchQuery}
                 onRefresh={fetchData}
-                onExport={() => toast.info('Exporting user list...')}
+                onExport={() => toast.info('Exporting JSON user vector...')}
                 filterOptions={[
                   { value: 'all', label: 'All Roles' },
                   { value: 'main_admin', label: 'Main Admin' },
@@ -232,37 +288,46 @@ const AdminUsers = () => {
                   <Button
                     key="add"
                     size="sm"
+                    className="btn-primary shadow-lg"
                     onClick={() => setIsCreateModalOpen(true)}
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add User
+                    <Plus className="h-4 w-4 mr-2" /> Provision User
                   </Button>
                 ]}
               />
 
               {loading ? (
-                <div className="text-center text-muted-foreground p-10">Loading Users...</div>
+                <div className="text-center text-muted-foreground p-10 flex flex-col items-center">
+                   <RefreshCw className="w-8 h-8 animate-spin text-[#3b82f6] opacity-50 mb-3" />
+                   Loading Database Vectors...
+                </div>
               ) : (
                 <DataTable
                   columns={columns}
                   data={filteredUsers}
-                  pageSize={10}
+                  pageSize={15}
                   actions={(row) => (
-                    <div className="flex space-x-1">
-                      <ActionIconGroup
-                        actions={[
-                          { icon: Edit, label: 'Edit User', onClick: () => handleAction('Edit User', row) },
-                          { icon: Lock, label: 'Reset Password', onClick: () => handleAction('Reset Password', row) },
-                          {
-                            icon: row.status === 'suspended' ? UserCheck : Lock,
-                            label: row.status === 'suspended' ? 'Activate User' : 'Suspend User',
-                            onClick: () => handleAction(row.status === 'suspended' ? 'Activate User' : 'Suspend User', row)
-                          },
-                          { icon: Mail, label: 'Send Email', onClick: () => handleAction('Send Email', row) },
-                          { icon: Trash2, label: 'Delete User', onClick: () => handleAction('Delete User', row) },
-                        ]}
-                      />
-                    </div>
+                    <DropdownMenu>
+                       <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 border-[#3b82f6]/30 hover:bg-[#3b82f6]/10 text-xs">Manage User</Button>
+                       </DropdownMenuTrigger>
+                       <DropdownMenuContent align="end" className="w-48 bg-[#141d2e] border-[#1e2d47]">
+                          <DropdownMenuLabel className="text-xs uppercase text-muted-foreground font-mono tracking-widest">{row.username}</DropdownMenuLabel>
+                          <DropdownMenuSeparator className="bg-border" />
+                          <DropdownMenuItem onClick={() => handleAction('Edit User', row)} className="text-xs cursor-pointer focus:bg-white/5"><Edit className="w-3.5 h-3.5 mr-2" /> Modify Profile</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction('Reset Password', row)} className="text-xs cursor-pointer focus:bg-white/5"><Lock className="w-3.5 h-3.5 mr-2" /> Force Password Reset</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction('Send Email', row)} className="text-xs cursor-pointer focus:bg-white/5"><Mail className="w-3.5 h-3.5 mr-2" /> Ping via Email</DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-border" />
+                          <DropdownMenuItem 
+                             onClick={() => handleAction(row.status === 'suspended' ? 'Activate User' : 'Suspend User', row)} 
+                             className={`text-xs cursor-pointer ${row.status === 'suspended' ? 'text-[#10b981] focus:bg-[rgba(16,185,129,0.1)]' : 'text-[#f59e0b] focus:bg-[rgba(245,158,11,0.1)]'}`}
+                          >
+                             {row.status === 'suspended' ? <UserCheck className="w-3.5 h-3.5 mr-2" /> : <ShieldBan className="w-3.5 h-3.5 mr-2" />}
+                             {row.status === 'suspended' ? 'Lift Suspension' : 'Suspend Tenant Activity'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction('Delete User', row)} className="text-xs cursor-pointer text-[#ef4444] focus:bg-[rgba(239,68,68,0.1)] focus:text-[#ef4444]"><Trash2 className="w-3.5 h-3.5 mr-2" /> Completely Purge Identity</DropdownMenuItem>
+                       </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 />
               )}
@@ -279,6 +344,13 @@ const AdminUsers = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={fetchData}
+      />
+      
+      <EditUserModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={fetchData}
+        user={selectedUser}
       />
     </div>
   );

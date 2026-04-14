@@ -13,7 +13,7 @@ class PaymentAPISetting(db.Model):
     api_type = db.Column(db.String(50), nullable=False)
     api_key = db.Column(db.Text)
     api_url = db.Column(db.Text)
-    supported_currencies = db.Column(db.ARRAY(db.String))
+    supported_currencies = db.Column(db.JSON)  # stored as JSON list for SQLite/PostgreSQL compatibility
     is_active = db.Column(db.Boolean, default=False, nullable=False)
     priority = db.Column(db.Integer, default=0)
     rate_limit_per_minute = db.Column(db.Integer, default=10)

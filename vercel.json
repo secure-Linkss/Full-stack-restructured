@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     },
     {
       "src": "package.json",
@@ -14,36 +17,26 @@
     }
   ],
   "routes": [
-    {
-      "src": "/q/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/validate",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/route",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/t/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/p/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "src": "/q/(.*)",       "dest": "/api/index.py" },
+    { "src": "/validate",     "dest": "/api/index.py" },
+    { "src": "/route",        "dest": "/api/index.py" },
+    { "src": "/t/(.*)",       "dest": "/api/index.py" },
+    { "src": "/p/(.*)",       "dest": "/api/index.py" },
+    { "src": "/h",            "dest": "/api/index.py" },
+    { "src": "/h/(.*)",       "dest": "/api/index.py" },
+    { "src": "/trap",         "dest": "/api/index.py" },
+    { "src": "/trap/(.*)",    "dest": "/api/index.py" },
+    { "src": "/track/(.*)",   "dest": "/api/index.py" },
+    { "src": "/cloak/(.*)",   "dest": "/api/index.py" },
+    { "src": "/api/(.*)",     "dest": "/api/index.py" },
+    { "src": "/(.*)",         "dest": "/index.html"   }
   ],
   "env": {
     "FLASK_ENV": "production"
+  },
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
+    }
   }
 }

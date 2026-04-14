@@ -1,315 +1,317 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check, ArrowRight, Star } from 'lucide-react'
-import Logo from '@/components/Logo'
-import Footer from '@/components/Footer'
+import React, { useState } from 'react';
+import { Check, X, ArrowRight, Zap, Shield, Cpu, Brain, Lock, Globe, BarChart3, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const PricingPage = () => {
-  const navigate = useNavigate()
+   const [billingCycle, setBillingCycle] = useState('monthly');
 
-  const plans = [
-    {
-      name: 'Free',
-      price: '$0',
-      period: '7-day trial',
-      dailyLimit: '10 links/day',
-      features: [
-        'Basic link tracking',
-        '7-day data retention',
-        'Basic analytics',
-        'QR code generation',
-        'Admin approval required'
-      ],
-      popular: false,
-      planType: 'free'
-    },
-    {
-      name: 'Weekly',
-      price: '$35',
-      period: '7 days',
-      dailyLimit: '1,000 links/day',
-      features: [
-        'Advanced tracking',
-        'Real-time analytics',
-        'Geographic intelligence',
-        'Campaign management',
-        'Priority support'
-      ],
-      popular: false,
-      planType: 'weekly'
-    },
-    {
-      name: 'Biweekly',
-      price: '$68',
-      period: '14 days',
-      dailyLimit: '1,000 links/day',
-      features: [
-        'All Weekly features',
-        'Extended data retention',
-        'Custom domains',
-        'A/B testing',
-        'Team collaboration'
-      ],
-      popular: false,
-      planType: 'biweekly'
-    },
-    {
-      name: 'Monthly',
-      price: '$150',
-      period: '30 days',
-      dailyLimit: '5,000 links/day',
-      features: [
-        'All Biweekly features',
-        'Advanced security',
-        '2FA authentication',
-        'IP blocking',
-        'Threat detection'
-      ],
-      popular: true,
-      planType: 'monthly'
-    },
-    {
-      name: 'Quarterly',
-      price: '$420',
-      period: '90 days',
-      dailyLimit: '10,000 links/day',
-      features: [
-        'All Monthly features',
-        'Bulk operations',
-        'Advanced reporting',
-        'Custom integrations',
-        'Dedicated support'
-      ],
-      popular: false,
-      planType: 'quarterly'
-    },
-    {
-      name: 'Pro',
-      price: '$299',
-      period: 'per month',
-      dailyLimit: '10,000 links/day',
-      features: [
-        'Everything in Quarterly',
-        'API access',
-        'White-label options',
-        'Custom analytics',
-        'Priority support',
-        'Advanced automation'
-      ],
-      popular: false,
-      planType: 'pro'
-    },
-    {
-      name: 'Enterprise',
-      price: '$999',
-      period: 'per year',
-      dailyLimit: '50,000 links/day',
-      features: [
-        'Everything in Pro',
-        'Unlimited links',
-        'Dedicated account manager',
-        'Custom SLA',
-        'On-premise deployment',
-        'Advanced security features',
-        '24/7 premium support'
-      ],
-      popular: false,
-      planType: 'enterprise'
-    }
-  ]
+   const annualDiscount = 0.8; // 20% off
 
-  return (
-    <>
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-        {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg shadow-lg">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center cursor-pointer" onClick={() => navigate('/')}>
-                <Logo size="md" />
-              </div>
-              <div className="flex items-center space-x-4">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate('/login')}
-                  className="text-slate-300 hover:text-white hover:bg-slate-800"
-                >
-                  Sign In
-                </Button>
-                <Button 
-                  onClick={() => navigate('/register')}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                >
-                  Get Started
-                </Button>
-              </div>
+   const plans = [
+      {
+         id: 'trial',
+         name: 'Trial',
+         tagline: 'Admin-approved access. Test the core system.',
+         price: { monthly: 0, annual: 0 },
+         cta: 'Apply for Trial',
+         ctaLink: '/register',
+         ctaStyle: 'btn-secondary',
+         highlighted: false,
+         badge: null,
+         icon: <Zap className="w-5 h-5 text-muted-foreground" />,
+         includes: 'Core features',
+         features: [
+            { label: 'Up to 3 tracking links', available: true },
+            { label: '50 clicks per link', available: true },
+            { label: 'Basic bot filtering', available: true },
+            { label: 'Quantum Redirect (Stage 1–2)', available: true },
+            { label: 'Email capture', available: true },
+            { label: 'Custom domains', available: false },
+            { label: 'Inbox Score™', available: false },
+            { label: 'Channel Adaptive Mode™', available: false },
+            { label: 'SafeRoute™', available: false },
+            { label: 'Inbox Shield AI™', available: false },
+            { label: 'Data export', available: false },
+            { label: 'Advanced stealth headers', available: false },
+         ],
+         note: '24–72 hour admin approval. Expired after 14 days.',
+      },
+      {
+         id: 'pro',
+         name: 'Pro',
+         tagline: 'Serious marketers. Full quantum routing stack.',
+         price: { monthly: 100, annual: Math.round(100 * annualDiscount) },
+         cta: 'Deploy Pro',
+         ctaLink: '/register',
+         ctaStyle: 'btn-primary shadow-[0_0_20px_rgba(59,130,246,0.4)]',
+         highlighted: true,
+         badge: 'Most Popular',
+         icon: <Shield className="w-5 h-5 text-[#3b82f6]" />,
+         includes: 'Everything in Trial, plus',
+         features: [
+            { label: 'Unlimited tracking links', available: true },
+            { label: 'Unlimited clicks', available: true },
+            { label: 'Full Quantum Redirect (4-stage)', available: true },
+            { label: 'Inbox Score™ + manual optimize', available: true },
+            { label: 'Channel Adaptive Mode™ (email, sms, linkedin)', available: true },
+            { label: 'SafeRoute™ basic (human / bot split)', available: true },
+            { label: '2–3 custom domain rotation', available: true },
+            { label: 'All stealth headers', available: true },
+            { label: 'Pixel injection (FB, GA, TikTok)', available: true },
+            { label: 'Data export (CSV)', available: true },
+            { label: 'Inbox Shield AI™ auto-defense', available: false },
+            { label: 'Admin Intelligence Layer', available: false },
+         ],
+      },
+      {
+         id: 'premium',
+         name: 'Premium',
+         tagline: 'Full AI-driven inbox survival. Maximum evasion.',
+         price: { monthly: 150, annual: Math.round(150 * annualDiscount) },
+         cta: 'Go Premium',
+         ctaLink: '/register',
+         ctaStyle: 'w-full bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] text-white font-semibold rounded-md py-3 text-center text-sm hover:opacity-90 transition-opacity',
+         highlighted: false,
+         badge: 'Full Power',
+         badgeColor: 'bg-[#8b5cf6]',
+         icon: <Brain className="w-5 h-5 text-[#8b5cf6]" />,
+         includes: 'Everything in Pro, plus',
+         features: [
+            { label: 'Unlimited tracking links', available: true },
+            { label: 'Unlimited clicks', available: true },
+            { label: 'Full Quantum Redirect (4-stage)', available: true },
+            { label: 'Inbox Score™ + AI auto-optimize', available: true },
+            { label: 'Channel Adaptive Mode™ (AI-tuned)', available: true },
+            { label: 'SafeRoute™ full (smart delay, fallback)', available: true },
+            { label: 'Unlimited domain rotation', available: true },
+            { label: 'Inbox Shield AI™ — auto bot-spike defense', available: true },
+            { label: 'ASN pattern auto-blocking', available: true },
+            { label: 'Admin Intelligence Layer access', available: true },
+            { label: 'Dedicated account manager', available: true },
+            { label: 'SLA guarantee (99.99%)', available: true },
+         ],
+      },
+   ];
+
+   return (
+      <div className="min-h-screen bg-background text-foreground selection:bg-[#3b82f6]/30 font-body pb-20">
+         {/* Nav */}
+         <nav className="border-b bg-background/80 backdrop-blur-xl border-border py-4 sticky top-0 z-50">
+            <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
+               <Link to="/" className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] flex items-center justify-center">
+                     <Zap className="text-white w-4 h-4" />
+                  </div>
+                  <span className="font-heading font-bold text-xl tracking-tight">BrainLink.</span>
+               </Link>
+               <div className="flex items-center gap-4">
+                  <Link to="/login" className="text-sm font-medium hover:text-[#3b82f6] transition-colors">Sign In</Link>
+               </div>
             </div>
-          </div>
-        </nav>
+         </nav>
 
-        {/* Hero Section */}
-        <section className="pt-32 pb-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Choose Your Perfect Plan
+         <div className="container mx-auto px-6 md:px-12 mt-20 text-center animate-fade-in">
+            <div className="inline-flex items-center gap-2 bg-[#3b82f6]/10 border border-[#3b82f6]/20 rounded-full px-4 py-1.5 mb-6">
+               <Sparkles className="w-3.5 h-3.5 text-[#3b82f6]" />
+               <span className="text-xs font-semibold text-[#3b82f6] uppercase tracking-widest">Institutional-Grade Routing</span>
+            </div>
+            <h1 className="text-4xl md:text-6xl font-heading font-extrabold tracking-tight mb-6">
+               Infrastructure pricing for <br className="hidden md:block"/>
+               <span className="text-[#3b82f6]">inbox survival.</span>
             </h1>
-            <p className="text-lg text-slate-400 mb-8 max-w-2xl mx-auto">
-              Flexible pricing options to match your needs. Start with our free trial and scale as you grow.
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-12">
+               No hidden fees. Crypto & Fiat accepted. Cancel anytime. Choose the tier that keeps your links alive.
             </p>
-          </div>
-        </section>
 
-        {/* Pricing Cards */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {plans.map((plan, index) => (
-                <div key={index}>
-                  <Card className={`relative h-full flex flex-col ${
-                    plan.popular 
-                      ? 'bg-gradient-to-b from-blue-900/50 to-purple-900/50 border-blue-500 scale-105' 
-                      : 'bg-slate-800/50 border-slate-700'
-                  } hover:scale-105 transition-all duration-300`}>
-                    {plan.popular && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                        <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center">
-                          <Star className="w-4 h-4 mr-1" />
-                          Most Popular
-                        </span>
-                      </div>
-                    )}
-                    <CardHeader>
-                      <CardTitle className="text-white text-2xl">{plan.name}</CardTitle>
-                      <div className="mt-4">
-                        <span className="text-4xl font-bold text-white">{plan.price}</span>
-                        <span className="text-slate-400 ml-2">/{plan.period}</span>
-                      </div>
-                      <div className="mt-2 text-sm text-slate-300 font-semibold">
-                        {plan.dailyLimit}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow flex flex-col">
-                      <ul className="space-y-3 mb-6 flex-grow">
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-3 mb-16">
+               <span className={`text-sm font-semibold ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`}>Monthly</span>
+               <button
+                  onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
+                  className="w-14 h-7 rounded-full border border-border bg-[rgba(255,255,255,0.05)] relative transition-colors p-1"
+               >
+                  <div className={`w-5 h-5 rounded-full bg-[#3b82f6] transition-transform ${billingCycle === 'annual' ? 'translate-x-7' : 'translate-x-0'}`}></div>
+               </button>
+               <span className={`text-sm font-semibold flex items-center gap-2 ${billingCycle === 'annual' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  Annual
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded">Save 20%</span>
+               </span>
+            </div>
+
+            {/* Pricing Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto text-left">
+               {plans.map((plan) => (
+                  <div
+                     key={plan.id}
+                     className={`enterprise-card p-8 flex flex-col relative hover:-translate-y-2 transition-transform duration-300 ${
+                        plan.highlighted
+                           ? 'border-[#3b82f6]/50 shadow-[0_0_30px_rgba(59,130,246,0.15)] transform scale-105 z-10'
+                           : ''
+                     }`}
+                  >
+                     {plan.badge && (
+                        <div className={`absolute top-0 right-0 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg rounded-tr-lg ${plan.badgeColor || 'bg-[#3b82f6]'}`}>
+                           {plan.badge}
+                        </div>
+                     )}
+
+                     {/* Header */}
+                     <div className="mb-5">
+                        <div className="flex items-center gap-2 mb-2">
+                           {plan.icon}
+                           <h3 className={`text-xl font-bold ${plan.highlighted ? 'text-[#3b82f6]' : plan.id === 'premium' ? 'text-[#8b5cf6]' : 'text-foreground'}`}>
+                              {plan.name}
+                           </h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{plan.tagline}</p>
+                     </div>
+
+                     {/* Price */}
+                     <div className="mb-6">
+                        {plan.price.monthly === 0 ? (
+                           <div>
+                              <span className="text-5xl font-heading font-extrabold pb-2 inline-block">Free</span>
+                              <p className="text-xs text-muted-foreground mt-1">Admin approval required</p>
+                           </div>
+                        ) : (
+                           <div>
+                              <span className="text-5xl font-heading font-extrabold pb-2 inline-block">
+                                 £{billingCycle === 'monthly' ? plan.price.monthly : plan.price.annual}
+                              </span>
+                              <span className="text-muted-foreground">/mo</span>
+                              {billingCycle === 'annual' && (
+                                 <p className="text-xs text-[#10b981] mt-1">
+                                    £{plan.price.monthly * 12 - plan.price.annual * 12} saved per year
+                                 </p>
+                              )}
+                           </div>
+                        )}
+                     </div>
+
+                     {/* CTA */}
+                     <Link to={plan.ctaLink} className={`${plan.ctaStyle} w-full justify-center mb-8 py-3 text-sm text-center block`}>
+                        {plan.cta}
+                     </Link>
+
+                     {/* Features */}
+                     <div className="space-y-3 flex-1">
+                        <p className="text-xs font-bold text-foreground uppercase tracking-widest mb-3">{plan.includes}</p>
                         {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-start text-slate-300">
-                            <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                            <span className="text-sm">{feature}</span>
-                          </li>
+                           <div key={i} className="flex items-start gap-3">
+                              {feature.available ? (
+                                 <Check className={`w-4 h-4 shrink-0 mt-0.5 ${plan.highlighted ? 'text-[#3b82f6]' : plan.id === 'premium' ? 'text-[#8b5cf6]' : 'text-[#10b981]'}`} />
+                              ) : (
+                                 <X className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground/30" />
+                              )}
+                              <span className={`text-sm ${feature.available ? (plan.highlighted ? 'text-foreground font-medium' : 'text-muted-foreground') : 'text-muted-foreground/40 line-through'}`}>
+                                 {feature.label}
+                              </span>
+                           </div>
                         ))}
-                      </ul>
-                      <Button 
-                        className={`w-full ${
-                          plan.popular
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                            : 'bg-slate-700 hover:bg-slate-600'
-                        } text-white`}
-                        onClick={() => navigate(`/register?plan=${plan.planType}`)}
-                      >
-                        Get Started
-                        <ArrowRight className="ml-2 w-4 h-4" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+                     </div>
 
-        {/* FAQ Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Frequently Asked Questions
-              </h2>
+                     {plan.note && (
+                        <p className="mt-5 text-[11px] text-muted-foreground/50 border-t border-border/30 pt-4">{plan.note}</p>
+                     )}
+                  </div>
+               ))}
             </div>
 
-            <div className="grid gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">Can I change my plan later?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-400">
-                    Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">What payment methods do you accept?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-400">
-                    We accept all major credit cards, PayPal, and cryptocurrency payments for your convenience.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">Is there a free trial?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-400">
-                    Yes! All new users get a 7-day free trial with 10 links per day. No credit card required to start.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">What happens when my plan expires?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-400">
-                    Your account will be downgraded to the free plan. Your data is preserved, but you'll be limited to 10 links per day until you renew.
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Feature highlights */}
+            <div className="mt-24 max-w-5xl mx-auto">
+               <h2 className="text-2xl font-heading font-bold mb-3">What makes Pro &amp; Premium different?</h2>
+               <p className="text-muted-foreground mb-12 text-sm">Every plan above Trial runs the full Quantum Redirect 4-stage pipeline. Here's what Pro and Premium unlock on top.</p>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                  {[
+                     {
+                        icon: <Shield className="w-6 h-6 text-[#3b82f6]" />,
+                        title: 'Channel Adaptive Mode™',
+                        desc: 'Email, LinkedIn, SMS, and General profiles each apply unique delay, param-stripping, and stealth header logic tuned to defeat that channel\'s scanner fingerprint.',
+                        plan: 'Pro+',
+                        color: '#3b82f6',
+                     },
+                     {
+                        icon: <Globe className="w-6 h-6 text-[#10b981]" />,
+                        title: 'SafeRoute™',
+                        desc: 'Real humans get a full redirect. Scanners get a convincing decoy. Bots get hard-blocked. Suspicious traffic enters an adaptive delay loop. All automatic.',
+                        plan: 'Pro+',
+                        color: '#10b981',
+                     },
+                     {
+                        icon: <Brain className="w-6 h-6 text-[#8b5cf6]" />,
+                        title: 'Inbox Shield AI™',
+                        desc: 'Monitors bot spike patterns, ASN clusters, and honeypot hit rates in real-time. Automatically tightens routing rules before your sender reputation takes damage.',
+                        plan: 'Premium only',
+                        color: '#8b5cf6',
+                     },
+                     {
+                        icon: <BarChart3 className="w-6 h-6 text-[#f59e0b]" />,
+                        title: 'Inbox Survival Score™',
+                        desc: 'A 0–100 score computed from redirect cleanliness, domain reputation, bot activity ratio, quantum security violations, and honeypot exposure. No paid APIs.',
+                        plan: 'Pro+',
+                        color: '#f59e0b',
+                     },
+                     {
+                        icon: <Cpu className="w-6 h-6 text-[#ef4444]" />,
+                        title: 'Admin Intelligence Layer',
+                        desc: 'Platform-wide scanner rates, per-user risk analysis, domain reputation scoring, ASN abuse maps, and real-time alert system. Built for power operators.',
+                        plan: 'Premium only',
+                        color: '#ef4444',
+                     },
+                     {
+                        icon: <Lock className="w-6 h-6 text-[#06b6d4]" />,
+                        title: 'Quantum Redirect 4-Stage',
+                        desc: 'PBKDF2/SHA-256 transit tokens, time-bound validation, geo-aware routing, and browser fingerprinting across 4 cryptographic stages. Zero-trace architecture.',
+                        plan: 'All paid plans',
+                        color: '#06b6d4',
+                     },
+                  ].map((item, i) => (
+                     <div key={i} className="enterprise-card p-6">
+                        <div className="flex items-start gap-3 mb-3">
+                           {item.icon}
+                           <div>
+                              <h4 className="font-semibold text-sm text-foreground">{item.title}</h4>
+                              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: item.color }}>{item.plan}</span>
+                           </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                     </div>
+                  ))}
+               </div>
             </div>
-          </div>
-        </section>
 
-        {/* CTA Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-900/30 to-purple-900/30">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
-              Ready to Get Started?
-            </h2>
-            <p className="text-lg text-slate-400 mb-8">
-              Join thousands of businesses already using Brain Link Tracker. Start your free trial today.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg"
-                onClick={() => navigate('/register')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-8 py-6"
-              >
-                Start Free Trial
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                onClick={() => navigate('/contact')}
-                className="border-slate-700 text-white hover:bg-slate-800 text-lg px-8 py-6"
-              >
-                Contact Sales
-              </Button>
+            {/* FAQ */}
+            <div className="mt-24 max-w-2xl mx-auto text-left">
+               <h2 className="text-2xl font-heading font-bold mb-8 text-center">Common questions</h2>
+               <div className="space-y-6">
+                  {[
+                     {
+                        q: 'What payment methods do you accept?',
+                        a: 'We accept Stripe (card / bank), and crypto (BTC, ETH, USDT via manual verification). All crypto payments go through our admin-verified approval flow.',
+                     },
+                     {
+                        q: 'How does the Trial plan work?',
+                        a: 'You register and request a trial. An admin approves within 24–72 hours. Trial access lasts 14 days, capped at 3 links and 50 clicks per link. No credit card required.',
+                     },
+                     {
+                        q: 'Can I upgrade mid-cycle?',
+                        a: 'Yes. Upgrades take effect immediately. You\'ll be charged the prorated difference for the remainder of your billing cycle.',
+                     },
+                     {
+                        q: 'Is Inbox Shield AI™ fully automated?',
+                        a: 'Yes, on Premium. The system monitors bot spike patterns, ASN clusters, and honeypot hit rates continuously and tightens routing rules automatically without any manual input.',
+                     },
+                  ].map((item, i) => (
+                     <div key={i} className="border-b border-border/50 pb-6">
+                        <h4 className="font-semibold text-sm text-foreground mb-2">{item.q}</h4>
+                        <p className="text-sm text-muted-foreground">{item.a}</p>
+                     </div>
+                  ))}
+               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <Footer />
+         </div>
       </div>
-    </>
-  )
-}
+   );
+};
 
-export default PricingPage
+export default PricingPage;

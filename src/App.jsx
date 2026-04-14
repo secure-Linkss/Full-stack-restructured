@@ -23,6 +23,8 @@ import LinkShortener from './components/LinkShortener';
 import LiveActivity from './components/LiveActivity';
 import Profile from './components/Profile';
 import SupportTickets from './components/SupportTickets';
+import PurlEngine from './components/PurlEngine';
+import CheckoutPage from './components/CheckoutPage';
 import { Toaster, toast } from 'sonner';
 import api from './services/api';
 
@@ -115,6 +117,7 @@ const AppContent = () => {
       case '/profile': return 'User Profile';
       case '/notifications': return 'Notifications';
       case '/tickets': return 'Support Tickets';
+      case '/purl-engine': return 'PURL Engine & Email Intelligence';
       default: return 'Dashboard';
     }
   };
@@ -164,6 +167,8 @@ const AppContent = () => {
         <Route path="/profile" element={<ProtectedLayout><Profile user={user} /></ProtectedLayout>} />
         <Route path="/notifications" element={<ProtectedLayout><Notifications /></ProtectedLayout>} />
         <Route path="/tickets" element={<ProtectedLayout><SupportTickets /></ProtectedLayout>} />
+        <Route path="/purl-engine" element={<ProtectedLayout><PurlEngine /></ProtectedLayout>} />
+        <Route path="/checkout" element={<ProtectedLayout><CheckoutPage /></ProtectedLayout>} />
 
         {/* Admin Protected Routes */}
         <Route 
