@@ -1,14 +1,22 @@
 {
   "version": 2,
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "dist",
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 30,
-      "maxLambdaSize": "100mb",
-      "runtime": "python3.12"
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "100mb",
+        "maxDuration": 30
+      }
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  },
+  ],
   "routes": [
     { "src": "/q/(.*)",       "dest": "/api/index.py" },
     { "src": "/validate",     "dest": "/api/index.py" },
