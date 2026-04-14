@@ -1,7 +1,7 @@
 [project]
 name = "brain-link-tracker"
 version = "1.0.0"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "Flask==3.0.0",
     "Flask-SQLAlchemy==3.1.1",
