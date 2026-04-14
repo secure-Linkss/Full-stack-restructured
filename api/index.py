@@ -272,6 +272,10 @@ def _create_flask_app():
     # -----------------------------------------------------------------------
     # Health & debug endpoints
     # -----------------------------------------------------------------------
+    @_app.route('/health', methods=['GET'])
+    def health_check_root():
+        return jsonify({"status": "ok", "service": "brain-link-tracker"}), 200
+
     @_app.route('/api/health', methods=['GET'])
     def health_check():
         return jsonify({"status": "ok", "service": "brain-link-tracker"}), 200

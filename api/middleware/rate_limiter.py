@@ -87,6 +87,12 @@ def rate_limit(limit: int = 60, window: int = 60, key_suffix: str = ""):
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
+            # Bypass rate limiting for loopback / private IPs (dev & test)
+            _ip = (request.headers.get("X-Forwarded-For", request.remote_addr) or "").split(",")[0].strip()
+            _PRIVATE = ('127.', '::1', '10.', '172.16.', '172.17.', '172.18.',
+                        '172.19.', '172.2', '172.3', '192.168.', 'localhost')
+            if any(_ip.startswith(p) for p in _PRIVATE):
+                return f(*args, **kwargs)
             allowed, remaining, retry_after = _limiter.check(limit, window, key_suffix)
             if not allowed:
                 resp = jsonify({
