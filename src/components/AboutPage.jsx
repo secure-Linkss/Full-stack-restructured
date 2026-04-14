@@ -292,7 +292,7 @@ const AboutPage = () => {
         </section>
 
         {/* Footer */}
-        <Footer />
+        <Footer isPublic={true} />
       </div>
     </>
   )

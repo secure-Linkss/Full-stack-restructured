@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { BarChart3, TrendingUp, Users, Mail, Link, Globe, RefreshCw, Filter } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, Minus, Users, Mail, Link, Globe, RefreshCw, Filter } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
 import MetricCard from './ui/MetricCard';

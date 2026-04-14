@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Check, X, ArrowRight, Zap, Shield, Cpu, Brain, Lock, Globe, BarChart3, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Logo from './Logo';
+import Footer from './Footer';
 
 const PricingPage = () => {
    const [billingCycle, setBillingCycle] = useState('monthly');
@@ -98,11 +100,8 @@ const PricingPage = () => {
          {/* Nav */}
          <nav className="border-b bg-background/80 backdrop-blur-xl border-border py-4 sticky top-0 z-50">
             <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
-               <Link to="/" className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] flex items-center justify-center">
-                     <Zap className="text-white w-4 h-4" />
-                  </div>
-                  <span className="font-heading font-bold text-xl tracking-tight">BrainLink.</span>
+               <Link to="/" className="flex items-center">
+                  <Logo size="md" />
                </Link>
                <div className="flex items-center gap-4">
                   <Link to="/login" className="text-sm font-medium hover:text-[#3b82f6] transition-colors">Sign In</Link>
@@ -310,6 +309,7 @@ const PricingPage = () => {
                </div>
             </div>
          </div>
+         <Footer isPublic={true} />
       </div>
    );
 };

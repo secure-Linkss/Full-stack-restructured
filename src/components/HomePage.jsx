@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, ShieldCheck, Activity, Globe, Zap, Network, ChevronRight, Lock, Code2, Users2, Cpu } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Activity, Globe, Zap, ChevronRight, Lock, Code2, Users2, Cpu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Footer from './Footer';
+import Logo from './Logo';
 
 const HomePage = () => {
    const [scrolled, setScrolled] = useState(false);
@@ -17,12 +18,9 @@ const HomePage = () => {
          {/* Navigation */}
          <nav className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${scrolled ? 'bg-background/80 backdrop-blur-xl border-border py-4' : 'bg-transparent border-transparent py-6'}`}>
             <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
-               <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.5)]">
-                     <Network className="text-white w-5 h-5" />
-                  </div>
-                  <span className="font-heading font-bold text-xl tracking-tight">BrainLink<span className="text-[#3b82f6]">.</span></span>
-               </div>
+               <Link to="/" className="flex items-center">
+                  <Logo size="md" />
+               </Link>
                <div className="hidden md:flex items-center gap-8 text-sm font-medium">
                   <Link to="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link>
                   <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>

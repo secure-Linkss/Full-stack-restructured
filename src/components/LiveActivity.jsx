@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Activity, MapPin, Monitor, Smartphone, Tablet, RefreshCw, Search, Clock, Fingerprint, LocateFixed, Eye, X, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Activity, MapPin, Monitor, Smartphone, Tablet, RefreshCw, Search, Clock, Fingerprint, LocateFixed, Eye, X, ChevronLeft, ChevronRight, ShieldAlert, TrendingUp, TrendingDown, Users, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../services/api';
 
@@ -10,7 +10,20 @@ const LiveActivity = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(1);
   const [inspectEvent, setInspectEvent] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [timeAgo, setTimeAgo] = useState('just now');
   const pageSize = 20;
+
+  // Update "last updated" display every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const diff = Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+      if (diff < 10) setTimeAgo('just now');
+      else if (diff < 60) setTimeAgo(`${diff}s ago`);
+      else setTimeAgo(`${Math.floor(diff / 60)}m ago`);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lastUpdated]);
 
   const fetchActivities = useCallback(async () => {
     try {
@@ -25,6 +38,7 @@ const LiveActivity = () => {
       }
     } finally {
       setLoading(false);
+      setLastUpdated(new Date());
     }
   }, [page]);
 
@@ -135,11 +149,15 @@ const LiveActivity = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-heading text-foreground flex items-center">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] animate-pulse-dot mr-3"></span>
-            Live Event Monitor
+          <h2 className="text-2xl font-heading text-foreground flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f59e0b] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#f59e0b]"></span>
+            </span>
+            Live Activity
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">Real-time telemetry and advanced routing inspections</p>
+          <p className="text-sm text-muted-foreground mt-1">Real-time tracking events and user interactions</p>
+          <p className="text-xs text-muted-foreground/60 mt-0.5">Last updated: <span className="text-[#10b981] font-mono">{timeAgo}</span></p>
         </div>
         <button className="btn-secondary" onClick={handleRefresh}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -147,20 +165,21 @@ const LiveActivity = () => {
         </button>
       </div>
 
-      {/* Metrics Strip */}
+      {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Total Events', value: activities.length, color: 'blue' },
-          { label: 'On Page', value: activities.filter(e => normalizeStatus(e.status) === 'On Page').length, color: 'green' },
-          { label: 'Redirected', value: activities.filter(e => normalizeStatus(e.status) === 'Redirected').length, color: 'amber' },
-          { label: 'Blocked', value: activities.filter(e => normalizeStatus(e.status) === 'Blocked').length, color: 'red' }
+          { label: 'Total Clicks', value: activities.length, color: '[#3b82f6]', icon: <TrendingUp className="w-4 h-4" />, badge: '+live', badgeColor: 'text-[#10b981] bg-[#10b981]/10' },
+          { label: 'Real Visitors', value: activities.filter(e => normalizeStatus(e.status) === 'On Page').length, color: '[#10b981]', icon: <Users className="w-4 h-4" />, badge: 'On Page', badgeColor: 'text-[#10b981] bg-[#10b981]/10' },
+          { label: 'Redirected', value: activities.filter(e => normalizeStatus(e.status) === 'Redirected').length, color: '[#f59e0b]', icon: <TrendingDown className="w-4 h-4" />, badge: 'transit', badgeColor: 'text-[#f59e0b] bg-[#f59e0b]/10' },
+          { label: 'Bot Blocks', value: activities.filter(e => normalizeStatus(e.status) === 'Blocked').length, color: '[#ef4444]', icon: <Shield className="w-4 h-4" />, badge: 'blocked', badgeColor: 'text-[#ef4444] bg-[#ef4444]/10' }
         ].map((m, i) => (
           <div key={i} className="enterprise-card p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{m.label}</p>
               <p className="text-2xl font-heading text-foreground tabular-nums-custom mt-0.5">{m.value}</p>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${m.badgeColor} mt-1 inline-block`}>{m.badge}</span>
             </div>
-            <div className={`w-2 h-8 rounded-full bg-${m.color === 'green' ? '[#10b981]' : m.color === 'blue' ? '[#3b82f6]' : m.color === 'amber' ? '[#f59e0b]' : '[#ef4444]'} opacity-60`}></div>
+            <div className="p-2 rounded-lg bg-white/5 text-muted-foreground">{m.icon}</div>
           </div>
         ))}
       </div>

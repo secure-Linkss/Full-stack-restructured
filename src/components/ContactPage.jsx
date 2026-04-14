@@ -188,7 +188,7 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
-      <Footer />
+      <Footer isPublic={true} />
     </div>
   )
 }

@@ -689,8 +689,9 @@ const TrackingLinks = () => {
 
   const metricCards = [
     { title: 'Total Tracking Links', value: links.length.toLocaleString(), icon: LinkIcon, color: 'blue' },
-    { title: 'Aggregate Clicks', value: metrics.totalClicks.toLocaleString(), icon: BarChart3, color: 'green' },
-    { title: 'Blocked Traffic', value: metrics.botsBlocked.toLocaleString(), icon: Shield, color: 'red' },
+    { title: 'Total Clicks', value: metrics.totalClicks.toLocaleString(), icon: BarChart3, color: 'green' },
+    { title: 'Real Visitors', value: metrics.realVisitors.toLocaleString(), icon: Users, color: 'green' },
+    { title: 'Bots Blocked', value: metrics.botsBlocked.toLocaleString(), icon: Shield, color: 'red' },
   ];
 
   return (
@@ -716,7 +717,7 @@ const TrackingLinks = () => {
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5 w-full">
         {metricCards.map((card, index) => (
           <div key={index} className={`enterprise-card p-5 enterprise-stat-card-${card.color} flex justify-between items-center`}>
             <div>

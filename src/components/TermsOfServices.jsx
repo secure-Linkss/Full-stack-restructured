@@ -326,7 +326,7 @@ const TermsOfServices = () => {
         </section>
 
         {/* Footer */}
-        <Footer />
+        <Footer isPublic={true} />
       </div>
     </>
   )
