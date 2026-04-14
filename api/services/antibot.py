@@ -8,8 +8,12 @@ from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 import requests
 from user_agents import parse
-import geoip2.database
-import geoip2.errors
+try:
+    import geoip2.database
+    import geoip2.errors
+    _GEOIP2_AVAILABLE = True
+except ImportError:
+    _GEOIP2_AVAILABLE = False
 import ipaddress
 
 logger = logging.getLogger(__name__)

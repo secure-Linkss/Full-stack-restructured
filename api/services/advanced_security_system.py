@@ -20,8 +20,13 @@ import ipaddress
 import base64
 import hmac
 import secrets
-import geoip2.database
-import geoip2.errors
+try:
+    import geoip2.database
+    import geoip2.errors
+    _GEOIP2_AVAILABLE = True
+except ImportError:
+    geoip2 = None
+    _GEOIP2_AVAILABLE = False
 from user_agents import parse as parse_user_agent
 
 class ThreatLevel(Enum):

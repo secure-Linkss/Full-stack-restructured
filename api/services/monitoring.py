@@ -5,8 +5,14 @@ Tracks application metrics, errors, and performance
 
 import os
 import time
-import psutil
 import traceback
+
+try:
+    import psutil
+    _PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None
+    _PSUTIL_AVAILABLE = False
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from collections import defaultdict, deque
@@ -111,12 +117,13 @@ class MonitoringService:
     
     def get_system_metrics(self) -> Dict[str, Any]:
         """Get current system metrics"""
+        if not _PSUTIL_AVAILABLE:
+            return {"unavailable": "psutil not installed in this environment"}
         try:
-            # Use interval=None for non-blocking call, as we call it in a background thread
-            cpu_percent = psutil.cpu_percent(interval=None) 
+            cpu_percent = psutil.cpu_percent(interval=None)
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
-            
+
             return {
                 "cpu": {
                     "percent": cpu_percent,
@@ -139,9 +146,11 @@ class MonitoringService:
         except Exception as e:
             print(f"Error getting system metrics: {e}")
             return {}
-    
+
     def _get_network_stats(self) -> Dict[str, int]:
         """Get network statistics"""
+        if not _PSUTIL_AVAILABLE:
+            return {}
         try:
             net_io = psutil.net_io_counters()
             return {
