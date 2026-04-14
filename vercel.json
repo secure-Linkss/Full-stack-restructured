@@ -31,6 +31,7 @@
     { "src": "/cloak/(.*)",   "dest": "/api/index.py" },
     { "src": "/api/(.*)",     "dest": "/api/index.py" },
     { "src": "/health",       "dest": "/api/index.py" },
+    { "handle": "filesystem" },
     { "src": "/(.*)",         "dest": "/index.html"   }
   ],
   "env": {
