@@ -23,7 +23,7 @@ const DataTable = ({
 
   // --- Sorting Logic ---
   const sortedData = useMemo(() => {
-    let sortableItems = [...data];
+    let sortableItems = [...(Array.isArray(data) ? data : [])];
     if (sortConfig.key !== null) {
       sortableItems.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {

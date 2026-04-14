@@ -52,11 +52,14 @@ const Security = () => {
 				api.security.getSettings()
 			]);
 
-			setMetrics(metricsData);
-			setSecurityLogs(logs);
-			setBlockedIPs(blockedIPsData);
-			setBlockedCountries(blockedCountriesData);
-			setSecuritySettings(settingsData);
+			setMetrics(metricsData || {});
+			setSecurityLogs(Array.isArray(logs) ? logs : []);
+			setBlockedIPs(Array.isArray(blockedIPsData) ? blockedIPsData : []);
+			setBlockedCountries(Array.isArray(blockedCountriesData) ? blockedCountriesData : []);
+			setSecuritySettings(settingsData && typeof settingsData === 'object' ? settingsData : {
+				botProtection: true, ipBlocking: true, rateLimiting: true,
+				geoBlocking: false, vpnDetection: true, suspiciousActivityDetection: true
+			});
 			toast.success('Security data refreshed successfully.');
 		} catch (error) {
 			console.error('Error fetching security data:', error);
