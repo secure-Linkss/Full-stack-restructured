@@ -30,6 +30,7 @@
     { "src": "/track/(.*)",   "dest": "/api/index.py" },
     { "src": "/cloak/(.*)",   "dest": "/api/index.py" },
     { "src": "/api/(.*)",     "dest": "/api/index.py" },
+    { "src": "/health",       "dest": "/api/index.py" },
     { "src": "/(.*)",         "dest": "/index.html"   }
   ],
   "env": {
