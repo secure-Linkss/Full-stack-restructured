@@ -265,7 +265,7 @@ const LiveActivity = () => {
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-1 flex items-center font-mono">
                           <Fingerprint className="w-3 h-3 mr-1 opacity-60 shrink-0" />
-                          {ev.unique_id || ev.id?.substring(0, 12) || 'N/A'}
+                          {ev.unique_id || String(ev.id ?? '').substring(0, 12) || 'N/A'}
                         </div>
                       </td>
 
