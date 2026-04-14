@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Clock, Search, CheckCircle, RefreshCw, Send, AlertCircle, X } from 'lucide-react';
+import { MessageSquare, Plus, Clock, Search, CheckCircle, RefreshCw, Send, AlertCircle, X, ShieldAlert } from 'lucide-react';
 import api from '../services/api';
 import { toast } from 'sonner';
 
