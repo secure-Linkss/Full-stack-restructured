@@ -71,9 +71,9 @@ const Analytics = () => {
     setLoading(true);
     try {
       const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
-      
-      // Fetch analytics overview data
-      const overviewData = await api.analytics.getOverview(dateRange);
+
+      // Fetch analytics overview data (pass numeric days, not '7d' string)
+      const overviewData = await api.analytics.getOverview(days);
       
       setMetrics({
         totalClicks: overviewData.totalClicks || 0,

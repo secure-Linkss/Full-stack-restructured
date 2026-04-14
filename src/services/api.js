@@ -290,7 +290,7 @@ const api = {
 
   // ==================== ANALYTICS APIs ====================
   analytics: {
-    getOverview: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/overview?period=${dateRange}`),
+    getOverview: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/overview?period=${String(dateRange).replace(/d$/,'')}`),
     getClicksOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${dateRange}`),
     getVisitorsOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${dateRange}`),
     getGeography: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography`),
