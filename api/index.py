@@ -195,50 +195,61 @@ for mod_name, bp_name, prefix in _optional_blueprints:
         logger.debug(f"Optional blueprint {mod_name}.{bp_name} skipped: {e}")
 
 # ---------------------------------------------------------------------------
-# Database Init
+# Database Init — wrapped entirely so a DB connectivity issue on cold start
+# doesn't crash the module (FUNCTION_INVOCATION_FAILED on Vercel)
 # ---------------------------------------------------------------------------
-with app.app_context():
-    try:
-        # Migration helper
-        from api.utils.migration_helper import check_and_add_missing_columns, safe_create_default_admin
-        check_and_add_missing_columns(db)
-    except Exception as e:
-        logger.warning(f"Migration helper: {e}")
+_startup_error: str = ""  # exposed via /api/debug/startup for diagnostics
 
-    db.create_all()
-    logger.info("Database tables created/verified")
+try:
+    with app.app_context():
+        try:
+            # Migration helper
+            from api.utils.migration_helper import check_and_add_missing_columns, safe_create_default_admin
+            check_and_add_missing_columns(db)
+        except Exception as e:
+            logger.warning(f"Migration helper: {e}")
 
-    # Create default admin if not exists
-    try:
-        from api.utils.migration_helper import safe_create_default_admin
-        safe_create_default_admin(db, User)
-    except Exception as e:
-        logger.warning(f"Default admin creation: {e}")
+        try:
+            db.create_all()
+            logger.info("Database tables created/verified")
+        except Exception as e:
+            logger.error(f"db.create_all() failed: {e}")
+            _startup_error = f"db.create_all: {e}"
 
-    # Ensure "7thbrain" admin user
-    try:
-        if not User.query.filter_by(username="7thbrain").first():
-            admin_user = User(
-                username="7thbrain",
-                email="admin2@brainlinktracker.com",
-                role="admin",
-                status="active",
-                is_active=True,
-                is_verified=True
-            )
-            admin_user.set_password(os.environ.get("ADMIN_DEFAULT_PASSWORD", "Mayflower1!"))
-            db.session.add(admin_user)
-            db.session.commit()
-            logger.info('Default admin "7thbrain" created')
-        else:
-            admin_user = User.query.filter_by(username="7thbrain").first()
-            if admin_user.status != "active":
-                admin_user.status = "active"
-                admin_user.is_active = True
-                admin_user.is_verified = True
+        # Create default admin if not exists
+        try:
+            from api.utils.migration_helper import safe_create_default_admin
+            safe_create_default_admin(db, User)
+        except Exception as e:
+            logger.warning(f"Default admin creation: {e}")
+
+        # Ensure "7thbrain" admin user
+        try:
+            if not User.query.filter_by(username="7thbrain").first():
+                admin_user = User(
+                    username="7thbrain",
+                    email="admin2@brainlinktracker.com",
+                    role="admin",
+                    status="active",
+                    is_active=True,
+                    is_verified=True
+                )
+                admin_user.set_password(os.environ.get("ADMIN_DEFAULT_PASSWORD", "Mayflower1!"))
+                db.session.add(admin_user)
                 db.session.commit()
-    except Exception as e:
-        logger.warning(f"7thbrain admin setup: {e}")
+                logger.info('Default admin "7thbrain" created')
+            else:
+                admin_user = User.query.filter_by(username="7thbrain").first()
+                if admin_user.status != "active":
+                    admin_user.status = "active"
+                    admin_user.is_active = True
+                    admin_user.is_verified = True
+                    db.session.commit()
+        except Exception as e:
+            logger.warning(f"7thbrain admin setup: {e}")
+except Exception as e:
+    logger.error(f"Startup app_context block failed: {e}")
+    _startup_error = f"startup: {e}"
 
 # ---------------------------------------------------------------------------
 # Security Headers Middleware
@@ -276,11 +287,21 @@ def add_security_headers(response):
     return response
 
 # ---------------------------------------------------------------------------
-# Health Check
+# Health Check & Startup Diagnostics
 # ---------------------------------------------------------------------------
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "ok", "service": "brain-link-tracker"}), 200
+
+@app.route('/api/debug/startup', methods=['GET'])
+def debug_startup():
+    """Exposes startup errors — remove after debugging."""
+    import sys
+    return jsonify({
+        "startup_error": _startup_error or None,
+        "python": sys.version,
+        "status": "error" if _startup_error else "ok",
+    })
 
 # ---------------------------------------------------------------------------
 # SPA Fallback — serve frontend
