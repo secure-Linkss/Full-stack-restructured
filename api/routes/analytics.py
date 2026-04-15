@@ -565,11 +565,12 @@ def get_geography_analytics():
     
     try:
         period = request.args.get("period", "7")
-        days = int(period)
-        
+        # Accept both "7" and "7d" formats
+        days = int(str(period).rstrip('d') or 7)
+
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
-        
+
         # Get user's OWN links only
         user_links = Link.query.filter_by(user_id=user_id).all()
         link_ids = [link.id for link in user_links]

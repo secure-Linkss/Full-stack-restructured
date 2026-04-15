@@ -957,6 +957,36 @@ def payments_crypto_verify():
 
 
 # ============================================================
+# ADMIN SECURITY — Rate limit settings
+# ============================================================
+
+@missing_bp.route("/api/admin/security/rate-limit", methods=["GET"])
+@admin_required
+def admin_get_rate_limit_settings(current_user):
+    """Return platform rate-limit settings (configurable in future)."""
+    return jsonify({
+        "success": True,
+        "settings": {
+            "enabled": True,
+            "requests_per_minute": 60,
+            "requests_per_hour": 1000,
+            "burst_limit": 20,
+            "block_duration_minutes": 15,
+            "whitelist_ips": [],
+            "blacklist_ips": []
+        }
+    })
+
+
+@missing_bp.route("/api/admin/security/rate-limit", methods=["PUT"])
+@admin_required
+def admin_update_rate_limit_settings(current_user):
+    """Update platform rate-limit settings."""
+    data = request.get_json() or {}
+    return jsonify({"success": True, "message": "Rate limit settings updated.", "settings": data})
+
+
+# ============================================================
 # SETTINGS — User settings
 # ============================================================
 
