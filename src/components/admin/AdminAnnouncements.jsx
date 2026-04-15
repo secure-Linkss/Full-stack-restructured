@@ -19,7 +19,8 @@ const AdminAnnouncements = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const announcementsData = await api.admin?.announcements?.getAll() || [];
+      const res = await api.admin?.announcements?.getAll();
+      const announcementsData = res?.announcements || res || [];
       const mapped = announcementsData.map(a => ({
          ...a,
          status: a.status || 'active',

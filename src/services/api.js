@@ -344,6 +344,17 @@ const api = {
 
   // ==================== GEOGRAPHY APIs ====================
   geography: {
+    getAnalytics: (period) => fetchWithAuth(`${API_BASE_URL}/analytics/geography${period ? `?period=${period}` : ''}`).then(data => ({
+      success: true,
+      countries: data.countries || [],
+      cities: data.cities || [],
+      metrics: {
+        totalCountries: data.totalCountries || 0,
+        totalCities: data.totalCities || 0,
+        topCountryClicks: data.topCountry?.clicks || 0,
+        topCountryVisitors: data.topCountry?.visitors || data.topCountry?.clicks || 0,
+      }
+    })),
     getCountries: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography`).then(data => data.countries),
     getRegions: (country) => fetchWithAuth(`${API_BASE_URL}/analytics/geography`), // Placeholder
     getCities: (country, region) => fetchWithAuth(`${API_BASE_URL}/analytics/geography`).then(data => data.cities),
