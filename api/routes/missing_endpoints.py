@@ -953,24 +953,7 @@ def payments_crypto_verify():
 # CONTACT FORM
 # ============================================================
 
-@missing_bp.route("/api/contact", methods=["POST"])
-def contact_submit():
-    data = request.get_json() or {}
-    name = data.get("name", "")
-    email = data.get("email", "")
-    message = data.get("message", "")
-    if not email or not message:
-        return jsonify({"success": False, "error": "Email and message required"}), 400
-    # Store as notification for admins
-    admins = User.query.filter(User.role.in_(["admin", "main_admin"])).all()
-    for admin in admins:
-        db.session.add(Notification(
-            user_id=admin.id, title=f"Contact Form: {name or email}",
-            message=f"From: {email}\n{message[:500]}",
-            type="info", notification_type="contact", priority="medium"
-        ))
-    db.session.commit()
-    return jsonify({"success": True, "message": "Message sent successfully"})
+# /api/contact POST is handled by contact_bp in routes/contact.py
 
 
 # ============================================================
