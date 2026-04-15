@@ -166,7 +166,7 @@ const TxDetail = ({ payment, requiredConfs, onConfirm, onReject, onRecheck, proc
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const AdminPayments = () => {
+const AdminPayments = ({ isOwner = false }) => {
   const [transactions, setTransactions]   = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [allCrypto, setAllCrypto]         = useState([]);
@@ -645,50 +645,85 @@ const AdminPayments = () => {
                   </button>
                 </div>
 
-                <button onClick={saveSettings} disabled={isSavingSettings} className="btn-primary w-full sm:w-auto">
-                  {isSavingSettings ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                  Save Confirmation Settings
-                </button>
+                {isOwner && (
+                  <button onClick={saveSettings} disabled={isSavingSettings} className="btn-primary w-full sm:w-auto">
+                    {isSavingSettings ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                    Save Confirmation Settings
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Wallet addresses */}
             <div className="enterprise-card">
               <div className="p-4 border-b border-border bg-[rgba(255,255,255,0.02)]">
-                <h3 className="text-sm font-semibold flex items-center"><Wallet className="w-4 h-4 mr-2 text-[#f59e0b]" /> Receiving Wallet Addresses</h3>
+                <h3 className="text-sm font-semibold flex items-center">
+                  <Wallet className="w-4 h-4 mr-2 text-[#f59e0b]" /> Receiving Wallet Addresses
+                  {!isOwner && (
+                    <span className="ml-2 text-[10px] bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/30 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Owner Only</span>
+                  )}
+                </h3>
                 <p className="text-[11px] text-muted-foreground mt-1">These are the addresses displayed to users on the payment form.</p>
               </div>
               <div className="p-6">
-                <div className="space-y-4 max-w-2xl">
-                  {[
-                    { key: 'BTC',  label: 'Bitcoin (BTC)',  color: '#f59e0b', placeholder: 'bc1q...' },
-                    { key: 'ETH',  label: 'Ethereum (ETH / ERC-20)', color: '#3b82f6', placeholder: '0x...' },
-                    { key: 'USDT', label: 'USDT (TRC-20)',  color: '#10b981', placeholder: 'T...' },
-                    { key: 'BNB',  label: 'BNB (BSC)',      color: '#f59e0b', placeholder: '0x...' },
-                    { key: 'LTC',  label: 'Litecoin (LTC)', color: '#94a3b8', placeholder: 'ltc1...' },
-                  ].map(({ key, label, color, placeholder }) => (
-                    <div key={key}>
-                      <label className="text-xs font-semibold uppercase tracking-widest mb-1.5 flex items-center gap-2" style={{ color }}>
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-                        {label}
-                      </label>
-                      <input
-                        type="text"
-                        value={cryptoWallets[key] || ''}
-                        onChange={e => setCryptoWallets(w => ({ ...w, [key]: e.target.value }))}
-                        className="enterprise-input font-mono text-sm"
-                        placeholder={placeholder}
-                        style={{ '--tw-ring-color': color }}
-                      />
+                {!isOwner ? (
+                  <div className="flex items-start gap-3 p-4 rounded-lg border border-[#f59e0b]/20 bg-[#f59e0b]/5">
+                    <Shield className="w-4 h-4 text-[#f59e0b] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-[#f59e0b]">Wallet management is restricted to the Owner.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Admins can view revenue and approve payments, but cannot modify receiving wallet addresses. Contact the platform owner to update addresses.</p>
+                      <div className="mt-3 space-y-2">
+                        {[
+                          { key: 'BTC', label: 'Bitcoin (BTC)', color: '#f59e0b' },
+                          { key: 'ETH', label: 'Ethereum (ETH)', color: '#3b82f6' },
+                          { key: 'USDT', label: 'USDT (TRC-20)', color: '#10b981' },
+                          { key: 'BNB', label: 'BNB (BSC)', color: '#f59e0b' },
+                          { key: 'LTC', label: 'Litecoin (LTC)', color: '#94a3b8' },
+                        ].map(({ key, label, color }) => (
+                          <div key={key} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="font-mono" style={{ color }}>
+                              {cryptoWallets[key] ? `${cryptoWallets[key].substring(0, 8)}...${cryptoWallets[key].slice(-6)}` : '—'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-6 pt-5 border-t border-border">
-                  <button onClick={saveWallets} disabled={isSavingWallet} className="btn-primary">
-                    {isSavingWallet ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                    Save Wallet Addresses
-                  </button>
-                </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4 max-w-2xl">
+                      {[
+                        { key: 'BTC',  label: 'Bitcoin (BTC)',  color: '#f59e0b', placeholder: 'bc1q...' },
+                        { key: 'ETH',  label: 'Ethereum (ETH / ERC-20)', color: '#3b82f6', placeholder: '0x...' },
+                        { key: 'USDT', label: 'USDT (TRC-20)',  color: '#10b981', placeholder: 'T...' },
+                        { key: 'BNB',  label: 'BNB (BSC)',      color: '#f59e0b', placeholder: '0x...' },
+                        { key: 'LTC',  label: 'Litecoin (LTC)', color: '#94a3b8', placeholder: 'ltc1...' },
+                      ].map(({ key, label, color, placeholder }) => (
+                        <div key={key}>
+                          <label className="text-xs font-semibold uppercase tracking-widest mb-1.5 flex items-center gap-2" style={{ color }}>
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+                            {label}
+                          </label>
+                          <input
+                            type="text"
+                            value={cryptoWallets[key] || ''}
+                            onChange={e => setCryptoWallets(w => ({ ...w, [key]: e.target.value }))}
+                            className="enterprise-input font-mono text-sm"
+                            placeholder={placeholder}
+                            style={{ '--tw-ring-color': color }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 pt-5 border-t border-border">
+                      <button onClick={saveWallets} disabled={isSavingWallet} className="btn-primary">
+                        {isSavingWallet ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                        Save Wallet Addresses
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

@@ -1364,3 +1364,46 @@ def channel_performance(current_user):
     except Exception as e:
         logger.error(f"Channel performance error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Public Stats — homepage live data feed (no auth required)
+# ---------------------------------------------------------------------------
+@admin_bp.route("/api/public/stats", methods=["GET"])
+def get_public_stats():
+    """
+    Returns anonymised platform-wide aggregate stats for the public homepage.
+    Never exposes user data. Used to auto-switch from promotional to live numbers
+    once real traffic crosses display thresholds.
+    """
+    try:
+        from api.models.tracking_event import TrackingEvent
+
+        total_links    = Link.query.count()
+        total_users    = User.query.filter_by(is_active=True).count()
+        total_clicks   = db.session.query(db.func.sum(Link.total_clicks)).scalar() or 0
+        total_events   = TrackingEvent.query.count()
+        total_campaigns = Campaign.query.count()
+
+        # Derived / estimated metrics
+        unique_domains = Domain.query.filter_by(is_active=True).count()
+        bot_events = TrackingEvent.query.filter_by(is_bot=True).count()
+        bot_ratio = round((bot_events / total_events * 100), 1) if total_events else 0
+        uptime_pct = 99.99  # static SLA claim
+
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_links":     total_links,
+                "total_clicks":    int(total_clicks),
+                "total_events":    total_events,
+                "total_users":     total_users,
+                "total_campaigns": total_campaigns,
+                "active_domains":  unique_domains,
+                "bot_block_rate":  round(100 - bot_ratio, 1),
+                "uptime_pct":      uptime_pct,
+            }
+        })
+    except Exception as e:
+        logger.error(f"Public stats error: {e}")
+        return jsonify({"success": False, "stats": {}}), 500

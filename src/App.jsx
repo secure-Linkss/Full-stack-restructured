@@ -171,13 +171,13 @@ const AppContent = () => {
         <Route path="/checkout" element={<ProtectedLayout><CheckoutPage /></ProtectedLayout>} />
 
         {/* Admin Protected Routes */}
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <ProtectedLayout allowedRoles={['main_admin', 'admin']}>
-              <AdminPanel />
+              <AdminPanel user={user} />
             </ProtectedLayout>
-          } 
+          }
         />
         
         {/* Fallback - redirect unknown routes */}

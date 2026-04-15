@@ -12,7 +12,7 @@ import EditUserModal from './EditUserModal';
 import PendingUsersTable from './PendingUsersTable';
 import api from '../../services/api';
 
-const AdminUsers = () => {
+const AdminUsers = ({ isOwner = false }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -325,7 +325,10 @@ const AdminUsers = () => {
                              {row.status === 'suspended' ? <UserCheck className="w-3.5 h-3.5 mr-2" /> : <ShieldBan className="w-3.5 h-3.5 mr-2" />}
                              {row.status === 'suspended' ? 'Lift Suspension' : 'Suspend Tenant Activity'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction('Delete User', row)} className="text-xs cursor-pointer text-[#ef4444] focus:bg-[rgba(239,68,68,0.1)] focus:text-[#ef4444]"><Trash2 className="w-3.5 h-3.5 mr-2" /> Completely Purge Identity</DropdownMenuItem>
+                          {/* Owner can delete any non-owner; admin can only delete members */}
+                          {(isOwner || row.role === 'member') && (
+                            <DropdownMenuItem onClick={() => handleAction('Delete User', row)} className="text-xs cursor-pointer text-[#ef4444] focus:bg-[rgba(239,68,68,0.1)] focus:text-[#ef4444]"><Trash2 className="w-3.5 h-3.5 mr-2" /> Completely Purge Identity</DropdownMenuItem>
+                          )}
                        </DropdownMenuContent>
                     </DropdownMenu>
                   )}

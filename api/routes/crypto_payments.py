@@ -22,7 +22,7 @@ from api.models.audit_log import AuditLog
 from api.models.payment import Payment
 from api.models.crypto_payment_transaction import CryptoPaymentTransaction
 from api.models.crypto_wallet_address import CryptoWalletAddress
-from api.middleware.auth_decorators import login_required, admin_required
+from api.middleware.auth_decorators import login_required, admin_required, main_admin_required
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -258,8 +258,8 @@ def admin_get_wallets():
 
 
 @crypto_payments_bp.route("/api/admin/crypto-payments/wallets", methods=["POST"])
-@admin_required
-def admin_add_wallet():
+@main_admin_required
+def admin_add_wallet(current_user):
     data = request.get_json()
     currency = data.get("currency", "").upper()
     address = data.get("wallet_address")
@@ -292,8 +292,8 @@ def admin_add_wallet():
 
 
 @crypto_payments_bp.route("/api/admin/crypto-payments/wallets/<int:wallet_id>", methods=["PATCH"])
-@admin_required
-def admin_update_wallet(wallet_id):
+@main_admin_required
+def admin_update_wallet(current_user, wallet_id):
     data = request.get_json()
     wallet = CryptoWalletAddress.query.get(wallet_id)
     if not wallet:
