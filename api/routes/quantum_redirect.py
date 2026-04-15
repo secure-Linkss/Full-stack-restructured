@@ -133,7 +133,7 @@ def stage2_validation_hub():
                 if tracking_event:
                     tracking_event.quantum_stage = 'validation_failed'
                     tracking_event.quantum_security_violation = result['security_violation']
-                    tracking_event.quantum_processing_time += result['processing_time_ms']
+                    tracking_event.quantum_processing_time = (tracking_event.quantum_processing_time or 0) + result['processing_time_ms']
                     db.session.commit()
             
             return jsonify({
@@ -149,7 +149,7 @@ def stage2_validation_hub():
         
         if tracking_event:
             tracking_event.quantum_stage = 'validation_passed'
-            tracking_event.quantum_processing_time += result['processing_time_ms']
+            tracking_event.quantum_processing_time = (tracking_event.quantum_processing_time or 0) + result['processing_time_ms']
             db.session.commit()
         
         # Redirect to routing gateway
@@ -231,7 +231,7 @@ def stage3_routing_gateway():
                 if tracking_event:
                     tracking_event.quantum_stage = 'routing_failed'
                     tracking_event.quantum_security_violation = result.get('security_violation')
-                    tracking_event.quantum_processing_time += result['processing_time_ms']
+                    tracking_event.quantum_processing_time = (tracking_event.quantum_processing_time or 0) + result['processing_time_ms']
                     db.session.commit()
             
             return jsonify({
@@ -247,7 +247,7 @@ def stage3_routing_gateway():
         if tracking_event:
             tracking_event.quantum_stage = 'routing_complete'
             tracking_event.quantum_final_url = result['final_url']
-            tracking_event.quantum_processing_time += result['processing_time_ms']
+            tracking_event.quantum_processing_time = (tracking_event.quantum_processing_time or 0) + result['processing_time_ms']
             tracking_event.quantum_verified = True
             
             # Mark as successful conversion for analytics
