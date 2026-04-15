@@ -84,10 +84,11 @@ const LiveActivity = () => {
   const filtered = activities.filter(ev => {
     const matchesStatus = filterStatus === 'all' || normalizeStatus(ev.status).toLowerCase().includes(filterStatus);
     const matchesSearch = !searchQuery ||
-      (ev.ip_address || '').includes(searchQuery) ||
-      (ev.unique_id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (ev.location?.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (ev.location?.country || '').toLowerCase().includes(searchQuery.toLowerCase());
+      (ev.ip || ev.ip_address || '').includes(searchQuery) ||
+      (ev.uniqueId || ev.unique_id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (ev.city || ev.location?.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (ev.country || ev.location?.country || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (ev.campaignName || ev.campaign_name || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -98,20 +99,26 @@ const LiveActivity = () => {
   const InspectModal = ({ event, onClose }) => {
     if (!event) return null;
     const fields = [
-      { label: 'Event ID', value: event.id || event.unique_id },
+      { label: 'Event ID', value: event.id || event.uniqueId || event.unique_id },
       { label: 'Timestamp', value: event.timestamp ? new Date(event.timestamp).toLocaleString() : 'N/A' },
       { label: 'Status', value: normalizeStatus(event.status) },
-      { label: 'IP Address', value: event.ip_address || 'N/A' },
-      { label: 'Device', value: event.device || event.user_agent || 'N/A' },
+      { label: 'Detailed Status', value: event.detailedStatus || event.detailed_status || '—' },
+      { label: 'IP Address', value: event.ip || event.ip_address || 'N/A' },
+      { label: 'Device', value: event.device || event.userAgent || event.user_agent || 'N/A' },
+      { label: 'OS', value: event.os || 'N/A' },
       { label: 'Browser', value: event.browser || 'N/A' },
-      { label: 'City', value: event.location?.city || event.city || 'N/A' },
-      { label: 'Region', value: event.location?.region || event.region || 'N/A' },
-      { label: 'Postcode', value: event.location?.postcode || event.postcode || event.zip || 'N/A' },
-      { label: 'Country', value: event.location?.country || event.country || 'N/A' },
-      { label: 'ISP', value: event.isp || event.location?.isp || 'Unknown' },
+      { label: 'City', value: event.city || event.location?.city || 'N/A' },
+      { label: 'Region', value: event.region || event.location?.region || 'N/A' },
+      { label: 'Postcode/ZIP', value: event.zipCode || event.zip_code || event.postcode || event.zip || 'N/A' },
+      { label: 'Country', value: event.country || event.location?.country || 'N/A' },
+      { label: 'ISP', value: event.isp || event.ispDetails || event.location?.isp || 'Unknown' },
       { label: 'Referrer', value: event.referrer || 'Direct' },
-      { label: 'Campaign', value: event.campaign_name || event.link_name || 'N/A' },
-      { label: 'Captured Email', value: event.captured_email || event.visitor_email || 'None' },
+      { label: 'Campaign', value: event.campaignName || event.campaign_name || event.link_name || 'N/A' },
+      { label: 'Link Short Code', value: event.linkShortCode || event.short_code || 'N/A' },
+      { label: 'Quantum Stage', value: event.quantumStage || event.quantum_stage || 'N/A' },
+      { label: 'Threat Score', value: event.threatScore ?? event.threat_score ?? 0 },
+      { label: 'Is Bot', value: event.isBot ? 'Yes' : 'No' },
+      { label: 'Captured Email', value: event.emailCaptured || event.captured_email || event.visitor_email || 'None' },
     ];
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
@@ -134,7 +141,7 @@ const LiveActivity = () => {
             ))}
           </div>
           <div className="p-4 border-t border-border flex justify-end gap-2">
-            <button onClick={() => { api.liveActivity.blockIP(event.ip_address); toast.success('IP flagged'); onClose(); }} className="px-3 py-1.5 text-xs font-semibold rounded-md border border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors flex items-center">
+            <button onClick={() => { api.liveActivity.blockIP(event.ip || event.ip_address); toast.success('IP flagged'); onClose(); }} className="px-3 py-1.5 text-xs font-semibold rounded-md border border-[#ef4444]/30 text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors flex items-center">
               <ShieldAlert className="w-3.5 h-3.5 mr-1.5" /> Block IP
             </button>
             <button onClick={onClose} className="btn-secondary text-xs px-4 py-1.5">Close</button>
@@ -250,10 +257,16 @@ const LiveActivity = () => {
               ) : (
                 paginatedEvents.map((ev, i) => {
                   const loc = ev.location || {};
-                  const city = loc.city || ev.city || 'Unknown';
-                  const region = loc.region || ev.region || '';
-                  const postcode = loc.postcode || ev.postcode || ev.zip || '';
-                  const country = loc.country || ev.country || '';
+                  const city = ev.city || loc.city || 'Unknown';
+                  const region = ev.region || loc.region || '';
+                  const postcode = ev.zipCode || ev.zip_code || loc.postcode || ev.postcode || ev.zip || '';
+                  const country = ev.country || loc.country || '';
+                  const ipAddr = ev.ip || ev.ip_address || 'N/A';
+                  const uid = ev.uniqueId || ev.unique_id || String(ev.id ?? '').substring(0, 12) || 'N/A';
+                  const emailCapt = ev.emailCaptured || ev.captured_email || ev.visitor_email;
+                  const deviceStr = ev.device || ev.user_agent || ev.userAgent || 'Unknown';
+                  const browserStr = ev.browser || '';
+                  const ispStr = ev.isp || ev.ispDetails || loc.isp || 'Unknown';
                   const status = normalizeStatus(ev.status);
                   
                   return (
@@ -265,7 +278,7 @@ const LiveActivity = () => {
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-1 flex items-center font-mono">
                           <Fingerprint className="w-3 h-3 mr-1 opacity-60 shrink-0" />
-                          {ev.unique_id || String(ev.id ?? '').substring(0, 12) || 'N/A'}
+                          {uid}
                         </div>
                       </td>
 
@@ -286,11 +299,11 @@ const LiveActivity = () => {
 
                       <td className="align-top py-4">
                         <div className="flex items-center text-sm text-foreground">
-                          <span className="text-muted-foreground mr-2 shrink-0">{getDeviceIcon(ev.device || ev.user_agent)}</span>
-                          <span className="truncate">{ev.device || ev.user_agent || 'Unknown'}</span>
+                          <span className="text-muted-foreground mr-2 shrink-0">{getDeviceIcon(deviceStr)}</span>
+                          <span className="truncate">{deviceStr}</span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-1 ml-6 truncate">
-                          {ev.browser || ''}
+                          {browserStr}
                         </div>
                       </td>
 
@@ -304,14 +317,14 @@ const LiveActivity = () => {
                       <td className="align-top py-4">
                         <div className="flex items-center text-sm font-mono text-foreground">
                           <LocateFixed className="w-3.5 h-3.5 text-muted-foreground mr-1.5 shrink-0" />
-                          <span className="truncate">{ev.ip_address || 'N/A'}</span>
+                          <span className="truncate">{ipAddr}</span>
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-1 truncate">
-                          ISP: {ev.isp || ev.location?.isp || 'Unknown'}
+                          ISP: {ispStr}
                         </div>
-                        {ev.captured_email && (
+                        {emailCapt && (
                           <div className="text-[11px] text-[#3b82f6] mt-1 font-mono truncate">
-                            Email: {ev.captured_email}
+                            ✉ {emailCapt}
                           </div>
                         )}
                       </td>

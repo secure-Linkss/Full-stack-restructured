@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, Plus, Trash2, CheckCircle, ShieldAlert, RefreshCw, Server, Activity } from 'lucide-react';
+import { Globe, Plus, Trash2, CheckCircle, ShieldAlert, RefreshCw, Server, Activity, Users, Zap, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../services/api';
+
+const getReputation = (domain) => {
+  if (!domain.is_verified) return { label: 'Unverified', color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/10 border-[#ef4444]/20' };
+  if ((domain.total_clicks || 0) > 100) return { label: 'Strong', color: 'text-[#10b981]', bg: 'bg-[#10b981]/10 border-[#10b981]/20' };
+  if ((domain.total_clicks || 0) > 10) return { label: 'Medium', color: 'text-[#f59e0b]', bg: 'bg-[#f59e0b]/10 border-[#f59e0b]/20' };
+  return { label: 'Weak', color: 'text-[#64748b]', bg: 'bg-[#64748b]/10 border-[#64748b]/20' };
+};
 
 const AdminDomains = () => {
   const [domains, setDomains] = useState([]);
@@ -10,21 +17,12 @@ const AdminDomains = () => {
   const [adding, setAdding] = useState(false);
 
   const fetchDomains = async () => {
+    setLoading(true);
     try {
-      const response = await api.adminSettings.getDomains();
-      const list = response?.domains || response || [];
-      
-      // Fetch deep usage stats for each domain concurrently
-      const mappedList = await Promise.all((Array.isArray(list) ? list : []).map(async (domain) => {
-         try {
-            const usageData = await api.domains.getUsage(domain.id);
-            return { ...domain, ...usageData };
-         } catch {
-            return domain;
-         }
-      }));
-
-      setDomains(mappedList);
+      const response = await fetch('/api/admin/domains', { credentials: 'include' });
+      const data = await response.json();
+      const list = data?.domains || data || [];
+      setDomains(Array.isArray(list) ? list : []);
     } catch (error) {
       console.error('Failed to load domains:', error);
       toast.error('Failed to load global domains.');
@@ -39,10 +37,10 @@ const AdminDomains = () => {
     if (!newDomain || !newDomain.includes('.')) return toast.error('Enter a valid FQDN / Hostname');
     setAdding(true);
     try {
-      await api.adminSettings.addDomain({ domain: newDomain });
+      await fetch('/api/admin/domains', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: newDomain }) });
       toast.success(`Globally integrated domain: ${newDomain}`);
       setNewDomain('');
-      fetchData();
+      fetchDomains();
     } catch (error) {
       toast.error(`Failed to execute Add Node: ${error.message}`);
     } finally {
@@ -140,49 +138,60 @@ const AdminDomains = () => {
                     <tr>
                       <th className="w-[30%]">Hostname Network</th>
                       <th className="w-[20%] text-center">DNS Status</th>
-                      <th className="w-[25%] text-center">Telemetry Load</th>
+                      <th className="w-[25%] text-center">Reputation / Load</th>
                       <th className="w-[25%] text-right">Node Operations</th>
                     </tr>
                   </thead>
                   <tbody>
                     {domains.map(domain => {
-                      const status = domain.status || domain.dns_status || 'active';
+                      const isActive = domain.is_active !== false;
+                      const isVerified = domain.is_verified;
+                      const reputation = getReputation(domain);
+                      const domainName = domain.domain || domain.name || '';
                       return (
                         <tr key={domain.id} className="group hover:bg-[rgba(255,255,255,0.02)] transition-colors">
                           <td className="py-4">
                             <div className="flex items-center">
-                              <Globe className="w-4 h-4 mr-2 text-[#3b82f6]" />
-                              <span className="font-mono text-sm text-foreground">{domain.name || domain.domain}</span>
+                              <Globe className="w-4 h-4 mr-2 text-[#3b82f6] shrink-0" />
+                              <div>
+                                <span className="font-mono text-sm text-foreground">{domainName}</span>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{domain.description || domain.domain_type || 'Custom'} • ID:{domain.id}</p>
+                              </div>
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-1 ml-6 uppercase tracking-widest">Id: {domain.id}</p>
                           </td>
                           <td className="py-4 text-center">
-                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest flex items-center justify-center w-max mx-auto ${status === 'active' || status === 'verified' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : status === 'disabled' ? 'bg-gray-500/10 text-gray-400 border border-gray-500/20' : 'bg-[#ef4444]/10 text-[#ef4444] border border-[#ef4444]/20 animate-pulse'}`}>
-                              {status === 'active' || status === 'verified' ? <CheckCircle className="w-3 h-3 mr-1.5" /> : <ShieldAlert className="w-3 h-3 mr-1.5" />}
-                              {status}
+                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest flex items-center justify-center w-max mx-auto border ${isVerified ? 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20' : isActive ? 'bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                              {isVerified ? <CheckCircle className="w-3 h-3 mr-1.5" /> : <ShieldAlert className="w-3 h-3 mr-1.5" />}
+                              {isVerified ? 'Verified' : isActive ? 'Active' : 'Inactive'}
                             </span>
                           </td>
-                          <td className="py-4">
-                            <div className="flex flex-col items-center">
-                               <div className="flex items-center justify-center gap-2 mb-1">
-                                  <Users className="w-3 h-3 text-muted-foreground" />
-                                  <span className="tabular-nums-custom font-bold text-foreground">{domain.active_links || domain.users || 0}</span>
-                               </div>
-                               <span className="text-[9px] uppercase tracking-widest text-[#3b82f6]">Active Routing Links</span>
+                          <td className="py-4 text-center">
+                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${reputation.bg} ${reputation.color}`}>
+                              {reputation.label}
+                            </span>
+                            <div className="flex gap-4 justify-center mt-2">
+                              <div className="text-center">
+                                <p className="text-xs font-bold text-foreground tabular-nums-custom">{domain.total_links || 0}</p>
+                                <p className="text-[9px] text-muted-foreground">Links</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs font-bold text-foreground tabular-nums-custom">{domain.total_clicks || 0}</p>
+                                <p className="text-[9px] text-muted-foreground">Clicks</p>
+                              </div>
                             </div>
                           </td>
                           <td className="py-4">
                             <div className="flex justify-end items-center gap-2 pr-2">
-                              {status !== 'verified' && status !== 'active' && status !== 'disabled' && (
-                                 <button onClick={() => handleVerify(domain.id, domain.name || domain.domain)} className="p-1.5 bg-[#f59e0b]/10 rounded border border-[#f59e0b]/20 text-[#f59e0b] hover:bg-[#f59e0b] hover:text-white transition-all text-[10px] uppercase font-bold tracking-wide">
-                                    Verify DNS
+                              {!isVerified && (
+                                 <button onClick={() => handleVerify(domain.id, domainName)} className="px-2 py-1 bg-[#f59e0b]/10 rounded border border-[#f59e0b]/20 text-[#f59e0b] hover:bg-[#f59e0b] hover:text-white transition-all text-[10px] uppercase font-bold tracking-wide">
+                                    Verify
                                  </button>
                               )}
-                              <button onClick={() => handleToggleState(domain.id, status, domain.name || domain.domain)} className={`p-1.5 rounded border border-transparent transition-all text-[10px] uppercase font-bold tracking-wide ${status === 'disabled' ? 'bg-[#10b981]/10 text-[#10b981] hover:bg-[#10b981] hover:text-white' : 'bg-gray-500/10 text-gray-400 hover:bg-gray-500 hover:text-white'}`}>
-                                 {status === 'disabled' ? 'Enable' : 'Disable'}
+                              <button onClick={() => handleToggleState(domain.id, isActive ? 'active' : 'disabled', domainName)} className={`px-2 py-1 rounded border text-[10px] uppercase font-bold ${!isActive ? 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20 hover:bg-[#10b981] hover:text-white' : 'bg-gray-500/10 text-gray-400 border-gray-500/20 hover:bg-gray-500 hover:text-white'} transition-all`}>
+                                 {!isActive ? 'Enable' : 'Suspend'}
                               </button>
-                              <button onClick={() => handleRemove(domain.id, domain.name || domain.domain)} className="p-2 ml-1 rounded-md hover:bg-[#ef4444]/10 text-muted-foreground hover:text-[#ef4444] border border-transparent hover:border-[#ef4444]/20 transition-colors" title="Purge FQDN / Cleanse Blacklist Node">
-                                <Trash2 className="w-4 h-4" />
+                              <button onClick={() => handleRemove(domain.id, domainName)} className="p-1.5 rounded-md hover:bg-[#ef4444]/10 text-muted-foreground hover:text-[#ef4444] border border-transparent hover:border-[#ef4444]/20 transition-colors">
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>

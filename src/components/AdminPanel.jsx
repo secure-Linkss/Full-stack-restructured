@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Shield, Users, Link, FolderKanban, Settings, CreditCard,
-  FileText, Megaphone, LayoutDashboard, Globe, Activity, Crown, ShieldCheck
+  FileText, Megaphone, LayoutDashboard, Globe, Activity, Crown, ShieldCheck, Mail
 } from 'lucide-react';
 
 // Import Admin Sub-components
@@ -17,6 +17,7 @@ import AdminAnnouncements from './admin/AdminAnnouncements';
 import AdminSecurity from './admin/AdminSecurity';
 import AdminDomains from './admin/AdminDomains';
 import AdminTickets from './admin/AdminTickets';
+import AdminContacts from './admin/AdminContacts';
 import { MessageSquare } from 'lucide-react';
 
 const AdminPanel = ({ user }) => {
@@ -37,6 +38,7 @@ const AdminPanel = ({ user }) => {
     { id: 'links',       title: 'Links',            icon: Link,            component: AdminLinks,            ownerOnly: false },
     { id: 'campaigns',   title: 'Campaigns',        icon: FolderKanban,    component: AdminCampaigns,        ownerOnly: false },
     { id: 'tickets',     title: 'Support Hub',      icon: MessageSquare,   component: AdminTickets,          ownerOnly: false },
+    { id: 'contacts',    title: 'Contact Inbox',    icon: Mail,            component: AdminContacts,         ownerOnly: false },
     { id: 'security',    title: 'Security',         icon: Shield,          component: AdminSecurity,         ownerOnly: false },
     { id: 'logs',        title: 'System Logs',      icon: FileText,        component: AdminSystemLogs,       ownerOnly: false },
     { id: 'announcements', title: 'Announcements',  icon: Megaphone,       component: AdminAnnouncements,    ownerOnly: false },

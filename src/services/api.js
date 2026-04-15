@@ -315,7 +315,7 @@ const api = {
 
   // ==================== CAMPAIGNS APIs ====================
   campaigns: {
-    getAll: () => fetchWithAuth(`${API_BASE_URL}/campaigns`),
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/campaigns`).then(data => Array.isArray(data) ? data : (data.campaigns || [])),
     getById: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}`),
     create: (campaignData) => fetchWithAuth(`${API_BASE_URL}/campaigns`, {
       method: 'POST',
@@ -327,6 +327,14 @@ const api = {
     }),
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}`, { method: 'DELETE' }),
     getPerformance: (id) => fetchWithAuth(`${API_BASE_URL}/campaigns/${id}/performance`),
+    getMetrics: () => fetchWithAuth(`${API_BASE_URL}/campaigns`).then(data => {
+      const list = Array.isArray(data) ? data : (data.campaigns || []);
+      const total = list.length;
+      const active = list.filter(c => c.status === 'active').length;
+      const clicks = list.reduce((s, c) => s + (c.total_clicks || 0), 0);
+      const emails = list.reduce((s, c) => s + (c.captured_emails || 0), 0);
+      return { totalCampaigns: total, activeCampaigns: active, totalClicks: clicks, capturedEmails: emails };
+    }),
   },
 
   // ==================== LIVE ACTIVITY APIs ====================
