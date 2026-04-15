@@ -490,7 +490,7 @@ const api = {
       method: 'POST',
       body: JSON.stringify(formData),
     }),
-    getSubmissions: () => fetchWithAuth(`${API_BASE_URL}/admin/contact-submissions`), // Admin only
+    getSubmissions: (page = 1, perPage = 20) => fetchWithAuth(`${API_BASE_URL}/contact/submissions?page=${page}&per_page=${perPage}`),
   },
 
   // ==================== ADMIN APIs ====================

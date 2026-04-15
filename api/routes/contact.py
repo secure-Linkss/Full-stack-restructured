@@ -9,6 +9,7 @@ from datetime import datetime
 contact_bp = Blueprint('contact', __name__)
 
 @contact_bp.route('/api/contact/submit', methods=['POST'])
+@contact_bp.route('/api/contact', methods=['POST'])
 def submit_contact_form():
     """Submit a contact form"""
     try:
