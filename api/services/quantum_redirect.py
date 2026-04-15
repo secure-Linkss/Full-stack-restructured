@@ -204,14 +204,16 @@ class QuantumRedirectSystem:
         """Verify JWT with comprehensive security checks"""
         try:
             # Decode and verify signature
+            # verify_aud=False: PyJWT 2.x raises InvalidAudienceError if aud exists but
+            # no audience kwarg is passed — we verify manually below instead.
             payload = jwt.decode(
-                token, 
-                secret_key, 
+                token,
+                secret_key,
                 algorithms=['HS256'],
-                options={'verify_exp': True, 'verify_nbf': True}
+                options={'verify_exp': True, 'verify_nbf': True, 'verify_aud': False}
             )
-            
-            # Verify audience
+
+            # Verify audience manually (works across PyJWT 1.x and 2.x)
             if payload.get('aud') != expected_audience:
                 return False, None, "invalid_audience"
             
