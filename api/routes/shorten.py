@@ -27,6 +27,30 @@ def generate_short_code(length=8):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
+@shorten_bp.route("/shorten", methods=["GET"])
+@login_required
+def get_shortened_links():
+    """List all shortened links for the current user"""
+    try:
+        user_id = session.get("user_id")
+        links = Link.query.filter_by(user_id=user_id).order_by(Link.created_at.desc()).limit(100).all()
+        base_url = request.host_url.rstrip('/')
+        result = []
+        for lnk in links:
+            result.append({
+                "id": lnk.id,
+                "original_url": lnk.original_url,
+                "short_code": lnk.short_code,
+                "shortened_url": f"{base_url}/t/{lnk.short_code}",
+                "click_count": lnk.total_clicks or 0,
+                "status": lnk.status or "active",
+                "created_at": lnk.created_at.isoformat() if lnk.created_at else None,
+            })
+        return jsonify({"success": True, "links": result, "total": len(result)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @shorten_bp.route("/shorten", methods=["POST"])
 @login_required
 def shorten_url():
@@ -112,3 +136,40 @@ def shorten_url():
         print(f"Error shortening URL: {e}")
         return jsonify({"error": str(e)}), 500
 
+
+@shorten_bp.route("/shorten/<int:link_id>", methods=["DELETE"])
+@login_required
+def delete_shortened_link(link_id):
+    """Delete a shortened link"""
+    try:
+        user_id = session.get("user_id")
+        link = Link.query.filter_by(id=link_id, user_id=user_id).first()
+        if not link:
+            return jsonify({"error": "Link not found"}), 404
+        db.session.delete(link)
+        db.session.commit()
+        return jsonify({"success": True, "message": "Link deleted"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@shorten_bp.route("/shorten/<int:link_id>/regenerate", methods=["POST"])
+@login_required
+def regenerate_short_code(link_id):
+    """Regenerate the short code for a link"""
+    try:
+        user_id = session.get("user_id")
+        link = Link.query.filter_by(id=link_id, user_id=user_id).first()
+        if not link:
+            return jsonify({"error": "Link not found"}), 404
+        new_code = generate_short_code()
+        while Link.query.filter_by(short_code=new_code).first():
+            new_code = generate_short_code()
+        link.short_code = new_code
+        db.session.commit()
+        base_url = request.host_url.rstrip('/')
+        return jsonify({"success": True, "short_code": new_code, "shortened_url": f"{base_url}/t/{new_code}"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
