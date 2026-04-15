@@ -36,6 +36,8 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
     // Capture Options
     captureEmail: false,
     capturePassword: false,
+    // Email Merge Tag
+    subscriberIdEnabled: false,
     // Channel Adaptive Mode™
     channelType: 'general',
     // Zero-Knowledge
@@ -81,6 +83,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
           blockedCountries: editingLink.blocked_countries ? editingLink.blocked_countries.join(',') : '',
           captureEmail: editingLink.capture_email ?? false,
           capturePassword: editingLink.capture_password ?? false,
+          subscriberIdEnabled: editingLink.subscriber_id_enabled ?? false,
           channelType: editingLink.channel_type || 'general',
           zeroKnowledgeEnabled: editingLink.zero_knowledge_enabled ?? false,
           expirationPeriod: editingLink.expiration_period || 'never',
@@ -128,6 +131,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
         domain: formData.domain,
         capture_email: formData.captureEmail,
         capture_password: formData.capturePassword,
+        subscriber_id_enabled: formData.subscriberIdEnabled,
         channel_type: formData.channelType,
         bot_blocking_enabled: formData.botBlockingEnabled,
         rate_limiting_enabled: formData.rateLimitingEnabled,
@@ -170,6 +174,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
           blockedCountries: '',
           captureEmail: false,
           capturePassword: false,
+          subscriberIdEnabled: false,
           channelType: 'general',
           zeroKnowledgeEnabled: false,
           expirationPeriod: 'never',
@@ -444,6 +449,38 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
 		                    onChange={handleChange}
 		                  />
 		                </div>
+		              </div>
+		            )}
+		          </div>
+
+		          {/* Subscriber ID Merge Tag */}
+		          <div className="bg-[#10b981]/5 border border-[#10b981]/20 p-4 rounded-lg">
+		            <div className="flex items-center justify-between mb-2">
+		              <div className="flex items-center gap-2">
+		                <Info className="w-4 h-4 text-[#10b981]" />
+		                <h3 className="text-sm font-semibold text-[#10b981]">Subscriber ID Merge Tag</h3>
+		                <span className="text-[10px] uppercase font-bold tracking-widest text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded">Email</span>
+		              </div>
+		              <Checkbox
+		                id="subscriberIdEnabled"
+		                checked={formData.subscriberIdEnabled}
+		                onCheckedChange={(checked) => handleCheckboxChange('subscriberIdEnabled', checked)}
+		              />
+		            </div>
+		            <p className="text-[11px] text-muted-foreground leading-relaxed">
+		              Appends <code className="bg-black/30 px-1 rounded text-[#10b981] font-mono">?id={'{id}'}</code> to your tracking URL as a merge tag.
+		              Email senders (SendGrid, Mailchimp, etc.) automatically replace <code className="bg-black/30 px-1 rounded font-mono text-[#10b981]">{'{id}'}</code> with
+		              a unique subscriber ID per recipient — each click is individually identified without duplicating links.
+		              The redirect chain works whether or not the tag has been replaced.
+		            </p>
+		            {formData.subscriberIdEnabled && (
+		              <div className="mt-3 p-2.5 bg-black/20 rounded border border-[#10b981]/20 space-y-1">
+		                <p className="text-[10px] text-muted-foreground">
+		                  Merge tag in URL: <span className="text-[#10b981] font-mono">?id={'{id}'}</span>
+		                </p>
+		                <p className="text-[10px] text-muted-foreground">
+		                  After sender substitution: <span className="text-foreground font-mono">?id=SUB_84721</span>
+		                </p>
 		              </div>
 		            )}
 		          </div>

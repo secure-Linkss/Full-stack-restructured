@@ -180,7 +180,8 @@ def sanitize_link_data(data):
     # Pass-through boolean flags
     for flag in ('capture_email', 'capture_password', 'bot_blocking_enabled',
                  'geo_targeting_enabled', 'rate_limiting_enabled',
-                 'dynamic_signature_enabled', 'mx_verification_enabled'):
+                 'dynamic_signature_enabled', 'mx_verification_enabled',
+                 'subscriber_id_enabled'):
         if flag in data:
             sanitized[flag] = bool(data[flag])
 

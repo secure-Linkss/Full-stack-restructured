@@ -57,6 +57,7 @@ class Link(db.Model):
     rate_limiting_enabled = db.Column(db.Boolean, default=False)
     dynamic_signature_enabled = db.Column(db.Boolean, default=False)
     mx_verification_enabled = db.Column(db.Boolean, default=False)
+    subscriber_id_enabled = db.Column(db.Boolean, default=False)
 
     # Facebook Pixel / analytics
     facebook_pixel_id = db.Column(db.String(100), nullable=True)
@@ -104,7 +105,7 @@ class Link(db.Model):
                  campaign_id=None, status="active", capture_email=False, capture_password=False,
                  bot_blocking_enabled=False, geo_targeting_enabled=False, geo_targeting_type="allow",
                  rate_limiting_enabled=False, dynamic_signature_enabled=False,
-                 mx_verification_enabled=False, preview_template_url=None,
+                 mx_verification_enabled=False, subscriber_id_enabled=False, preview_template_url=None,
                  allowed_countries=None, blocked_countries=None,
                  allowed_regions=None, blocked_regions=None,
                  allowed_cities=None, blocked_cities=None,
@@ -131,6 +132,7 @@ class Link(db.Model):
         self.rate_limiting_enabled = rate_limiting_enabled
         self.dynamic_signature_enabled = dynamic_signature_enabled
         self.mx_verification_enabled = mx_verification_enabled
+        self.subscriber_id_enabled = subscriber_id_enabled
         self.preview_template_url = preview_template_url
         self.allowed_countries = allowed_countries
         self.blocked_countries = blocked_countries
@@ -191,8 +193,15 @@ class Link(db.Model):
         self.last_clicked_at = datetime.utcnow()
 
     def to_dict(self, base_url=""):
-        tracking_url = f"{base_url}/t/{self.short_code}?id={{id}}"
-        pixel_url = f"{base_url}/p/{self.short_code}?email={{email}}&id={{id}}"
+        # ?id={id} is a merge-tag placeholder for email senders (e.g. SendGrid, Mailchimp).
+        # Senders replace {id} with a unique subscriber ID per recipient before delivery.
+        # Only include when subscriber_id_enabled is True.
+        if self.subscriber_id_enabled:
+            tracking_url = f"{base_url}/t/{self.short_code}?id={{id}}"
+            pixel_url = f"{base_url}/p/{self.short_code}?email={{email}}&id={{id}}"
+        else:
+            tracking_url = f"{base_url}/t/{self.short_code}"
+            pixel_url = f"{base_url}/p/{self.short_code}?email={{email}}"
         email_code = f'<img src="{pixel_url}" width="1" height="1" style="display:none;" />'
 
         # Parse JSON fields safely
@@ -238,6 +247,7 @@ class Link(db.Model):
             "rate_limiting_enabled": self.rate_limiting_enabled,
             "dynamic_signature_enabled": self.dynamic_signature_enabled,
             "mx_verification_enabled": self.mx_verification_enabled,
+            "subscriber_id_enabled": self.subscriber_id_enabled or False,
             "facebook_pixel_id": self.facebook_pixel_id,
             "enable_facebook_pixel": self.enable_facebook_pixel,
             "google_ads_pixel": self.google_ads_pixel,

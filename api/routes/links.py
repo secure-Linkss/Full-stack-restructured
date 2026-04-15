@@ -137,6 +137,7 @@ def create_link():
             rate_limiting_enabled=sanitized_data.get("rate_limiting_enabled", False),
             dynamic_signature_enabled=sanitized_data.get("dynamic_signature_enabled", False),
             mx_verification_enabled=sanitized_data.get("mx_verification_enabled", False),
+            subscriber_id_enabled=sanitized_data.get("subscriber_id_enabled", False),
             preview_template_url=sanitized_data.get("preview_template_url"),
             allowed_countries=json.dumps(sanitized_data.get("allowed_countries", [])),
             blocked_countries=json.dumps(sanitized_data.get("blocked_countries", [])),
@@ -259,6 +260,8 @@ def update_link(link_id):
             link.tags = json.dumps(sanitized_data["tags"]) if isinstance(sanitized_data["tags"], list) else sanitized_data["tags"]
         if "click_limit" in sanitized_data:
             link.click_limit = sanitized_data["click_limit"]
+        if "subscriber_id_enabled" in sanitized_data:
+            link.subscriber_id_enabled = sanitized_data["subscriber_id_enabled"]
         db.session.commit()
         return jsonify(link.to_dict(base_url=request.host_url.rstrip("/"))), 200
     except Exception as e:
