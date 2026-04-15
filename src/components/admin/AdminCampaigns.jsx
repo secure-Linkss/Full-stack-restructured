@@ -80,7 +80,7 @@ const AdminCampaigns = () => {
              }`}>
                {row.status}
              </span>
-             <span className="text-[10px] text-muted-foreground font-mono">ID: {row.id?.substring(0,8) || 'N/A'}</span>
+             <span className="text-[10px] text-muted-foreground font-mono">ID: {String(row.id ?? '').substring(0,8) || 'N/A'}</span>
           </div>
         </div>
       ),
