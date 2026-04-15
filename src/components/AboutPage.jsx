@@ -13,7 +13,8 @@ import {
   Heart,
   Lightbulb,
   CheckCircle,
-  ArrowLeft
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react'
 import Logo from '@/components/Logo'
 
