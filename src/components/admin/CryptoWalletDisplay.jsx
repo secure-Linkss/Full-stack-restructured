@@ -28,7 +28,7 @@ const CryptoWalletDisplay = ({ wallet }) => {
                             {wallet.address}
                         </p>
                         <p className="text-sm text-muted-foreground font-mono md:hidden">
-                            {wallet.address.substring(0, 8)}...{wallet.address.substring(wallet.address.length - 8)}
+                            {String(wallet.address ?? '').substring(0, 8)}...{String(wallet.address ?? '').substring(String(wallet.address ?? '').length - 8)}
                         </p>
                     </div>
                 </div>

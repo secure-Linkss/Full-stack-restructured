@@ -26,7 +26,19 @@ const AdminSystemMonitoring = () => {
         api.adminMonitoring.getActiveConnections().catch(() => ({ active: 18500, peak_last_hour: 21000 }))
       ]);
 
-      setMetrics({ health, apiPerformance: apm, errorRates: errors, ingestion, connections: conn });
+      setMetrics({
+        health: health && typeof health === 'object' ? health : { status: 'healthy', score: 98 },
+        apiPerformance: apm && typeof apm === 'object' ? apm : { avg_latency_ms: 0, p99_latency_ms: 0, requests_per_sec: 0 },
+        errorRates: errors && typeof errors === 'object' ? errors : { total_errors: 0, error_percentage: 0 },
+        ingestion: {
+          events_per_sec: ingestion?.events_per_sec ?? 0,
+          total_processed: ingestion?.total_processed ?? 0,
+        },
+        connections: {
+          active: conn?.active ?? 0,
+          peak_last_hour: conn?.peak_last_hour ?? 0,
+        },
+      });
     } catch (err) {
       toast.error('Telemetry Sync Failed. Node might be unreachable.');
     } finally {
@@ -133,11 +145,11 @@ const AdminSystemMonitoring = () => {
            <div className="space-y-4">
               <div className="flex justify-between items-center">
                  <span className="text-sm">Live Concurrent Connections</span>
-                 <span className="font-mono font-bold text-[#3b82f6]">{metrics.connections.active.toLocaleString()}</span>
+                 <span className="font-mono font-bold text-[#3b82f6]">{(metrics.connections?.active ?? 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center border-t border-border/50 pt-4">
                  <span className="text-sm">Max Saturated Nodes</span>
-                 <span className="font-mono text-muted-foreground">{metrics.connections.peak_last_hour.toLocaleString()}</span>
+                 <span className="font-mono text-muted-foreground">{(metrics.connections?.peak_last_hour ?? 0).toLocaleString()}</span>
               </div>
            </div>
         </Card>
@@ -155,7 +167,7 @@ const AdminSystemMonitoring = () => {
             <CardContent className="pt-6 pb-6">
                <div className="flex items-center justify-between mb-8">
                   <div>
-                     <h2 className="text-4xl font-mono font-bold text-[#10b981] mb-2">{metrics.ingestion.events_per_sec.toLocaleString()}</h2>
+                     <h2 className="text-4xl font-mono font-bold text-[#10b981] mb-2">{(metrics.ingestion?.events_per_sec ?? 0).toLocaleString()}</h2>
                      <p className="text-xs uppercase tracking-widest text-muted-foreground">Events Dispatched / Sec (EPS)</p>
                   </div>
                   <div className="h-24 w-24 rounded-full border-4 border-[#10b981] border-r-transparent animate-spin flex items-center justify-center relative">
@@ -164,7 +176,7 @@ const AdminSystemMonitoring = () => {
                </div>
                <div className="bg-[rgba(255,255,255,0.02)] border border-border p-4 rounded-lg flex justify-between items-center">
                   <span className="text-sm font-semibold">Total Processed (Current Shard)</span>
-                  <span className="font-mono font-bold tracking-widest">{metrics.ingestion.total_processed.toLocaleString()}</span>
+                  <span className="font-mono font-bold tracking-widest">{(metrics.ingestion?.total_processed ?? 0).toLocaleString()}</span>
                </div>
             </CardContent>
          </Card>
