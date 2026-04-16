@@ -18,7 +18,6 @@ def submit_contact_form():
         # Extract and sanitize data
         name = sanitize_string(data.get('name', ''))
         email = sanitize_string(data.get('email', ''))
-        phone = sanitize_string(data.get('phone', ''))
         subject = sanitize_string(data.get('subject', ''))
         message = sanitize_string(data.get('message', ''))
         
@@ -36,7 +35,6 @@ def submit_contact_form():
         contact = ContactSubmission(
             name=name,
             email=email,
-            phone=phone if phone else None,
             subject=subject,
             message=message,
             status='new',
@@ -133,16 +131,10 @@ def update_contact_status(submission_id):
         
         data = request.get_json()
         new_status = data.get('status')
-        admin_notes = data.get('admin_notes')
-        
+
         if new_status:
             submission.status = new_status
-            if new_status == 'resolved':
-                submission.resolved_at = datetime.utcnow()
-        
-        if admin_notes:
-            submission.admin_notes = admin_notes
-        
+
         submission.updated_at = datetime.utcnow()
         db.session.commit()
         
