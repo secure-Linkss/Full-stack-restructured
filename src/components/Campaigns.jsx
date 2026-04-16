@@ -77,7 +77,7 @@ const Campaigns = () => {
     const matchesFilter = filter === 'all' || campaign.status === filter;
     const matchesSearch = !searchQuery ||
       campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.id.toLowerCase().includes(searchQuery.toLowerCase());
+      String(campaign.id || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 

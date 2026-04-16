@@ -53,6 +53,7 @@ def get_campaigns():
             conversion_rate = (captured_emails / total_clicks * 100) if total_clicks > 0 else 0
             
             campaigns_data.append({
+                'id': campaign_name,
                 'name': campaign_name,
                 'link_count': len(campaign_links),
                 'total_clicks': total_clicks,
