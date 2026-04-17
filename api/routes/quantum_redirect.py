@@ -135,6 +135,12 @@ def stage2_validation_hub():
                     tracking_event.quantum_stage = 'validation_failed'
                     tracking_event.quantum_security_violation = result['security_violation']
                     tracking_event.quantum_processing_time = (tracking_event.quantum_processing_time or 0) + result['processing_time_ms']
+
+                    # Increment per-link blocked_attempts counter
+                    link_obj = Link.query.get(tracking_event.link_id)
+                    if link_obj:
+                        link_obj.blocked_attempts = (link_obj.blocked_attempts or 0) + 1
+
                     db.session.commit()
             
             return jsonify({
@@ -250,11 +256,16 @@ def stage3_routing_gateway():
             tracking_event.quantum_final_url = result['final_url']
             tracking_event.quantum_processing_time = (tracking_event.quantum_processing_time or 0) + result['processing_time_ms']
             tracking_event.quantum_verified = True
-            
+
             # Mark as successful conversion for analytics
             tracking_event.is_verified_human = True
             tracking_event.quantum_security_score = 100
-            
+
+            # Increment per-link real_visitors counter
+            link_obj = Link.query.get(tracking_event.link_id)
+            if link_obj:
+                link_obj.real_visitors = (link_obj.real_visitors or 0) + 1
+
             db.session.commit()
         
         # Bridge page fires on_page beacon then JS-redirects to destination

@@ -35,8 +35,8 @@ const UserApiKeyManager = () => {
   const fetchApiKeys = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/api/user/api-keys')
-      setApiKeys(response.data.api_keys || [])
+      const data = await api.userApiKeys.getAll()
+      setApiKeys(data.api_keys || [])
     } catch (error) {
       console.error('Error fetching API keys:', error)
       toast.error('Failed to load API keys')
@@ -47,8 +47,8 @@ const UserApiKeyManager = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/api/user/api-keys/usage-stats')
-      setStats(response.data.stats || {})
+      const data = await api.userApiKeys.getStats()
+      setStats(data.stats || {})
     } catch (error) {
       console.error('Error fetching stats:', error)
     }
@@ -62,28 +62,26 @@ const UserApiKeyManager = () => {
 
     try {
       setCreating(true)
-      const response = await api.post('/api/user/api-keys', {
+      const data = await api.userApiKeys.create({
         name: newKeyData.name,
         permissions: newKeyData.permissions,
         expires_in_days: newKeyData.expires_in_days
       })
 
-      setCreatedKey(response.data.api_key)
+      setCreatedKey(data.api_key)
       toast.success('API key created successfully!')
-      
-      // Reset form
+
       setNewKeyData({
         name: '',
         permissions: ['read:links', 'read:analytics'],
         expires_in_days: null
       })
 
-      // Refresh keys list
       await fetchApiKeys()
       await fetchStats()
     } catch (error) {
       console.error('Error creating API key:', error)
-      toast.error(error.response?.data?.error || 'Failed to create API key')
+      toast.error(error.message || 'Failed to create API key')
     } finally {
       setCreating(false)
     }
@@ -95,7 +93,7 @@ const UserApiKeyManager = () => {
     }
 
     try {
-      await api.post(`/api/user/api-keys/${keyId}/revoke`)
+      await api.userApiKeys.revoke(keyId)
       toast.success('API key revoked successfully')
       await fetchApiKeys()
       await fetchStats()
@@ -111,7 +109,7 @@ const UserApiKeyManager = () => {
     }
 
     try {
-      await api.delete(`/api/user/api-keys/${keyId}`)
+      await api.userApiKeys.delete(keyId)
       toast.success('API key deleted successfully')
       await fetchApiKeys()
       await fetchStats()

@@ -179,10 +179,13 @@ def get_dashboard_analytics():
                 "time": _format_time_ago(event.timestamp) if event.timestamp else "Unknown"
             })
         
+        bots_blocked = len([e for e in events if getattr(e, 'is_bot', False) or e.status == "blocked"])
+
         return jsonify({
             "totalLinks": total_links,
             "totalClicks": total_clicks,
             "realVisitors": real_visitors,
+            "botsBlocked": bots_blocked,
             "capturedEmails": captured_emails,
             "activeLinks": active_links,
             "conversionRate": round(conversion_rate, 1),

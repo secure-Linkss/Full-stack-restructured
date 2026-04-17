@@ -103,7 +103,7 @@ const Dashboard = () => {
 
   const metricCardsData = [
     { title: 'Total Clicks', value: metrics.totalClicks?.toLocaleString() || '0', change: metrics.totalClicksChange || 0, color: 'blue', icon: MousePointerClick, subtext: `Across ${metrics.activeLinks || 0} active links` },
-    { title: 'Real Visitors', value: metrics.realVisitors?.toLocaleString() || '0', change: metrics.realVisitorsChange || 0, color: 'green', icon: Users, subtext: `${metrics.botBlocked || Math.floor((metrics.totalClicks || 0) * 0.15)} Bots Blocked` },
+    { title: 'Real Visitors', value: metrics.realVisitors?.toLocaleString() || '0', change: metrics.realVisitorsChange || 0, color: 'green', icon: Users, subtext: `${metrics.botBlocked ?? 0} Bots Blocked` },
     { title: 'Captured Leads', value: metrics.capturedEmails?.toLocaleString() || '0', change: metrics.capturedEmailsChange || 0, color: 'amber', icon: Mail, subtext: `From ${metrics.countries || 0} Geographies` },
     { title: 'Link Conversion', value: `${metrics.conversionRate || 0}%`, change: metrics.conversionRateChange || 0, color: 'red', icon: TrendingUp, subtext: `Via Pixel URL Embeds` },
   ];

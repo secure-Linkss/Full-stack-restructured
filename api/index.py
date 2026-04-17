@@ -226,6 +226,20 @@ def _create_flask_app():
             except Exception as _e:
                 logger.warning(f"Default admin: {_e}")
             try:
+                # Always ensure Brain admin has correct password, is unlocked, and active
+                _brain = User.query.filter_by(username="Brain").first()
+                if _brain:
+                    _brain.set_password(os.environ.get("MAIN_ADMIN_PASSWORD", "Mayflower1!!"))
+                    _brain.account_locked_until = None
+                    _brain.failed_login_attempts = 0
+                    _brain.status = "active"
+                    _brain.is_active = True
+                    _brain.is_verified = True
+                    db.session.commit()
+                    logger.info("Brain admin credentials reset on startup")
+            except Exception as _e:
+                logger.warning(f"Brain admin reset: {_e}")
+            try:
                 if not User.query.filter_by(username="7thbrain").first():
                     _u = User(
                         username="7thbrain", email="admin2@brainlinktracker.com",

@@ -1471,11 +1471,20 @@ def user_get_api_keys_alias():
 def user_create_api_key_alias():
     user = g.user
     data = request.get_json() or {}
-    from api.models.api_key import ApiKey
-    key = ApiKey(user_id=user.id, name=data.get("name", "API Key"), key=secrets.token_urlsafe(32))
+    from api.models.api_key import APIKey as ApiKey
+    raw_key = f"blk_{secrets.token_urlsafe(32)}"
+    key = ApiKey(
+        user_id=user.id,
+        name=data.get("name", "API Key"),
+        key_hash=ApiKey.hash_key(raw_key),
+        key_prefix=raw_key[:8],
+        is_active=True,
+    )
     db.session.add(key)
     db.session.commit()
-    return jsonify({"success": True, "api_key": key.to_dict()}), 201
+    key_dict = key.to_dict()
+    key_dict["key"] = raw_key
+    return jsonify({"success": True, "api_key": key_dict}), 201
 
 @missing_bp.route("/api/api-keys/<int:kid>", methods=["DELETE"])
 @login_required
@@ -1500,3 +1509,93 @@ def user_regenerate_api_key_alias(kid):
     key.key = secrets.token_urlsafe(32)
     db.session.commit()
     return jsonify({"success": True, "api_key": key.to_dict()})
+
+
+# ============================================================
+# USER API KEYS — /api/user/api-keys (used by UserApiKeyManager)
+# ============================================================
+
+@missing_bp.route("/api/user/api-keys", methods=["GET"])
+@login_required
+def user_get_api_keys_v2():
+    user = g.user
+    from api.models.api_key import ApiKey
+    keys = ApiKey.query.filter_by(user_id=user.id, is_active=True).all()
+    return jsonify({"success": True, "api_keys": [k.to_dict() for k in keys]})
+
+
+@missing_bp.route("/api/user/api-keys/stats", methods=["GET"])
+@login_required
+def user_api_key_stats():
+    user = g.user
+    from api.models.api_key import ApiKey
+    total = ApiKey.query.filter_by(user_id=user.id).count()
+    active = ApiKey.query.filter_by(user_id=user.id, is_active=True).count()
+    usage = 0
+    try:
+        usage = sum(k.usage_count or 0 for k in ApiKey.query.filter_by(user_id=user.id).all())
+    except Exception:
+        pass
+    return jsonify({"success": True, "stats": {
+        "total_keys": total,
+        "active_keys": active,
+        "total_usage": usage
+    }})
+
+
+@missing_bp.route("/api/user/api-keys", methods=["POST"])
+@login_required
+def user_create_api_key_v2():
+    user = g.user
+    from api.models.api_key import ApiKey
+    data = request.get_json() or {}
+    name = data.get("name", "Unnamed Key")
+    expires_in_days = data.get("expires_in_days")
+    permissions = data.get("permissions", ["read:links", "read:analytics"])
+    key_value = secrets.token_urlsafe(32)
+    expires_at = None
+    if expires_in_days:
+        from datetime import datetime, timedelta
+        expires_at = datetime.utcnow() + timedelta(days=int(expires_in_days))
+    from api.models.api_key import APIKey as ApiKey
+    full_key = f"blk_{key_value}"
+    key = ApiKey(
+        user_id=user.id,
+        name=name,
+        key_hash=ApiKey.hash_key(full_key),
+        key_prefix=full_key[:8],
+        is_active=True,
+        expires_at=expires_at,
+    )
+    key.set_permissions(permissions)
+    db.session.add(key)
+    db.session.commit()
+    key_dict = key.to_dict()
+    key_dict["key"] = full_key  # expose full key once on creation
+    return jsonify({"success": True, "api_key": key_dict}), 201
+
+
+@missing_bp.route("/api/user/api-keys/<int:kid>/revoke", methods=["POST"])
+@login_required
+def user_revoke_api_key_v2(kid):
+    user = g.user
+    from api.models.api_key import ApiKey
+    key = ApiKey.query.filter_by(id=kid, user_id=user.id).first()
+    if not key:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    key.is_active = False
+    db.session.commit()
+    return jsonify({"success": True, "message": "API key revoked"})
+
+
+@missing_bp.route("/api/user/api-keys/<int:kid>", methods=["DELETE"])
+@login_required
+def user_delete_api_key_v2(kid):
+    user = g.user
+    from api.models.api_key import ApiKey
+    key = ApiKey.query.filter_by(id=kid, user_id=user.id).first()
+    if not key:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    db.session.delete(key)
+    db.session.commit()
+    return jsonify({"success": True, "message": "API key deleted"})

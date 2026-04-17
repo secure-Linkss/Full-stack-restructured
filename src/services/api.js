@@ -91,6 +91,7 @@ const api = {
         totalLinks: response.totalLinks || 0,
         totalClicks: response.totalClicks || 0,
         realVisitors: response.realVisitors || 0,
+        botBlocked: response.botsBlocked || response.botBlocked || 0,
         capturedEmails: response.capturedEmails || 0,
         activeLinks: response.activeLinks || 0,
         conversionRate: response.conversionRate || 0,
@@ -837,6 +838,18 @@ const api = {
       body: JSON.stringify({ tx_hash: txHash, network }),
     }),
     getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/crypto-payments/wallets`),
+  },
+
+  // ==================== USER API KEYS APIs ====================
+  userApiKeys: {
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/user/api-keys`),
+    getStats: () => fetchWithAuth(`${API_BASE_URL}/user/api-keys/stats`),
+    create: (data) => fetchWithAuth(`${API_BASE_URL}/user/api-keys`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    revoke: (id) => fetchWithAuth(`${API_BASE_URL}/user/api-keys/${id}/revoke`, { method: 'POST' }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/user/api-keys/${id}`, { method: 'DELETE' }),
   },
 };
 
