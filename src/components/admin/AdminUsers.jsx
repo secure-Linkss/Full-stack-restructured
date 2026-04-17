@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Plus, RefreshCw, Filter, Trash2, Edit, Lock, Mail, UserCheck, Clock, Activity, ShieldBan, MonitorPlay } from 'lucide-react';
+import { Users, Plus, RefreshCw, Trash2, Edit, Lock, Mail, UserCheck, Clock, Activity, ShieldBan, MonitorPlay, Crown, FlaskConical, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import DataTable from '@/components/ui/DataTable';
 import FilterBar from '@/components/ui/FilterBar';
 import CreateUserModal from './CreateUserModal';
@@ -12,7 +14,8 @@ import EditUserModal from './EditUserModal';
 import PendingUsersTable from './PendingUsersTable';
 import api from '../../services/api';
 
-const AdminUsers = ({ isOwner = false }) => {
+const AdminUsers = ({ isOwner = false, userRole = 'admin' }) => {
+  const isMainAdmin = isOwner || userRole === 'main_admin';
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,6 +23,7 @@ const AdminUsers = ({ isOwner = false }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [promoteModal, setPromoteModal] = useState({ open: false, user: null, days: 7 });
 
   const fetchData = async () => {
     setLoading(true);
@@ -69,6 +73,15 @@ const AdminUsers = ({ isOwner = false }) => {
         await api.adminUsers.activate(user.id);
         toast.success(`User ${user.username} activated.`);
         fetchData();
+      } else if (action === 'Promote Test Admin') {
+        setPromoteModal({ open: true, user, days: 7 });
+        return;
+      } else if (action === 'Demote to Member') {
+        if (window.confirm(`Remove test admin access for ${user.username}?`)) {
+          await api.adminUsers.demoteTest(user.id);
+          toast.success(`${user.username} demoted back to member.`);
+          fetchData();
+        }
       } else {
         toast.info(`${action} action triggered for user: ${user.email}`);
       }
@@ -101,14 +114,23 @@ const AdminUsers = ({ isOwner = false }) => {
       header: 'Role',
       accessor: 'role',
       sortable: true,
-      cell: (row) => (
-        <span className={`text-sm font-medium px-2 py-0.5 rounded-full capitalize ${row.role === 'main_admin' ? 'bg-red-500/20 text-red-400' :
-            row.role === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
-              'bg-green-500/20 text-green-400'
+      cell: (row) => {
+        const isTestAdmin = row.role === 'test_admin';
+        // Non-main-admins see test_admin as plain "Admin"
+        const displayRole = isTestAdmin && !isMainAdmin ? 'admin' : row.role;
+        return (
+          <span className={`inline-flex items-center gap-1 text-sm font-medium px-2 py-0.5 rounded-full capitalize ${
+            displayRole === 'main_admin' ? 'bg-red-500/20 text-red-400' :
+            displayRole === 'test_admin' ? 'bg-orange-500/20 text-orange-400' :
+            displayRole === 'admin' ? 'bg-yellow-500/20 text-yellow-400' :
+            'bg-green-500/20 text-green-400'
           }`}>
-          {row.role}
-        </span>
-      ),
+            {displayRole === 'test_admin' && <FlaskConical className="w-3 h-3" />}
+            {displayRole === 'main_admin' && <Crown className="w-3 h-3" />}
+            {displayRole === 'main_admin' ? 'Main Admin' : displayRole === 'test_admin' ? 'Test Admin' : displayRole}
+          </span>
+        );
+      },
     },
     {
       header: 'Status',
@@ -325,6 +347,13 @@ const AdminUsers = ({ isOwner = false }) => {
                              {row.status === 'suspended' ? <UserCheck className="w-3.5 h-3.5 mr-2" /> : <ShieldBan className="w-3.5 h-3.5 mr-2" />}
                              {row.status === 'suspended' ? 'Lift Suspension' : 'Suspend Tenant Activity'}
                           </DropdownMenuItem>
+                          {/* Main admin: promote/demote test admin */}
+                          {isMainAdmin && row.role === 'member' && (
+                            <DropdownMenuItem onClick={() => handleAction('Promote Test Admin', row)} className="text-xs cursor-pointer text-orange-400 focus:bg-orange-500/10 focus:text-orange-400"><FlaskConical className="w-3.5 h-3.5 mr-2" /> Promote to Test Admin</DropdownMenuItem>
+                          )}
+                          {isMainAdmin && row.role === 'test_admin' && (
+                            <DropdownMenuItem onClick={() => handleAction('Demote to Member', row)} className="text-xs cursor-pointer text-yellow-400 focus:bg-yellow-500/10"><UserX className="w-3.5 h-3.5 mr-2" /> Demote to Member</DropdownMenuItem>
+                          )}
                           {/* Owner can delete any non-owner; admin can only delete members */}
                           {(isOwner || row.role === 'member') && (
                             <DropdownMenuItem onClick={() => handleAction('Delete User', row)} className="text-xs cursor-pointer text-[#ef4444] focus:bg-[rgba(239,68,68,0.1)] focus:text-[#ef4444]"><Trash2 className="w-3.5 h-3.5 mr-2" /> Completely Purge Identity</DropdownMenuItem>
@@ -349,12 +378,66 @@ const AdminUsers = ({ isOwner = false }) => {
         onSuccess={fetchData}
       />
       
-      <EditUserModal 
+      <EditUserModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSuccess={fetchData}
         user={selectedUser}
       />
+
+      {/* Promote to Test Admin Modal */}
+      <Dialog open={promoteModal.open} onOpenChange={(open) => setPromoteModal(p => ({ ...p, open }))}>
+        <DialogContent className="bg-[#141d2e] border-[#1e2d47] text-foreground max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FlaskConical className="w-5 h-5 text-orange-400" />
+              Promote to Test Admin
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Grant <span className="font-semibold text-foreground">{promoteModal.user?.username}</span> read-only admin access for a limited time.
+              They will see the admin panel but cannot create, edit, or delete anything.
+            </p>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Access Duration</p>
+              <div className="flex gap-2">
+                {[7, 30].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setPromoteModal(p => ({ ...p, days: d }))}
+                    className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-all ${promoteModal.days === d ? 'border-orange-400 bg-orange-500/10 text-orange-400' : 'border-[#1e2d47] text-muted-foreground hover:border-orange-400/50'}`}
+                  >
+                    {d} Days
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground bg-yellow-500/10 border border-yellow-500/20 rounded px-3 py-2">
+              Other admins will see this user as "Admin". Only you (main admin) will see the "Test Admin" badge.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPromoteModal({ open: false, user: null, days: 7 })}>Cancel</Button>
+            <Button
+              size="sm"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={async () => {
+                try {
+                  await api.adminUsers.promoteTest(promoteModal.user.id, promoteModal.days);
+                  toast.success(`${promoteModal.user.username} promoted to Test Admin for ${promoteModal.days} days.`);
+                  setPromoteModal({ open: false, user: null, days: 7 });
+                  fetchData();
+                } catch (err) {
+                  toast.error(`Failed: ${err.message}`);
+                }
+              }}
+            >
+              <FlaskConical className="w-4 h-4 mr-2" /> Confirm Promotion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

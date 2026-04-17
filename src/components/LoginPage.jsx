@@ -2,8 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, LogIn, ArrowRight } from 'lucide-react';
 import Logo from './Logo';
+import { useSEO } from '../hooks/useSEO';
 
 const LoginPage = ({ onLogin }) => {
+  useSEO({
+    title: 'Sign In',
+    description: 'Sign in to your Brain Link Tracker account. Access your link tracking dashboard, analytics, and quantum redirect controls.',
+    canonical: '/login',
+    noIndex: true,
+  });
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);

@@ -636,6 +636,13 @@ const api = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
+    promoteTest: (id, days) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/promote-test`, {
+      method: 'POST',
+      body: JSON.stringify({ days }),
+    }),
+    demoteTest: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/demote-test`, {
+      method: 'POST',
+    }),
   },
 
   // ==================== ADMIN - CAMPAIGNS APIs ====================
@@ -720,6 +727,9 @@ const api = {
     }),
     close: (id) => fetchWithAuth(`${API_BASE_URL}/admin/support-tickets/${id}/close`, {
       method: 'POST',
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/support-tickets/${id}`, {
+      method: 'DELETE',
     }),
   },
 

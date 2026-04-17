@@ -212,6 +212,53 @@ def admin_settings_delete_wallet(current_user, wid):
 
 
 # ============================================================
+# TEST ADMIN MANAGEMENT — promote/demote/list test_admins
+# ============================================================
+
+@missing_bp.route("/api/admin/test-admins", methods=["GET"])
+@admin_required
+def admin_list_test_admins(current_user):
+    """List all test_admin users. Only visible to main_admin."""
+    if current_user.role != "main_admin":
+        return jsonify({"success": False, "error": "Owner access required"}), 403
+    users = User.query.filter_by(role="test_admin").all()
+    return jsonify({"success": True, "test_admins": [{"id": u.id, "username": u.username, "email": u.email, "subscription_expiry": u.subscription_expiry.isoformat() if u.subscription_expiry else None} for u in users]})
+
+
+@missing_bp.route("/api/admin/users/<int:uid>/promote-test", methods=["POST"])
+@admin_required
+def admin_promote_to_test(current_user, uid):
+    """Promote a user to test_admin with optional expiry. Only main_admin."""
+    if current_user.role != "main_admin":
+        return jsonify({"success": False, "error": "Owner access required"}), 403
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    data = request.get_json() or {}
+    days = int(data.get("days", 7))
+    user.role = "test_admin"
+    user.status = "active"
+    user.subscription_expiry = datetime.utcnow() + timedelta(days=days)
+    db.session.commit()
+    return jsonify({"success": True, "message": f"{user.username} promoted to test_admin for {days} days"})
+
+
+@missing_bp.route("/api/admin/users/<int:uid>/demote-test", methods=["POST"])
+@admin_required
+def admin_demote_test(current_user, uid):
+    """Demote a test_admin back to member. Only main_admin."""
+    if current_user.role != "main_admin":
+        return jsonify({"success": False, "error": "Owner access required"}), 403
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    user.role = "member"
+    user.subscription_expiry = None
+    db.session.commit()
+    return jsonify({"success": True, "message": f"{user.username} demoted to member"})
+
+
+# ============================================================
 # ADMIN MONITORING (lines 636-645 of api.js)
 # ============================================================
 
@@ -548,6 +595,97 @@ def admin_close_ticket(current_user, tid):
     thread.status = "closed"
     db.session.commit()
     return jsonify({"success": True, "message": "Ticket closed"})
+
+
+@missing_bp.route("/api/admin/support-tickets/<int:tid>", methods=["DELETE"])
+@admin_required
+def admin_delete_ticket(current_user, tid):
+    from api.models.message import Thread, Message
+    thread = Thread.query.get(tid)
+    if not thread:
+        return jsonify({"success": False, "error": "Ticket not found"}), 404
+    Message.query.filter_by(thread_id=tid).delete()
+    db.session.delete(thread)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Ticket deleted"})
+
+
+# ============================================================
+# CONTACT ENQUIRY ADMIN ENDPOINTS
+# ============================================================
+
+@missing_bp.route("/api/admin/contact/<int:cid>/read", methods=["POST"])
+@admin_required
+def admin_contact_mark_read(current_user, cid):
+    from api.models.contact import ContactSubmission
+    sub = ContactSubmission.query.get(cid)
+    if not sub:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    if sub.status == 'new':
+        sub.status = 'read'
+        db.session.commit()
+    return jsonify({"success": True})
+
+
+@missing_bp.route("/api/admin/contact/<int:cid>/resolve", methods=["POST"])
+@admin_required
+def admin_contact_resolve(current_user, cid):
+    from api.models.contact import ContactSubmission
+    sub = ContactSubmission.query.get(cid)
+    if not sub:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    sub.status = 'resolved'
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@missing_bp.route("/api/admin/contact/<int:cid>/reply", methods=["POST"])
+@admin_required
+def admin_contact_reply(current_user, cid):
+    from api.models.contact import ContactSubmission
+    sub = ContactSubmission.query.get(cid)
+    if not sub:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    data = request.get_json() or {}
+    body = data.get("message", "").strip()
+    if not body:
+        return jsonify({"success": False, "error": "Message required"}), 400
+    sub.status = 'read'
+    db.session.commit()
+    # Try to send email reply via SMTP if configured
+    smtp_host = os.environ.get("SMTP_HOST")
+    if smtp_host:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            smtp_port = int(os.environ.get("SMTP_PORT", 587))
+            smtp_user = os.environ.get("SMTP_USER", "")
+            smtp_pass = os.environ.get("SMTP_PASS", "")
+            from_email = os.environ.get("SMTP_FROM", smtp_user)
+            msg = MIMEText(body, "plain")
+            msg["Subject"] = f"Re: {sub.subject or 'Your enquiry'}"
+            msg["From"] = from_email
+            msg["To"] = sub.email
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                if smtp_user and smtp_pass:
+                    server.login(smtp_user, smtp_pass)
+                server.sendmail(from_email, [sub.email], msg.as_string())
+        except Exception as e:
+            logger.warning(f"Email reply failed: {e}")
+    return jsonify({"success": True, "message": f"Reply sent to {sub.email}"})
+
+
+@missing_bp.route("/api/admin/contact/<int:cid>", methods=["DELETE"])
+@admin_required
+def admin_contact_delete(current_user, cid):
+    from api.models.contact import ContactSubmission
+    sub = ContactSubmission.query.get(cid)
+    if not sub:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    db.session.delete(sub)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Enquiry deleted"})
 
 
 @missing_bp.route("/api/admin/announcements", methods=["GET"])

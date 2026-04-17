@@ -3,8 +3,15 @@ import { Check, X, ArrowRight, Zap, Shield, Cpu, Brain, Lock, Globe, BarChart3, 
 import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import Footer from './Footer';
+import { useSEO } from '../hooks/useSEO';
 
 const PricingPage = () => {
+   useSEO({
+     title: 'Pricing — Free Trial, Pro & Premium Plans',
+     description: 'Choose a Brain Link Tracker plan. Free 14-day trial, Pro at £100/mo with unlimited links and Quantum Redirect, or Premium with AI Inbox Shield and dedicated support.',
+     keywords: 'link tracker pricing, quantum redirect plans, pro tracking plan, premium link management, free trial tracking',
+     canonical: '/pricing',
+   });
    const [billingCycle, setBillingCycle] = useState('monthly');
 
    const annualDiscount = 0.8; // 20% off
@@ -16,7 +23,7 @@ const PricingPage = () => {
          tagline: 'Admin-approved access. Test the core system.',
          price: { monthly: 0, annual: 0 },
          cta: 'Apply for Trial',
-         ctaLink: '/register',
+         ctaLink: '/register?plan=trial',
          ctaStyle: 'btn-secondary',
          highlighted: false,
          badge: null,
@@ -44,7 +51,7 @@ const PricingPage = () => {
          tagline: 'Serious marketers. Full quantum routing stack.',
          price: { monthly: 100, annual: Math.round(100 * annualDiscount) },
          cta: 'Deploy Pro',
-         ctaLink: '/register',
+         ctaLink: '/register?plan=pro',
          ctaStyle: 'btn-primary shadow-[0_0_20px_rgba(59,130,246,0.4)]',
          highlighted: true,
          badge: 'Most Popular',
@@ -71,7 +78,7 @@ const PricingPage = () => {
          tagline: 'Full AI-driven inbox survival. Maximum evasion.',
          price: { monthly: 150, annual: Math.round(150 * annualDiscount) },
          cta: 'Go Premium',
-         ctaLink: '/register',
+         ctaLink: '/register?plan=premium',
          ctaStyle: 'w-full bg-gradient-to-r from-[#8b5cf6] to-[#6d28d9] text-white font-semibold rounded-md py-3 text-center text-sm hover:opacity-90 transition-opacity',
          highlighted: false,
          badge: 'Full Power',
@@ -188,7 +195,11 @@ const PricingPage = () => {
                      </div>
 
                      {/* CTA */}
-                     <Link to={plan.ctaLink} className={`${plan.ctaStyle} w-full justify-center mb-8 py-3 text-sm text-center block`}>
+                     <Link
+                        to={plan.ctaLink}
+                        onClick={() => localStorage.setItem('selected_plan', plan.id)}
+                        className={`${plan.ctaStyle} w-full justify-center mb-8 py-3 text-sm text-center block`}
+                     >
                         {plan.cta}
                      </Link>
 

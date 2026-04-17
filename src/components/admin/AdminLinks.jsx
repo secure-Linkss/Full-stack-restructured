@@ -21,11 +21,11 @@ const AdminLinks = () => {
       
       const mappedLinks = linksData.map(l => ({
         ...l,
-        shortUrl: l.short_code || l.shortUrl || `b.link/${Math.random().toString(36).substr(2, 6)}`,
-        targetUrl: l.target_url || l.targetUrl || 'http://unknown.destination.com',
-        clicks: l.total_clicks || Math.floor(Math.random() * 5000),
-        status: l.status || (Math.random() > 0.8 ? 'expired' : 'active'),
-        createdAt: l.created_at || new Date().toISOString()
+        shortUrl: l.short_code ? `b.link/${l.short_code}` : (l.shortUrl || l.short_url || ''),
+        targetUrl: l.target_url || l.targetUrl || '',
+        clicks: l.total_clicks || l.clicks || 0,
+        status: l.status || 'active',
+        createdAt: l.created_at || l.createdAt || ''
       }));
       
       setLinks(mappedLinks);

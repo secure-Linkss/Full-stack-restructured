@@ -3,6 +3,7 @@ import { ArrowRight, ShieldCheck, Activity, Globe, Zap, ChevronRight, Lock, Code
 import { Link } from 'react-router-dom';
 import Footer from './Footer';
 import Logo from './Logo';
+import { useSEO } from '../hooks/useSEO';
 
 // ─── Thresholds: once real data exceeds these, live data is shown ─────────────
 const LIVE_THRESHOLDS = {
@@ -201,6 +202,23 @@ const DashboardPreview = () => {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const HomePage = () => {
+   useSEO({
+     title: 'Advanced Link Tracking & Quantum Redirect Intelligence',
+     description: 'Brain Link Tracker — Institutional-grade link tracking, multi-stage quantum redirect, inbox scoring, real-time analytics, and bot detection. Trusted by elite marketers worldwide.',
+     keywords: 'link tracker, quantum redirect, click tracking, UTM analytics, bot detection, inbox score, custom domain, smart redirect',
+     canonical: '/',
+     type: 'website',
+     jsonLd: {
+       '@context': 'https://schema.org',
+       '@type': 'SoftwareApplication',
+       name: 'Brain Link Tracker',
+       applicationCategory: 'BusinessApplication',
+       operatingSystem: 'Web',
+       description: 'Institutional-grade link tracking with quantum redirect, inbox scoring, and real-time analytics.',
+       offers: { '@type': 'Offer', price: '0', priceCurrency: 'GBP' },
+       url: typeof window !== 'undefined' ? window.location.origin : '',
+     },
+   });
    const [scrolled, setScrolled] = useState(false);
 
    useEffect(() => {

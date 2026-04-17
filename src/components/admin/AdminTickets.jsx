@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Clock, Search, CheckCircle, RefreshCw, Send, ShieldAlert, User, Mail, Shield } from 'lucide-react';
+import { MessageSquare, Clock, Search, CheckCircle, RefreshCw, Send, ShieldAlert, User, Mail, Shield, Trash2 } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'sonner';
 
@@ -17,15 +17,7 @@ const AdminTickets = () => {
     try {
       const response = await api.adminTickets?.getAll() || { tickets: [] };
       const data = response.tickets || response || [];
-      // Fallback for visual structure
-      if (data.length === 0) {
-         setTickets([
-            { id: 'TKT-9281', subject: 'Custom Domain SSL not resolving', status: 'open', priority: 'high', created_at: new Date(Date.now() - 3600000).toISOString(), _msg: 'My custom domain is verified but SSL fails on routing.', user_email: 'premium@example.com' },
-            { id: 'TKT-8241', subject: 'Billing limits warning', status: 'resolved', priority: 'normal', created_at: new Date(Date.now() - 86400000 * 3).toISOString(), _msg: 'How do you calculate clicks on blocked bots?', user_email: 'user@example.com' }
-         ]);
-      } else {
-         setTickets(Array.isArray(data) ? data : []);
-      }
+      setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error('Failed to load support tickets.');
     } finally {
@@ -67,7 +59,21 @@ const AdminTickets = () => {
     } catch (error) {
       toast.error('Action failed.');
     }
-  }
+  };
+
+  const handleDeleteTicket = async (ticket) => {
+    if (!window.confirm(`Permanently delete ticket ${ticket.id || ticket.subject}?`)) return;
+    try {
+      if (api.adminTickets?.delete) {
+        await api.adminTickets.delete(ticket.id);
+      }
+      toast.success('Ticket deleted.');
+      if (activeTicket?.id === ticket.id) setActiveTicket(null);
+      fetchTickets();
+    } catch (error) {
+      toast.error('Failed to delete ticket.');
+    }
+  };
 
   const filteredTickets = tickets.filter(t => {
     if (filter !== 'all' && t.status !== filter) return false;
@@ -114,24 +120,33 @@ const AdminTickets = () => {
               <div className="text-center py-10 text-muted-foreground text-xs"><ShieldAlert className="w-8 h-8 mx-auto mb-2 opacity-20" /> No tickets in queue.</div>
             ) : (
                filteredTickets.map(ticket => (
-                 <button 
-                   key={ticket.id} 
-                   onClick={() => setActiveTicket(ticket)}
+                 <div
+                   key={ticket.id}
                    className={`w-full text-left p-3 mb-2 rounded-lg border transition-all ${activeTicket?.id === ticket.id ? 'bg-[rgba(59,130,246,0.05)] border-[#3b82f6]/50' : 'bg-transparent border-transparent hover:bg-white/5'}`}
                  >
-                   <div className="flex justify-between items-start mb-1">
-                     <span className="text-[10px] uppercase tracking-widest font-bold text-[#3b82f6]">{ticket.id}</span>
-                     <span className={`badge-dim-${ticket.status === 'resolved' ? 'green' : 'amber'} text-[9px] px-1.5 py-0`}>{ticket.status}</span>
+                   <button className="w-full text-left" onClick={() => setActiveTicket(ticket)}>
+                     <div className="flex justify-between items-start mb-1">
+                       <span className="text-[10px] uppercase tracking-widest font-bold text-[#3b82f6]">{ticket.id}</span>
+                       <span className={`badge-dim-${ticket.status === 'resolved' ? 'green' : 'amber'} text-[9px] px-1.5 py-0`}>{ticket.status}</span>
+                     </div>
+                     <h4 className="text-sm font-semibold text-foreground truncate mb-1">{ticket.subject}</h4>
+                     <div className="flex items-center text-[10px] text-muted-foreground/80 mb-2 truncate">
+                        <Mail className="w-3 h-3 mr-1" /> {ticket.user_email || ticket.email || 'Unknown User'}
+                     </div>
+                     <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+                       <span className="flex items-center font-mono"><Clock className="w-3 h-3 mr-1" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
+                       {ticket.priority === 'high' && <span className="px-1.5 rounded bg-[#ef4444]/20 text-[#ef4444] font-bold">HIGH</span>}
+                     </div>
+                   </button>
+                   <div className="flex justify-end mt-2 pt-2 border-t border-border/40">
+                     <button
+                       onClick={(e) => { e.stopPropagation(); handleDeleteTicket(ticket); }}
+                       className="flex items-center gap-1 text-[10px] text-[#ef4444]/70 hover:text-[#ef4444] transition-colors"
+                     >
+                       <Trash2 className="w-3 h-3" /> Delete
+                     </button>
                    </div>
-                   <h4 className="text-sm font-semibold text-foreground truncate mb-1">{ticket.subject}</h4>
-                   <div className="flex items-center text-[10px] text-muted-foreground/80 mb-2 truncate">
-                      <Mail className="w-3 h-3 mr-1" /> {ticket.user_email || ticket.email || 'Unknown User'}
-                   </div>
-                   <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                     <span className="flex items-center font-mono"><Clock className="w-3 h-3 mr-1" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
-                     {ticket.priority === 'high' && <span className="px-1.5 rounded bg-[#ef4444]/20 text-[#ef4444] font-bold">HIGH</span>}
-                   </div>
-                 </button>
+                 </div>
                ))
             )}
           </div>

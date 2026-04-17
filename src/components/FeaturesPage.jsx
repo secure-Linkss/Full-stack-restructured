@@ -9,8 +9,15 @@ import {
 } from 'lucide-react'
 import Logo from '@/components/Logo'
 import Footer from '@/components/Footer'
+import { useSEO } from '../hooks/useSEO'
 
 const FeaturesPage = () => {
+  useSEO({
+    title: 'Features — Quantum Redirect, Inbox Score & More',
+    description: 'Explore Brain Link Tracker features: 4-stage Quantum Redirect, Inbox Score™, Channel Adaptive Mode™, real-time analytics, custom domains, bot filtering, and Inbox Shield AI™.',
+    keywords: 'quantum redirect, inbox score, channel adaptive, link tracking features, bot detection, custom domain tracking, click analytics',
+    canonical: '/features',
+  });
   const navigate = useNavigate()
 
   const coreFeatures = [

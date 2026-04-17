@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /profile
+Disallow: /api/
+
+Sitemap: https://brain-link-tracker-v2.vercel.app/sitemap.xml

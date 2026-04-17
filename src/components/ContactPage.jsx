@@ -10,9 +10,15 @@ import { toast } from 'sonner'
 import Logo from '@/components/Logo'
 import Footer from '@/components/Footer'
 import api from '../services/api'
-// import Footer from './Footer' - Replaced with inline footer from HomePage
+import { useSEO } from '../hooks/useSEO'
 
 const ContactPage = () => {
+  useSEO({
+    title: 'Contact Us',
+    description: 'Get in touch with the Brain Link Tracker team. We respond to all enquiries within 24–72 hours. Reach out for support, partnerships, or custom enterprise plans.',
+    keywords: 'contact brain link tracker, link tracker support, enterprise enquiry',
+    canonical: '/contact',
+  });
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',

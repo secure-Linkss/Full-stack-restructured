@@ -49,7 +49,7 @@ def login_required(f):
             return jsonify({"success": False, "error": "Authentication required"}), 401
         if not user.is_active or user.status not in ("active",):
             # Admins bypass status check
-            if user.role not in ("admin", "main_admin"):
+            if user.role not in ("admin", "main_admin", "test_admin"):
                 return jsonify({"success": False, "error": "Account not active or pending approval"}), 403
         g.user = user
         return f(*args, **kwargs)
@@ -57,7 +57,9 @@ def login_required(f):
 
 
 def admin_required(f):
-    """Require admin or main_admin role. Sets g.user. Injects user if function expects current_user."""
+    """Require admin, main_admin, or test_admin role. Sets g.user.
+    test_admin is read-only: blocked on POST/PUT/PATCH/DELETE.
+    Injects user if function expects current_user."""
     inject = _needs_user_injection(f)
 
     @wraps(f)
@@ -65,8 +67,11 @@ def admin_required(f):
         user = _resolve_user()
         if not user:
             return jsonify({"success": False, "error": "Authentication required"}), 401
-        if user.role not in ("admin", "main_admin"):
+        if user.role not in ("admin", "main_admin", "test_admin"):
             return jsonify({"success": False, "error": "Admin access required"}), 403
+        # test_admin is read-only — block all write methods
+        if user.role == "test_admin" and request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            return jsonify({"success": False, "error": "Read-only access. Test admins cannot perform write operations."}), 403
         g.user = user
         if inject:
             return f(user, *args, **kwargs)
