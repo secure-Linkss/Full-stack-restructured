@@ -1020,7 +1020,7 @@ def admin_update_rate_limit_settings(current_user):
 
 @missing_bp.route("/api/admin/primary-domain", methods=["GET"])
 @admin_required
-def admin_get_primary_domain(_current_user):
+def admin_get_primary_domain():
     from api.models.admin_settings import AdminSettings
     setting = AdminSettings.query.filter_by(setting_key="primary_domain").first()
     primary = setting.setting_value if setting else None
