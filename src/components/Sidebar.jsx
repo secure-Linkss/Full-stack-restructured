@@ -5,7 +5,7 @@ import {
   Globe, Shield, Settings, Zap, Users, X, ChevronLeft, ChevronRight,
   Bell, MessageSquare, Mail
 } from 'lucide-react';
-import { Badge } from './ui/badge';
+import { Badge } from './ui/Badge';
 import Logo from './Logo';
 
 const navGroups = [
