@@ -1446,3 +1446,57 @@ def admin_unlock_user(current_user, uid):
     user.failed_login_attempts = 0
     db.session.commit()
     return jsonify({"success": True, "message": f"Account {user.username} unlocked"})
+
+
+# ============================================================
+# API KEY ALIASES (UserApiKeyManager uses /api/api-keys directly)
+# ============================================================
+
+@missing_bp.route("/api/api-keys", methods=["GET"])
+@login_required
+def user_get_api_keys_alias():
+    from api.routes.missing_endpoints import missing_bp as _bp
+    # delegate to settings route
+    from flask import current_app
+    with current_app.test_request_context(path='/api/settings/api-keys', headers=dict(request.headers)):
+        pass
+    # inline implementation
+    user = g.user
+    from api.models.api_key import ApiKey
+    keys = ApiKey.query.filter_by(user_id=user.id, is_active=True).all()
+    return jsonify({"success": True, "api_keys": [k.to_dict() for k in keys]})
+
+@missing_bp.route("/api/api-keys", methods=["POST"])
+@login_required
+def user_create_api_key_alias():
+    user = g.user
+    data = request.get_json() or {}
+    from api.models.api_key import ApiKey
+    key = ApiKey(user_id=user.id, name=data.get("name", "API Key"), key=secrets.token_urlsafe(32))
+    db.session.add(key)
+    db.session.commit()
+    return jsonify({"success": True, "api_key": key.to_dict()}), 201
+
+@missing_bp.route("/api/api-keys/<int:kid>", methods=["DELETE"])
+@login_required
+def user_delete_api_key_alias(kid):
+    user = g.user
+    from api.models.api_key import ApiKey
+    key = ApiKey.query.filter_by(id=kid, user_id=user.id).first()
+    if not key:
+        return jsonify({"success": False, "error": "API key not found"}), 404
+    key.is_active = False
+    db.session.commit()
+    return jsonify({"success": True, "message": "API key deleted"})
+
+@missing_bp.route("/api/api-keys/<int:kid>/regenerate", methods=["POST"])
+@login_required
+def user_regenerate_api_key_alias(kid):
+    user = g.user
+    from api.models.api_key import ApiKey
+    key = ApiKey.query.filter_by(id=kid, user_id=user.id).first()
+    if not key:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    key.key = secrets.token_urlsafe(32)
+    db.session.commit()
+    return jsonify({"success": True, "api_key": key.to_dict()})
