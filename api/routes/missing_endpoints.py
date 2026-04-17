@@ -1531,15 +1531,10 @@ def user_api_key_stats():
     from api.models.api_key import ApiKey
     total = ApiKey.query.filter_by(user_id=user.id).count()
     active = ApiKey.query.filter_by(user_id=user.id, is_active=True).count()
-    usage = 0
-    try:
-        usage = sum(k.usage_count or 0 for k in ApiKey.query.filter_by(user_id=user.id).all())
-    except Exception:
-        pass
     return jsonify({"success": True, "stats": {
         "total_keys": total,
         "active_keys": active,
-        "total_usage": usage
+        "total_usage": 0
     }})
 
 

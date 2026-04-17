@@ -17,7 +17,6 @@ class APIKey(db.Model):
     expires_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     permissions = db.Column(db.Text, nullable=True)  # JSON string of permissions
-    usage_count = db.Column(db.Integer, default=0)
 
     @staticmethod
     def generate_key():
@@ -66,7 +65,6 @@ class APIKey(db.Model):
             'is_active': self.is_active,
             'status': self.status,
             'permissions': perms,
-            'usage_count': self.usage_count or 0,
         }
         return data
 
