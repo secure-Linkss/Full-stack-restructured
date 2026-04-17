@@ -14,7 +14,7 @@ def _find_event(uid):
     return event
 
 
-@page_tracking_bp.route("/api/track/page-view", methods=["POST"])
+@page_tracking_bp.route("/track/page-view", methods=["POST"])
 def track_page_view():
     """Track when user reaches the landing page (on_page status).
     Accepts uid = unique_id OR quantum_click_id (bridge passes quantum_click_id).
@@ -46,7 +46,7 @@ def track_page_view():
         return jsonify({"success": True, "message": "Beacon received"})
 
 
-@page_tracking_bp.route("/api/track/email-open", methods=["POST"])
+@page_tracking_bp.route("/track/email-open", methods=["POST"])
 def track_email_open():
     """Track when email is opened via pixel tracking"""
     try:
@@ -76,7 +76,7 @@ def track_email_open():
         return jsonify({"success": False, "error": "Internal server error"}), 500
 
 
-@page_tracking_bp.route("/api/track/session-end", methods=["POST"])
+@page_tracking_bp.route("/track/session-end", methods=["POST"])
 def track_session_end():
     """Track when user session ends"""
     try:
