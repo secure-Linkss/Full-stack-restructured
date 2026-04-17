@@ -201,6 +201,9 @@ importers:
       globals:
         specifier: ^16.0.0
         version: 16.5.0
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -1270,56 +1273,67 @@ packages:
     resolution: {integrity: sha512-EPlb95nUsz6Dd9Qy13fI5kUPXNSljaG9FiJ4YUGU1O/Q77i5DYFW5KR8g1OzTcdZUqQQ1KdDqsTohdFVwCwjqg==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.53.2':
     resolution: {integrity: sha512-BOmnVW+khAUX+YZvNfa0tGTEMVVEerOxN0pDk2E6N6DsEIa2Ctj48FOMfNDdrwinocKaC7YXUZ1pHlKpnkja/Q==}
     cpu: [arm]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.53.2':
     resolution: {integrity: sha512-Xt2byDZ+6OVNuREgBXr4+CZDJtrVso5woFtpKdGPhpTPHcNG7D8YXeQzpNbFRxzTVqJf7kvPMCub/pcGUWgBjA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.53.2':
     resolution: {integrity: sha512-+LdZSldy/I9N8+klim/Y1HsKbJ3BbInHav5qE9Iy77dtHC/pibw1SR/fXlWyAk0ThnpRKoODwnAuSjqxFRDHUQ==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-loong64-gnu@4.53.2':
     resolution: {integrity: sha512-8ms8sjmyc1jWJS6WdNSA23rEfdjWB30LH8Wqj0Cqvv7qSHnvw6kgMMXRdop6hkmGPlyYBdRPkjJnj3KCUHV/uQ==}
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-gnu@4.53.2':
     resolution: {integrity: sha512-3HRQLUQbpBDMmzoxPJYd3W6vrVHOo2cVW8RUo87Xz0JPJcBLBr5kZ1pGcQAhdZgX9VV7NbGNipah1omKKe23/g==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-gnu@4.53.2':
     resolution: {integrity: sha512-fMjKi+ojnmIvhk34gZP94vjogXNNUKMEYs+EDaB/5TG/wUkoeua7p7VCHnE6T2Tx+iaghAqQX8teQzcvrYpaQA==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.53.2':
     resolution: {integrity: sha512-XuGFGU+VwUUV5kLvoAdi0Wz5Xbh2SrjIxCtZj6Wq8MDp4bflb/+ThZsVxokM7n0pcbkEr2h5/pzqzDYI7cCgLQ==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.53.2':
     resolution: {integrity: sha512-w6yjZF0P+NGzWR3AXWX9zc0DNEGdtvykB03uhonSHMRa+oWA6novflo2WaJr6JZakG2ucsyb+rvhrKac6NIy+w==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.53.2':
     resolution: {integrity: sha512-yo8d6tdfdeBArzC7T/PnHd7OypfI9cbuZzPnzLJIyKYFhAQ8SvlkKtKBMbXDxe1h03Rcr7u++nFS7tqXz87Gtw==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.53.2':
     resolution: {integrity: sha512-ah59c1YkCxKExPP8O9PwOvs+XRLKwh/mV+3YdKqQ5AMQ0r4M4ZDuOrpWkUaqO7fzAHdINzV9tEVu8vNw48z0lA==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-openharmony-arm64@4.53.2':
     resolution: {integrity: sha512-4VEd19Wmhr+Zy7hbUsFZ6YXEiP48hE//KPLCSVNY5RMGX2/7HZ+QkN55a3atM1C/BZCGIgqN+xrVgtdak2S9+A==}
@@ -2106,6 +2120,40 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
+  pg-cloudflare@1.3.0:
+    resolution: {integrity: sha512-6lswVVSztmHiRtD6I8hw4qP/nDm1EJbKMRhf3HCYaqud7frGysPv7FYJ5noZQdhQtN2xJnimfMtvQq21pdbzyQ==}
+
+  pg-connection-string@2.12.0:
+    resolution: {integrity: sha512-U7qg+bpswf3Cs5xLzRqbXbQl85ng0mfSV/J0nnA31MCLgvEaAo7CIhmeyrmJpOr7o+zm0rXK+hNnT5l9RHkCkQ==}
+
+  pg-int8@1.0.1:
+    resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
+    engines: {node: '>=4.0.0'}
+
+  pg-pool@3.13.0:
+    resolution: {integrity: sha512-gB+R+Xud1gLFuRD/QgOIgGOBE2KCQPaPwkzBBGC9oG69pHTkhQeIuejVIk3/cnDyX39av2AxomQiyPT13WKHQA==}
+    peerDependencies:
+      pg: '>=8.0'
+
+  pg-protocol@1.13.0:
+    resolution: {integrity: sha512-zzdvXfS6v89r6v7OcFCHfHlyG/wvry1ALxZo4LqgUoy7W9xhBDMaqOuMiF3qEV45VqsN6rdlcehHrfDtlCPc8w==}
+
+  pg-types@2.2.0:
+    resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
+    engines: {node: '>=4'}
+
+  pg@8.20.0:
+    resolution: {integrity: sha512-ldhMxz2r8fl/6QkXnBD3CR9/xg694oT6DZQ2s6c/RI28OjtSOpxnPrUCGOBJ46RCUxcWdx3p6kw/xnDHjKvaRA==}
+    engines: {node: '>= 16.0.0'}
+    peerDependencies:
+      pg-native: '>=3.0.1'
+    peerDependenciesMeta:
+      pg-native:
+        optional: true
+
+  pgpass@1.0.5:
+    resolution: {integrity: sha512-FdW9r/jQZhSeohs1Z3sI1yxFQNFvMcnmfuj4WBMUTxOrAyLMaTcE1aAMBiTlbMNaXvBCQuVi0R7hd8udDSP7ug==}
+
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -2171,6 +2219,22 @@ packages:
   postcss@8.5.6:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
+
+  postgres-array@2.0.0:
+    resolution: {integrity: sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==}
+    engines: {node: '>=4'}
+
+  postgres-bytea@1.0.1:
+    resolution: {integrity: sha512-5+5HqXnsZPE65IJZSMkZtURARZelel2oXUEO8rH83VS/hxH5vv1uHquPg5wZs8yMAfdv971IU+kcPUczi7NVBQ==}
+    engines: {node: '>=0.10.0'}
+
+  postgres-date@1.0.7:
+    resolution: {integrity: sha512-suDmjLVQg78nMK2UZ454hAG+OAW+HQPZ6n++TNDUX+L0+uUlLywnoxJKDou51Zm+zTCjrCl0Nq6J9C5hP9vK/Q==}
+    engines: {node: '>=0.10.0'}
+
+  postgres-interval@1.2.0:
+    resolution: {integrity: sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==}
+    engines: {node: '>=0.10.0'}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -2379,6 +2443,10 @@ packages:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
 
+  split2@4.2.0:
+    resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
+    engines: {node: '>= 10.x'}
+
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -2564,6 +2632,10 @@ packages:
   wrap-ansi@8.1.0:
     resolution: {integrity: sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ==}
     engines: {node: '>=12'}
+
+  xtend@4.0.2:
+    resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
+    engines: {node: '>=0.4'}
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
@@ -4386,6 +4458,41 @@ snapshots:
       lru-cache: 10.4.3
       minipass: 7.1.2
 
+  pg-cloudflare@1.3.0:
+    optional: true
+
+  pg-connection-string@2.12.0: {}
+
+  pg-int8@1.0.1: {}
+
+  pg-pool@3.13.0(pg@8.20.0):
+    dependencies:
+      pg: 8.20.0
+
+  pg-protocol@1.13.0: {}
+
+  pg-types@2.2.0:
+    dependencies:
+      pg-int8: 1.0.1
+      postgres-array: 2.0.0
+      postgres-bytea: 1.0.1
+      postgres-date: 1.0.7
+      postgres-interval: 1.2.0
+
+  pg@8.20.0:
+    dependencies:
+      pg-connection-string: 2.12.0
+      pg-pool: 3.13.0(pg@8.20.0)
+      pg-protocol: 1.13.0
+      pg-types: 2.2.0
+      pgpass: 1.0.5
+    optionalDependencies:
+      pg-cloudflare: 1.3.0
+
+  pgpass@1.0.5:
+    dependencies:
+      split2: 4.2.0
+
   picocolors@1.1.1: {}
 
   picomatch@2.3.1: {}
@@ -4432,6 +4539,16 @@ snapshots:
       nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  postgres-array@2.0.0: {}
+
+  postgres-bytea@1.0.1: {}
+
+  postgres-date@1.0.7: {}
+
+  postgres-interval@1.2.0:
+    dependencies:
+      xtend: 4.0.2
 
   prelude-ls@1.2.1: {}
 
@@ -4652,6 +4769,8 @@ snapshots:
 
   source-map@0.6.1: {}
 
+  split2@4.2.0: {}
+
   string-width@4.2.3:
     dependencies:
       emoji-regex: 8.0.0
@@ -4849,6 +4968,8 @@ snapshots:
       ansi-styles: 6.2.3
       string-width: 5.1.2
       strip-ansi: 7.1.2
+
+  xtend@4.0.2: {}
 
   yallist@3.1.1: {}
 
