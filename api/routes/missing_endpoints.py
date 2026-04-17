@@ -785,7 +785,7 @@ def security_2fa_disable():
 @missing_bp.route("/api/security/sessions", methods=["GET"])
 @login_required
 def security_get_sessions():
-    user = User.query.get(session.get("user_id"))
+    user = g.user
     return jsonify({
         "success": True,
         "sessions": [{
@@ -807,7 +807,7 @@ def security_revoke_session(session_id):
 @missing_bp.route("/api/security/login-history", methods=["GET"])
 @login_required
 def security_login_history():
-    user = User.query.get(session.get("user_id"))
+    user = g.user
     logs = AuditLog.query.filter_by(actor_id=user.id, action="User logged in") \
         .order_by(AuditLog.created_at.desc()).limit(20).all()
     return jsonify({
@@ -824,7 +824,7 @@ def security_login_history():
 @missing_bp.route("/api/security/threats", methods=["GET"])
 @login_required
 def security_user_threats():
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     link_ids = [l.id for l in Link.query.filter_by(user_id=user_id).all()]
     if not link_ids:
         return jsonify({"success": True, "threats": []})
@@ -844,7 +844,7 @@ def security_user_threats():
 @missing_bp.route("/api/security/metrics", methods=["GET"])
 @login_required
 def security_metrics():
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     link_ids = [l.id for l in Link.query.filter_by(user_id=user_id).all()]
     total = TrackingEvent.query.filter(TrackingEvent.link_id.in_(link_ids)).count() if link_ids else 0
     bots = TrackingEvent.query.filter(TrackingEvent.link_id.in_(link_ids), TrackingEvent.is_bot == True).count() if link_ids else 0
@@ -867,7 +867,7 @@ def security_block_ip():
     if not ip:
         return jsonify({"success": False, "error": "IP required"}), 400
     from api.models.security import BlockedIP
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     existing = BlockedIP.query.filter_by(ip_address=ip, user_id=user_id).first()
     if existing:
         return jsonify({"success": False, "error": "Already blocked"}), 400
@@ -879,7 +879,7 @@ def security_block_ip():
 @missing_bp.route("/api/security/logs", methods=["GET"])
 @login_required
 def security_logs():
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     days = request.args.get("days", 7, type=int)
     since = datetime.utcnow() - timedelta(days=days)
     logs = AuditLog.query.filter(AuditLog.actor_id == user_id, AuditLog.created_at >= since) \
@@ -901,11 +901,14 @@ def security_logs():
 @login_required
 def user_upload_avatar():
     """Handle avatar upload — store as base64 in DB"""
-    user = User.query.get(session.get("user_id"))
-    if 'file' in request.files:
+    user = g.user
+    file = request.files.get('file') or request.files.get('avatar')
+    if file:
         import base64
-        file = request.files['file']
-        data = base64.b64encode(file.read()).decode('utf-8')
+        raw = file.read()
+        if len(raw) > 2 * 1024 * 1024:
+            return jsonify({"success": False, "error": "File too large (max 2MB)"}), 400
+        data = base64.b64encode(raw).decode('utf-8')
         user.avatar = f"data:{file.content_type};base64,{data}"
         db.session.commit()
         return jsonify({"success": True, "avatar_url": user.avatar})
@@ -915,7 +918,7 @@ def user_upload_avatar():
 @missing_bp.route("/api/user/change-password", methods=["POST"])
 @login_required
 def user_change_password():
-    user = User.query.get(session.get("user_id"))
+    user = g.user
     data = request.get_json() or {}
     current = data.get("current_password") or data.get("currentPassword")
     new = data.get("new_password") or data.get("newPassword")
@@ -936,7 +939,7 @@ def user_change_password():
 @login_required
 def user_delete_account():
     """Permanently delete user account and all associated data"""
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     user = User.query.get(user_id)
     if not user:
         return jsonify({"success": False, "error": "User not found"}), 404
@@ -1017,7 +1020,7 @@ def domain_set_default(did):
 @login_required
 def analytics_ab_test():
     """Proxy to the ab-test-performance endpoint in analytics"""
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     user_links = Link.query.filter_by(user_id=user_id).all()
     test_data = []
     for link in user_links:
@@ -1040,7 +1043,7 @@ def analytics_export():
     """Export analytics data as CSV"""
     import csv, io
     from flask import Response
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     fmt = request.args.get("format", "csv")
 
     links = Link.query.filter_by(user_id=user_id).all()
@@ -1075,7 +1078,7 @@ def links_bulk_delete():
     ids = data.get("ids", [])
     if not ids:
         return jsonify({"success": False, "error": "No IDs provided"}), 400
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     deleted = 0
     for lid in ids:
         link = Link.query.filter_by(id=lid, user_id=user_id).first()
@@ -1198,7 +1201,7 @@ def admin_set_primary_domain(current_user):
 @missing_bp.route("/api/settings", methods=["GET"])
 @login_required
 def user_get_settings():
-    user = User.query.get(session.get("user_id"))
+    user = g.user
     settings = {}
     if user.settings:
         try: settings = json.loads(user.settings)
@@ -1209,7 +1212,7 @@ def user_get_settings():
 @missing_bp.route("/api/settings", methods=["PUT"])
 @login_required
 def user_update_settings():
-    user = User.query.get(session.get("user_id"))
+    user = g.user
     data = request.get_json() or {}
     user.settings = json.dumps(data)
     db.session.commit()
@@ -1280,7 +1283,7 @@ def log_admin_action(actor_id, action, target_id=None, target_type=None):
 def user_get_tickets():
     """Get all support tickets for current user"""
     from api.models.message import Thread
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     threads = Thread.query.filter_by(user_id=user_id).order_by(Thread.updated_at.desc()).all()
     result = []
     for t in threads:
@@ -1296,7 +1299,7 @@ def user_get_tickets():
 def user_get_ticket(tid):
     """Get a specific support ticket with messages"""
     from api.models.message import Thread, Message
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     thread = Thread.query.filter_by(id=tid, user_id=user_id).first()
     if not thread:
         return jsonify({"success": False, "error": "Ticket not found"}), 404
@@ -1311,7 +1314,7 @@ def user_get_ticket(tid):
 def user_create_ticket():
     """Create a new support ticket"""
     from api.models.message import Thread, Message
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     data = request.get_json() or {}
     subject = data.get("subject", "").strip()
     message = data.get("message", "").strip()
@@ -1345,7 +1348,7 @@ def user_create_ticket():
 def user_reply_ticket(tid):
     """Reply to a support ticket"""
     from api.models.message import Thread, Message
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     thread = Thread.query.filter_by(id=tid, user_id=user_id).first()
     if not thread:
         return jsonify({"success": False, "error": "Ticket not found"}), 404
@@ -1375,7 +1378,7 @@ def user_reply_ticket(tid):
 def user_close_ticket(tid):
     """Close a support ticket"""
     from api.models.message import Thread
-    user_id = session.get("user_id")
+    user_id = g.user.id if g.user else None
     thread = Thread.query.filter_by(id=tid, user_id=user_id).first()
     if not thread:
         return jsonify({"success": False, "error": "Ticket not found"}), 404
@@ -1426,3 +1429,20 @@ def verify_crypto_tx():
             return jsonify({"success": False, "error": "Blockchain API unavailable"}), 502
     except Exception as e:
         return jsonify({"success": False, "error": f"Verification failed: {str(e)}"}), 500
+
+
+# ============================================================
+# ADMIN: UNLOCK LOCKED ACCOUNT
+# ============================================================
+
+@missing_bp.route("/api/admin/users/<int:uid>/unlock", methods=["POST"])
+@admin_required
+def admin_unlock_user(current_user, uid):
+    """Unlock an account-locked user"""
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    user.account_locked_until = None
+    user.failed_login_attempts = 0
+    db.session.commit()
+    return jsonify({"success": True, "message": f"Account {user.username} unlocked"})
