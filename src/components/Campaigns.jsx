@@ -61,7 +61,7 @@ const Campaigns = () => {
     } else if (action === 'Delete') {
        if (window.confirm(`Are you absolutely sure you want to delete campaign ${campaign.name}?`)) {
           try {
-             await api.campaigns.delete(campaign.id);
+             await api.campaigns.delete(campaign.name);
              toast.success('Campaign deleted successfully.');
              fetchData();
           } catch (e) {
@@ -111,27 +111,21 @@ const Campaigns = () => {
     },
     {
       header: 'Links',
-      accessor: 'linkCount',
+      accessor: 'link_count',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.linkCount.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{(row.link_count || 0).toLocaleString()}</span>,
     },
     {
       header: 'Clicks',
-      accessor: 'totalClicks',
+      accessor: 'total_clicks',
       sortable: true,
-      cell: (row) => <span className="text-sm">{row.totalClicks.toLocaleString()}</span>,
+      cell: (row) => <span className="text-sm">{(row.total_clicks || 0).toLocaleString()}</span>,
     },
     {
       header: 'Conversion Rate',
-      accessor: 'conversionRate',
+      accessor: 'conversion_rate',
       sortable: true,
-      cell: (row) => <span className="text-sm">{Math.round(row.conversionRate * 100)}%</span>,
-    },
-    {
-      header: 'Created',
-      accessor: 'createdAt',
-      sortable: true,
-      cell: (row) => <span className="text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>,
+      cell: (row) => <span className="text-sm">{(row.conversion_rate || 0).toFixed(1)}%</span>,
     },
   ];
 

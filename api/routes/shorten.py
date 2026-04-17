@@ -2,26 +2,13 @@ from flask import Blueprint, request, jsonify, session, g
 from api.models.link import Link
 from api.database import db
 from api.models.user import User
-from functools import wraps
+from api.middleware.auth_decorators import login_required
 import string
 import random
 import requests
 import os
 
 shorten_bp = Blueprint("shorten", __name__)
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
-            return jsonify({"error": "Authentication required"}), 401
-        
-        user = User.query.get(session["user_id"])
-        if not user:
-            return jsonify({"error": "User not found"}), 401
-        g.user = user
-        return f(*args, **kwargs)
-    return decorated_function
 
 def generate_short_code(length=8):
     characters = string.ascii_letters + string.digits
@@ -32,7 +19,7 @@ def generate_short_code(length=8):
 def get_shortened_links():
     """List all shortened links for the current user"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         links = Link.query.filter_by(user_id=user_id).order_by(Link.created_at.desc()).limit(100).all()
         base_url = request.host_url.rstrip('/')
         result = []
@@ -56,8 +43,8 @@ def get_shortened_links():
 def shorten_url():
     """Shorten URL (alias for creating link) with user authentication and Short.io integration"""
     try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+        user_id = g.user.id
+        user = g.user
 
         if not user.can_create_link():
             return jsonify({"error": "Daily link limit reached"}), 403
@@ -142,7 +129,7 @@ def shorten_url():
 def delete_shortened_link(link_id):
     """Delete a shortened link"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         link = Link.query.filter_by(id=link_id, user_id=user_id).first()
         if not link:
             return jsonify({"error": "Link not found"}), 404
@@ -159,7 +146,7 @@ def delete_shortened_link(link_id):
 def regenerate_short_code(link_id):
     """Regenerate the short code for a link"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         link = Link.query.filter_by(id=link_id, user_id=user_id).first()
         if not link:
             return jsonify({"error": "Link not found"}), 404

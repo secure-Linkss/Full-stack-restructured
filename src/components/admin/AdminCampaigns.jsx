@@ -21,9 +21,9 @@ const AdminCampaigns = () => {
       
       const mappedCampaigns = campaignsData.map(c => ({
         ...c,
-        linkCount: c.links_count || Math.floor(Math.random() * 20),
-        totalClicks: c.total_clicks || Math.floor(Math.random() * 5000),
-        createdAt: c.created_at || new Date().toISOString()
+        linkCount: c.links_count || c.link_count || 0,
+        totalClicks: c.total_clicks || 0,
+        createdAt: c.created_at || new Date().toISOString(),
       }));
       
       setCampaigns(mappedCampaigns);
@@ -42,7 +42,7 @@ const AdminCampaigns = () => {
     try {
       if (action === 'Delete Campaign') {
         if (window.confirm(`FORCE DELETE: Are you sure you want to eradicate the campaign [${campaign.name}] routing array?`)) {
-          await api.adminCampaigns?.delete(campaign.id);
+          await (api.admin?.campaigns?.delete || api.adminCampaigns?.delete)(campaign.id);
           toast.success('Campaign vector purged globally.');
           fetchData();
         }

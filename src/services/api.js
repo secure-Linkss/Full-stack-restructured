@@ -778,11 +778,23 @@ const api = {
     generateQR: (shortCode) => fetchWithAuth(`${API_BASE_URL}/shorten/${shortCode}/qr`),
   },
 
-  // Alias for backward compatibility
+  // Alias used by LinkShortener.jsx — normalizes snake_case → camelCase
   shorten: {
-    getAll: () => fetchWithAuth(`${API_BASE_URL}/shorten`),
-    delete: (id) => fetchWithAuth(`${API_BASE_URL}/shorten/${id}`, { method: 'DELETE' }),
-    regenerate: (id) => fetchWithAuth(`${API_BASE_URL}/shorten/${id}/regenerate`, { method: 'POST' }),
+    getAll: () => fetchWithAuth(`${API_BASE_URL}/shorten`).then(data => {
+      const list = data.links || data || [];
+      return list.map(lnk => ({
+        id: lnk.id,
+        shortUrl: lnk.shortened_url || lnk.short_url || `${window.location.origin}/t/${lnk.short_code}`,
+        targetUrl: lnk.original_url || lnk.target_url || '',
+        clicks: lnk.click_count || lnk.total_clicks || lnk.clicks || 0,
+        createdAt: lnk.created_at || lnk.createdAt || new Date().toISOString(),
+        status: lnk.status || 'active',
+        short_code: lnk.short_code,
+        campaignName: lnk.campaign_name || lnk.title || lnk.short_code || '',
+      }));
+    }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
+    regenerate: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}/regenerate`, { method: 'POST' }),
   },
 
   // ==================== DOMAINS APIs ====================

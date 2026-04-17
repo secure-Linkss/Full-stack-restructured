@@ -187,6 +187,7 @@ def _create_flask_app():
         ("api.routes.telegram",          "telegram_bp",        "/api"),
         ("api.routes.page_tracking",     "page_tracking_bp",   "/api"),
         ("api.routes.shorten",           "shorten_bp",         "/api"),
+        ("api.routes.bridge",            "bridge_bp",          None),
         ("api.routes.advanced_security", "advanced_security_bp", "/api"),
         ("api.routes.profile",           "profile_bp",         None),
         ("api.routes.broadcaster",       "broadcaster_bp",     None),

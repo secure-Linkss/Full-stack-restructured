@@ -458,13 +458,15 @@ const AdminPayments = ({ isOwner = false }) => {
       )}
 
       <Tabs defaultValue="crypto" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 bg-secondary border border-border h-11">
-          <TabsTrigger value="crypto"         className="text-[11px] uppercase tracking-wider"><Bitcoin className="w-3 h-3 mr-1.5 text-[#f59e0b]" /> Crypto Payments</TabsTrigger>
-          <TabsTrigger value="subscriptions"  className="text-[11px] uppercase tracking-wider"><Users className="w-3 h-3 mr-1.5" /> Subscriptions</TabsTrigger>
-          <TabsTrigger value="transactions"   className="text-[11px] uppercase tracking-wider"><Receipt className="w-3 h-3 mr-1.5" /> Ledgers</TabsTrigger>
-          <TabsTrigger value="failed"         className="text-[11px] uppercase tracking-wider"><AlertTriangle className="w-3 h-3 mr-1.5 text-[#ef4444]" /> Failed</TabsTrigger>
-          <TabsTrigger value="settings"       className="text-[11px] uppercase tracking-wider"><Settings className="w-3 h-3 mr-1.5" /> Config</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="flex w-max min-w-full md:grid md:grid-cols-5 bg-secondary border border-border h-11">
+            <TabsTrigger value="crypto"         className="text-[11px] uppercase tracking-wider whitespace-nowrap"><Bitcoin className="w-3 h-3 mr-1.5 text-[#f59e0b]" /> Crypto Payments</TabsTrigger>
+            <TabsTrigger value="subscriptions"  className="text-[11px] uppercase tracking-wider whitespace-nowrap"><Users className="w-3 h-3 mr-1.5" /> Subscriptions</TabsTrigger>
+            <TabsTrigger value="transactions"   className="text-[11px] uppercase tracking-wider whitespace-nowrap"><Receipt className="w-3 h-3 mr-1.5" /> Ledgers</TabsTrigger>
+            <TabsTrigger value="failed"         className="text-[11px] uppercase tracking-wider whitespace-nowrap"><AlertTriangle className="w-3 h-3 mr-1.5 text-[#ef4444]" /> Failed</TabsTrigger>
+            <TabsTrigger value="settings"       className="text-[11px] uppercase tracking-wider whitespace-nowrap"><Settings className="w-3 h-3 mr-1.5" /> Config</TabsTrigger>
+          </TabsList>
+        </div>
 
         <div className="mt-5">
 

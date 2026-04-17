@@ -3,7 +3,7 @@ import string
 import random
 import logging
 from datetime import datetime
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, g
 from api.database import db
 from api.models.link import Link
 from api.models.user import User
@@ -270,12 +270,14 @@ def update_link(link_id):
 @links_bp.route("/links/<int:link_id>", methods=["DELETE"])
 @login_required
 def delete_link(link_id):
-    """Delete link"""
+    """Delete link and its tracking events"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id if hasattr(g, 'user') and g.user else session.get("user_id")
         link = Link.query.filter_by(id=link_id, user_id=user_id).first()
         if not link:
             return jsonify({"error": "Link not found"}), 404
+        # Delete tracking events first (FK constraint)
+        TrackingEvent.query.filter_by(link_id=link_id).delete()
         db.session.delete(link)
         db.session.commit()
         return jsonify({"message": "Link deleted successfully"}), 200

@@ -69,9 +69,32 @@ const AdminPanel = ({ user }) => {
         </div>
       </div>
 
+      {/* Mobile: horizontal scrollable tab bar */}
+      <div className="lg:hidden w-full overflow-x-auto pb-1 -mx-0">
+        <div className="flex gap-1.5 min-w-max px-1">
+          {visibleTabs.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-[rgba(16,185,129,0.15)] text-[#10b981] border border-[#10b981]/30'
+                    : 'text-muted-foreground border border-transparent hover:bg-white/5'
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5 shrink-0" />
+                {tab.title}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-6 w-full">
-        {/* Sidebar Navigation */}
-        <div className="lg:w-64 flex-shrink-0">
+        {/* Sidebar Navigation — desktop only */}
+        <div className="hidden lg:block lg:w-64 flex-shrink-0">
           <div className="enterprise-card p-3 sticky top-24">
             <h3 className="nav-group-header px-3 mb-2 mt-1">Admin Modules</h3>
             <nav className="space-y-1">
@@ -97,7 +120,6 @@ const AdminPanel = ({ user }) => {
               })}
             </nav>
 
-            {/* Role info footer */}
             <div className={`mt-4 mx-2 p-2.5 rounded-lg border text-[10px] ${roleBg}`}>
               <div className={`flex items-center gap-1.5 font-bold uppercase tracking-wider mb-1 ${roleColor}`}>
                 <RoleIcon className="w-3 h-3" /> {roleName} Access
@@ -112,7 +134,7 @@ const AdminPanel = ({ user }) => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 w-full min-w-0">
+        <div className="flex-1 w-full min-w-0 overflow-x-hidden">
           <ActiveComponent isOwner={isOwner} userRole={user?.role} />
         </div>
       </div>

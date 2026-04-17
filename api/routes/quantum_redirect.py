@@ -4,6 +4,7 @@ Super advanced 4-stage redirect system with cryptographic verification
 """
 
 from flask import Blueprint, request, jsonify, redirect, g, session
+from urllib.parse import quote as _urlquote
 from api.services.quantum_redirect import quantum_redirect
 from api.models.link import Link
 from api.models.tracking_event import TrackingEvent
@@ -256,8 +257,10 @@ def stage3_routing_gateway():
             
             db.session.commit()
         
-        # Final redirect to destination
-        return redirect(result['final_url'], code=302)
+        # Bridge page fires on_page beacon then JS-redirects to destination
+        click_id = result.get('click_id', '')
+        bridge_url = f"/bridge?uid={_urlquote(click_id)}&dest={_urlquote(result['final_url'])}"
+        return redirect(bridge_url, code=302)
         
     except Exception as e:
         return jsonify({
