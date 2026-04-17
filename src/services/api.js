@@ -502,6 +502,7 @@ const api = {
     announcements: {
       getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/announcements`),
       create: (data) => fetchWithAuth(`${API_BASE_URL}/admin/announcements`, { method: 'POST', body: JSON.stringify(data) }),
+      update: (id, data) => fetchWithAuth(`${API_BASE_URL}/admin/announcements/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/announcements/${id}`, { method: 'DELETE' }),
     },
     users: {
@@ -525,6 +526,8 @@ const api = {
     getMetrics: () => fetchWithAuth(`${API_BASE_URL}/admin/metrics`),
     getUsersGraph: (days = 30) => fetchWithAuth(`${API_BASE_URL}/admin/users/graph?days=${days}`),
     getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),
+    getPrimaryDomain: () => fetchWithAuth(`${API_BASE_URL}/admin/primary-domain`),
+    setPrimaryDomain: (domain) => fetchWithAuth(`${API_BASE_URL}/admin/primary-domain`, { method: 'POST', body: JSON.stringify({ domain }) }),
   },
 
   // ==================== ADMIN SETTINGS APIs ====================

@@ -130,7 +130,6 @@ def create_link():
             tags=sanitized_data.get("tags"),
             click_limit=sanitized_data.get("click_limit"),
             capture_email=sanitized_data.get("capture_email", False),
-            capture_password=sanitized_data.get("capture_password", False),
             bot_blocking_enabled=sanitized_data.get("bot_blocking_enabled", False),
             geo_targeting_enabled=sanitized_data.get("geo_targeting_enabled", False),
             geo_targeting_type=sanitized_data.get("geo_targeting_type", "allow"),

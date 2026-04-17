@@ -35,7 +35,6 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
     blockedCountries: '', // comma-separated codes
     // Capture Options
     captureEmail: false,
-    capturePassword: false,
     // Email Merge Tag
     subscriberIdEnabled: false,
     // Channel Adaptive Mode™
@@ -82,7 +81,6 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
           allowedCountries: editingLink.allowed_countries ? editingLink.allowed_countries.join(',') : '',
           blockedCountries: editingLink.blocked_countries ? editingLink.blocked_countries.join(',') : '',
           captureEmail: editingLink.capture_email ?? false,
-          capturePassword: editingLink.capture_password ?? false,
           subscriberIdEnabled: editingLink.subscriber_id_enabled ?? false,
           channelType: editingLink.channel_type || 'general',
           zeroKnowledgeEnabled: editingLink.zero_knowledge_enabled ?? false,
@@ -130,7 +128,6 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
         short_code: formData.customCode || undefined,
         domain: formData.domain,
         capture_email: formData.captureEmail,
-        capture_password: formData.capturePassword,
         subscriber_id_enabled: formData.subscriberIdEnabled,
         channel_type: formData.channelType,
         bot_blocking_enabled: formData.botBlockingEnabled,
@@ -173,7 +170,6 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
           allowedCountries: '',
           blockedCountries: '',
           captureEmail: false,
-          capturePassword: false,
           subscriberIdEnabled: false,
           channelType: 'general',
           zeroKnowledgeEnabled: false,
@@ -491,7 +487,6 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
 		            <div className="space-y-2 mt-2">
 		              {[
 		                { id: 'captureEmail', label: 'Capture Email' },
-		                { id: 'capturePassword', label: 'Capture Password' },
 		              ].map(option => (
 		                <div key={option.id} className="flex items-center justify-between">
 		                  <Label htmlFor={option.id} className="text-muted-foreground">

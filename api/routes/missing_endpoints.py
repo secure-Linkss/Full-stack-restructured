@@ -553,9 +553,16 @@ def admin_close_ticket(current_user, tid):
 @missing_bp.route("/api/admin/announcements", methods=["GET"])
 @admin_required
 def admin_get_announcements(current_user):
-    announcements = Notification.query.filter_by(notification_type="announcement") \
-        .order_by(Notification.created_at.desc()).limit(50).all()
-    return jsonify({"success": True, "announcements": [n.to_dict() for n in announcements]})
+    # Return one representative record per unique (title, message) broadcast
+    all_ann = Notification.query.filter_by(notification_type="announcement") \
+        .order_by(Notification.created_at.desc()).all()
+    seen = {}
+    for n in all_ann:
+        key = (n.title, n.message)
+        if key not in seen:
+            seen[key] = n
+    deduped = sorted(seen.values(), key=lambda x: x.created_at, reverse=True)[:50]
+    return jsonify({"success": True, "announcements": [n.to_dict() for n in deduped]})
 
 
 @missing_bp.route("/api/admin/announcements", methods=["POST"])
@@ -563,10 +570,10 @@ def admin_get_announcements(current_user):
 def admin_create_announcement(current_user):
     data = request.get_json() or {}
     title = data.get("title", "Announcement")
-    message = data.get("message", "")
+    message = data.get("message") or data.get("content", "")
     if not message:
         return jsonify({"success": False, "error": "Message required"}), 400
-    users = User.query.filter_by(role="member").all()
+    users = User.query.filter(User.role.in_(["member", "user"])).all()
     for u in users:
         db.session.add(Notification(
             user_id=u.id, title=title, message=message,
@@ -576,12 +583,33 @@ def admin_create_announcement(current_user):
     return jsonify({"success": True, "message": f"Announcement sent to {len(users)} users"})
 
 
+@missing_bp.route("/api/admin/announcements/<int:aid>", methods=["PUT"])
+@admin_required
+def admin_update_announcement(current_user, aid):
+    notif = Notification.query.get(aid)
+    if not notif:
+        return jsonify({"success": False, "error": "Not found"}), 404
+    data = request.get_json() or {}
+    old_title, old_message = notif.title, notif.message
+    new_title = data.get("title", old_title)
+    new_message = data.get("message") or data.get("content", old_message)
+    # Update all notifications from this broadcast
+    Notification.query.filter_by(
+        notification_type="announcement", title=old_title, message=old_message
+    ).update({"title": new_title, "message": new_message})
+    db.session.commit()
+    return jsonify({"success": True})
+
+
 @missing_bp.route("/api/admin/announcements/<int:aid>", methods=["DELETE"])
 @admin_required
 def admin_delete_announcement(current_user, aid):
     notif = Notification.query.get(aid)
     if notif:
-        db.session.delete(notif)
+        # Delete all notifications from this broadcast (same title+message)
+        Notification.query.filter_by(
+            notification_type="announcement", title=notif.title, message=notif.message
+        ).delete()
         db.session.commit()
     return jsonify({"success": True})
 
@@ -984,6 +1012,45 @@ def admin_update_rate_limit_settings(current_user):
     """Update platform rate-limit settings."""
     data = request.get_json() or {}
     return jsonify({"success": True, "message": "Rate limit settings updated.", "settings": data})
+
+
+# ============================================================
+# PRIMARY DOMAIN — Auto-detect + admin toggle
+# ============================================================
+
+@missing_bp.route("/api/admin/primary-domain", methods=["GET"])
+@admin_required
+def admin_get_primary_domain(_current_user):
+    from api.models.admin_settings import AdminSettings
+    setting = AdminSettings.query.filter_by(setting_key="primary_domain").first()
+    primary = setting.setting_value if setting else None
+    return jsonify({"success": True, "primary_domain": primary})
+
+
+@missing_bp.route("/api/admin/primary-domain", methods=["POST"])
+@admin_required
+def admin_set_primary_domain(current_user):
+    from api.models.admin_settings import AdminSettings
+    data = request.get_json() or {}
+    domain = data.get("domain", "").strip()
+    if not domain:
+        # Auto-detect from request host
+        domain = request.host
+    setting = AdminSettings.query.filter_by(setting_key="primary_domain").first()
+    if setting:
+        setting.setting_value = domain
+        setting.updated_by = current_user.id
+    else:
+        db.session.add(AdminSettings(
+            setting_key="primary_domain",
+            setting_value=domain,
+            setting_type="string",
+            description="Primary platform domain for short link generation",
+            is_public=True,
+            updated_by=current_user.id,
+        ))
+    db.session.commit()
+    return jsonify({"success": True, "primary_domain": domain, "message": f"Primary domain set to {domain}"})
 
 
 # ============================================================

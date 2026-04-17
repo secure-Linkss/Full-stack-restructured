@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, Plus, Trash2, CheckCircle, ShieldAlert, RefreshCw, Server, Activity, Users, Zap, Shield } from 'lucide-react';
+import { Globe, Plus, Trash2, CheckCircle, ShieldAlert, RefreshCw, Server, Activity, Users, Zap, Shield, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../services/api';
 
@@ -15,6 +15,8 @@ const AdminDomains = () => {
   const [newDomain, setNewDomain] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [primaryDomain, setPrimaryDomain] = useState('');
+  const [settingPrimary, setSettingPrimary] = useState(false);
 
   const fetchDomains = async () => {
     setLoading(true);
@@ -31,7 +33,12 @@ const AdminDomains = () => {
     }
   };
 
-  useEffect(() => { fetchDomains(); }, []);
+  useEffect(() => {
+    fetchDomains();
+    api.admin?.getPrimaryDomain?.().then(r => {
+      if (r?.primary_domain) setPrimaryDomain(r.primary_domain);
+    }).catch(() => {});
+  }, []);
 
   const handleAddDomain = async () => {
     if (!newDomain || !newDomain.includes('.')) return toast.error('Enter a valid FQDN / Hostname');
@@ -70,6 +77,24 @@ const AdminDomains = () => {
     }
   };
 
+  const handleSetPrimary = async (domainName) => {
+    setSettingPrimary(true);
+    try {
+      const res = await api.admin.setPrimaryDomain(domainName);
+      setPrimaryDomain(domainName);
+      toast.success(res?.message || `Primary domain set to ${domainName}`);
+    } catch {
+      toast.error('Failed to set primary domain.');
+    } finally {
+      setSettingPrimary(false);
+    }
+  };
+
+  const handleAutoDetect = async () => {
+    const detected = window.location.hostname;
+    await handleSetPrimary(detected);
+  };
+
   const handleVerify = async (id, name) => {
     toast.promise(api.domains.verify(id), {
       loading: `Running DNS Verification against ${name}...`,
@@ -88,6 +113,28 @@ const AdminDomains = () => {
            <Globe className="w-6 h-6 mr-3 text-[#3b82f6]" /> Global Domain Management
         </h3>
         <p className="text-sm text-muted-foreground mt-1">Administer the array of root endpoints available for users to route masking URLs through.</p>
+      </div>
+
+      {/* Primary Domain Banner */}
+      <div className="enterprise-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-[#f59e0b]/30 bg-[#f59e0b]/5">
+        <div className="flex items-center gap-3">
+          <Star className="w-5 h-5 text-[#f59e0b] shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Primary Domain</p>
+            <p className="text-xs text-muted-foreground">
+              {primaryDomain ? <code className="font-mono text-[#f59e0b]">{primaryDomain}</code> : 'No primary domain set'}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleAutoDetect}
+            disabled={settingPrimary}
+            className="text-xs px-3 py-1.5 rounded border border-[#f59e0b]/30 text-[#f59e0b] hover:bg-[#f59e0b]/10 transition-colors"
+          >
+            Auto-Detect ({window.location.hostname})
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
@@ -182,6 +229,15 @@ const AdminDomains = () => {
                           </td>
                           <td className="py-4">
                             <div className="flex justify-end items-center gap-2 pr-2">
+                              {primaryDomain === domainName ? (
+                                <span className="px-2 py-1 bg-[#f59e0b]/10 rounded border border-[#f59e0b]/20 text-[#f59e0b] text-[10px] uppercase font-bold tracking-wide flex items-center gap-1">
+                                  <Star className="w-3 h-3" /> Primary
+                                </span>
+                              ) : (
+                                <button onClick={() => handleSetPrimary(domainName)} disabled={settingPrimary} className="px-2 py-1 bg-[#f59e0b]/5 rounded border border-[#f59e0b]/20 text-[#f59e0b]/60 hover:bg-[#f59e0b]/10 hover:text-[#f59e0b] transition-all text-[10px] uppercase font-bold tracking-wide">
+                                  Set Primary
+                                </button>
+                              )}
                               {!isVerified && (
                                  <button onClick={() => handleVerify(domain.id, domainName)} className="px-2 py-1 bg-[#f59e0b]/10 rounded border border-[#f59e0b]/20 text-[#f59e0b] hover:bg-[#f59e0b] hover:text-white transition-all text-[10px] uppercase font-bold tracking-wide">
                                     Verify

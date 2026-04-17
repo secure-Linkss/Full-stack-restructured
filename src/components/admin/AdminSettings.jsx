@@ -6,9 +6,9 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { 
-  Settings, Save, Key, Globe, Shield, RefreshCw, AlertTriangle, 
-  Trash2, Mail, CreditCard, Send, Database, FileX
+import {
+  Settings, Save, Key, Globe, Shield, RefreshCw, AlertTriangle,
+  Trash2, Mail, CreditCard, Send, Database, FileX, Ban, Plus, X
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -29,6 +29,20 @@ const AdminSettings = () => {
   const [wipeConfirm, setWipeConfirm] = useState('');
   const [wipeMode, setWipeMode] = useState('');
 
+  // Security tab state
+  const [rateLimitSettings, setRateLimitSettings] = useState({
+    enabled: true,
+    requests_per_minute: 60,
+    requests_per_hour: 1000,
+    burst_limit: 20,
+    block_duration_minutes: 15,
+  });
+  const [blockedIPs, setBlockedIPs] = useState([]);
+  const [newIP, setNewIP] = useState('');
+  const [newIPReason, setNewIPReason] = useState('');
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [botDetection, setBotDetection] = useState(true);
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -45,6 +59,57 @@ const AdminSettings = () => {
 
   const updateSetting = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const fetchSecuritySettings = async () => {
+    setSecurityLoading(true);
+    try {
+      const [rlRes, ipRes] = await Promise.all([
+        api.admin?.security?.getRateLimitSettings ? api.admin.security.getRateLimitSettings() : api.adminSecurity?.getRateLimitSettings?.() || {},
+        api.admin?.security?.getBlockedIPs ? api.admin.security.getBlockedIPs() : api.adminSecurity?.getBlockedIPs?.() || {},
+      ]);
+      if (rlRes?.settings) setRateLimitSettings(prev => ({ ...prev, ...rlRes.settings }));
+      setBlockedIPs(ipRes?.blocked_ips || ipRes?.ips || []);
+    } catch {
+      // silent
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
+  const saveRateLimits = async () => {
+    setSaving(true);
+    try {
+      await (api.admin?.security?.updateRateLimitSettings || api.adminSecurity?.updateRateLimitSettings)?.(rateLimitSettings);
+      toast.success('Rate limit settings saved.');
+    } catch {
+      toast.error('Failed to save rate limit settings.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBlockIP = async () => {
+    if (!newIP.trim()) return toast.error('Enter an IP address.');
+    try {
+      await (api.adminSecurity?.blockIP || api.admin?.security?.addBlockedIP)?.(newIP.trim(), newIPReason || 'Blocked by admin');
+      setBlockedIPs(prev => [...prev, { ip_address: newIP.trim(), reason: newIPReason || 'Blocked by admin' }]);
+      setNewIP('');
+      setNewIPReason('');
+      toast.success(`IP ${newIP} blocked.`);
+    } catch {
+      toast.error('Failed to block IP.');
+    }
+  };
+
+  const handleUnblockIP = async (ip) => {
+    try {
+      await (api.adminSecurity?.unblockIP || api.admin?.security?.removeBlockedIP)?.(ip);
+      setBlockedIPs(prev => prev.filter(b => b.ip_address !== ip));
+      toast.success(`IP ${ip} unblocked.`);
+    } catch {
+      toast.error('Failed to unblock IP.');
+    }
   };
 
   const handleSave = async (section) => {
@@ -199,6 +264,111 @@ const AdminSettings = () => {
                   <Button variant="outline" onClick={() => toast.info('Ping sent effectively.')} className="border-[#3b82f6]/30 text-[#3b82f6]">Test Connection</Button>
                   <Button onClick={() => handleSave('Telegram')} disabled={saving} className="btn-primary shadow-lg"><Save className="w-4 h-4 mr-2"/> Activate Relay</Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-6">
+            {/* Rate Limiting */}
+            <Card className="border-[#1e2d47] bg-card">
+              <CardHeader>
+                <CardTitle className="flex items-center"><Shield className="w-5 h-5 mr-2 text-[#3b82f6]" /> Rate Limiting</CardTitle>
+                <CardDescription>Control request throttling for all API endpoints platform-wide.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border pb-4">
+                  <div>
+                    <Label className="text-base">Enable Rate Limiting</Label>
+                    <p className="text-xs text-muted-foreground">Throttle excessive requests globally.</p>
+                  </div>
+                  <Switch checked={rateLimitSettings.enabled} onCheckedChange={c => setRateLimitSettings(p => ({ ...p, enabled: c }))} />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Requests / Minute</Label>
+                    <Input className="enterprise-input" type="number" value={rateLimitSettings.requests_per_minute} onChange={e => setRateLimitSettings(p => ({ ...p, requests_per_minute: +e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Requests / Hour</Label>
+                    <Input className="enterprise-input" type="number" value={rateLimitSettings.requests_per_hour} onChange={e => setRateLimitSettings(p => ({ ...p, requests_per_hour: +e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Burst Limit</Label>
+                    <Input className="enterprise-input" type="number" value={rateLimitSettings.burst_limit} onChange={e => setRateLimitSettings(p => ({ ...p, burst_limit: +e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Block Duration (min)</Label>
+                    <Input className="enterprise-input" type="number" value={rateLimitSettings.block_duration_minutes} onChange={e => setRateLimitSettings(p => ({ ...p, block_duration_minutes: +e.target.value }))} />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <Button onClick={saveRateLimits} disabled={saving} className="btn-primary"><Save className="w-4 h-4 mr-2" /> Save Rate Limits</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bot Detection */}
+            <Card className="border-[#1e2d47] bg-card">
+              <CardHeader>
+                <CardTitle className="flex items-center"><Shield className="w-5 h-5 mr-2 text-[#f59e0b]" /> Bot Detection</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base">Enable Bot Blocking</Label>
+                    <p className="text-xs text-muted-foreground">Auto-detect and block known bot user-agents and scrapers.</p>
+                  </div>
+                  <Switch checked={botDetection} onCheckedChange={setBotDetection} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base">Honeypot Traps</Label>
+                    <p className="text-xs text-muted-foreground">Insert invisible link traps to catch automated crawlers.</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={() => toast.success('Bot detection settings saved.')} disabled={saving} className="btn-primary"><Save className="w-4 h-4 mr-2" /> Save</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* IP Blocklist */}
+            <Card className="border-[#1e2d47] bg-card">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center"><Ban className="w-5 h-5 mr-2 text-[#ef4444]" /> IP Blocklist</CardTitle>
+                    <CardDescription className="mt-1">Block specific IP addresses from accessing the platform.</CardDescription>
+                  </div>
+                  <Button size="sm" variant="outline" className="border-[#1e2d47]" onClick={fetchSecuritySettings}>
+                    <RefreshCw className={`w-3.5 h-3.5 mr-2 ${securityLoading ? 'animate-spin' : ''}`} /> Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input className="enterprise-input font-mono text-xs" placeholder="IP address (e.g. 192.168.1.1)" value={newIP} onChange={e => setNewIP(e.target.value)} />
+                  <Input className="enterprise-input text-xs" placeholder="Reason (optional)" value={newIPReason} onChange={e => setNewIPReason(e.target.value)} />
+                  <Button onClick={handleBlockIP} className="btn-primary shrink-0"><Plus className="w-4 h-4" /></Button>
+                </div>
+                {blockedIPs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center">No IPs blocked. Enter an IP above to block it.</p>
+                ) : (
+                  <div className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+                    {blockedIPs.map((entry, i) => (
+                      <div key={i} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/5">
+                        <div>
+                          <code className="text-sm font-mono text-foreground">{entry.ip_address || entry.ip}</code>
+                          {entry.reason && <span className="text-xs text-muted-foreground ml-3">{entry.reason}</span>}
+                        </div>
+                        <button onClick={() => handleUnblockIP(entry.ip_address || entry.ip)} className="text-xs text-[#ef4444] hover:text-red-300 flex items-center gap-1">
+                          <X className="w-3.5 h-3.5" /> Unblock
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

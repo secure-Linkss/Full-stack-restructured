@@ -70,8 +70,27 @@ const Geography = () => {
   };
 
   const handleExport = () => {
-    toast.info('Exporting geography data...');
-    // Mock export logic
+    if (!countryData || countryData.length === 0) {
+      toast.error('No data to export.');
+      return;
+    }
+    const headers = ['Country', 'Country Code', 'Clicks', 'Visitors', 'Percentage'];
+    const rows = countryData.map(row => [
+      row.country || row.name || '',
+      row.country_code || row.code || '',
+      row.clicks || row.total_clicks || 0,
+      row.visitors || row.unique_visitors || 0,
+      row.percentage || 0,
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `geography-${dateRange}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Geography data exported.');
   };
 
   const metricCards = [

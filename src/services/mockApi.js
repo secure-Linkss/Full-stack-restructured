@@ -48,7 +48,6 @@ const createMockLink = (index) => ({
   },
   captureOptions: {
     captureEmail: faker.datatype.boolean(),
-    capturePassword: faker.datatype.boolean(),
   },
 });
 
