@@ -29,6 +29,7 @@
     { "src": "/trap/(.*)",    "dest": "/api/index.py" },
     { "src": "/track/(.*)",   "dest": "/api/index.py" },
     { "src": "/cloak/(.*)",   "dest": "/api/index.py" },
+    { "src": "/bridge",       "dest": "/api/index.py" },
     { "src": "/api/(.*)",     "dest": "/api/index.py" },
     { "src": "/health",       "dest": "/api/index.py" },
     { "src": "/robots.txt",   "dest": "/api/index.py" },
