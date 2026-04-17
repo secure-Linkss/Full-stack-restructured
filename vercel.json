@@ -31,6 +31,8 @@
     { "src": "/cloak/(.*)",   "dest": "/api/index.py" },
     { "src": "/api/(.*)",     "dest": "/api/index.py" },
     { "src": "/health",       "dest": "/api/index.py" },
+    { "src": "/robots.txt",   "dest": "/robots.txt"   },
+    { "src": "/sitemap.xml",  "dest": "/sitemap.xml"  },
     { "handle": "filesystem" },
     { "src": "/(.*)",         "dest": "/index.html"   }
   ],
