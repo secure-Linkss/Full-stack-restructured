@@ -1254,11 +1254,24 @@ def robots_txt():
 @missing_bp.route("/sitemap.xml", methods=["GET"])
 def sitemap_xml():
     from flask import Response
-    app_url = os.environ.get("APP_URL", "https://brainlinktracker.com")
-    urls = [f"{app_url}/", f"{app_url}/login", f"{app_url}/register", f"{app_url}/pricing"]
-    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    for url in urls:
-        xml += f"  <url><loc>{url}</loc></url>\n"
+    BASE = os.environ.get("APP_URL", "https://brain-link-tracker-v2.vercel.app")
+    TODAY = "2026-04-17"
+    pages = [
+        (BASE + "/",         "weekly",  "1.0",  TODAY),
+        (BASE + "/features", "monthly", "0.9",  TODAY),
+        (BASE + "/pricing",  "monthly", "0.9",  TODAY),
+        (BASE + "/contact",  "yearly",  "0.7",  TODAY),
+        (BASE + "/about",    "yearly",  "0.6",  TODAY),
+        (BASE + "/register", "monthly", "0.8",  TODAY),
+        (BASE + "/login",    "yearly",  "0.5",  TODAY),
+        (BASE + "/privacy",  "yearly",  "0.4",  TODAY),
+        (BASE + "/terms",    "yearly",  "0.4",  TODAY),
+    ]
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for loc, freq, pri, lastmod in pages:
+        xml += f"  <url>\n    <loc>{loc}</loc>\n    <lastmod>{lastmod}</lastmod>\n"
+        xml += f"    <changefreq>{freq}</changefreq>\n    <priority>{pri}</priority>\n  </url>\n"
     xml += "</urlset>"
     return Response(xml, mimetype="application/xml")
 
