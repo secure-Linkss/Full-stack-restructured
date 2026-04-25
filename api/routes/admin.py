@@ -311,6 +311,216 @@ def get_all_links(current_user):
         
     return jsonify(result)
 
+@admin_bp.route("/api/admin/links/<int:link_id>", methods=["DELETE"])
+@admin_required
+def admin_delete_link(current_user, link_id):
+    """Delete a link (admin action)"""
+    try:
+        link = Link.query.get(link_id)
+        if not link:
+            return jsonify({"success": False, "error": "Link not found"}), 404
+        db.session.delete(link)
+        db.session.commit()
+        log_admin_action(current_user.id, f"Deleted link #{link_id}", link_id, "link")
+        return jsonify({"success": True, "message": "Link deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/links/<int:link_id>/pause", methods=["PATCH", "POST"])
+@admin_required
+def admin_pause_link(current_user, link_id):
+    """Pause a link (set status to paused)"""
+    try:
+        link = Link.query.get(link_id)
+        if not link:
+            return jsonify({"success": False, "error": "Link not found"}), 404
+        link.status = "paused"
+        db.session.commit()
+        log_admin_action(current_user.id, f"Paused link #{link_id}", link_id, "link")
+        return jsonify({"success": True, "message": "Link paused", "link": link.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/links/<int:link_id>/resume", methods=["PATCH", "POST"])
+@admin_required
+def admin_resume_link(current_user, link_id):
+    """Resume a paused link (set status to active)"""
+    try:
+        link = Link.query.get(link_id)
+        if not link:
+            return jsonify({"success": False, "error": "Link not found"}), 404
+        link.status = "active"
+        db.session.commit()
+        log_admin_action(current_user.id, f"Resumed link #{link_id}", link_id, "link")
+        return jsonify({"success": True, "message": "Link resumed", "link": link.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/security/blocked-ips", methods=["GET"])
+@admin_required
+def admin_get_blocked_ips(current_user):
+    """Get all blocked IPs (admin-wide, not per-user)"""
+    try:
+        from api.models.security import BlockedIP
+        ips = BlockedIP.query.order_by(BlockedIP.blocked_at.desc()).all()
+        return jsonify({
+            "success": True,
+            "blocked_ips": [{
+                "ip_address": b.ip_address,
+                "reason": b.reason,
+                "blocked_at": b.blocked_at.isoformat() if b.blocked_at else None,
+                "user_id": b.user_id,
+            } for b in ips]
+        })
+    except Exception as e:
+        logger.error(f"admin_get_blocked_ips error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/security/blocked-ips", methods=["POST"])
+@admin_required
+def admin_add_blocked_ip(current_user):
+    """Block an IP address"""
+    try:
+        from api.models.security import BlockedIP
+        data = request.get_json() or {}
+        ip = (data.get("ip_address") or data.get("ip", "")).strip()
+        reason = data.get("reason", "Blocked by admin")
+        if not ip:
+            return jsonify({"success": False, "error": "IP address required"}), 400
+        existing = BlockedIP.query.filter_by(ip_address=ip).first()
+        if existing:
+            return jsonify({"success": False, "error": "IP already blocked"}), 400
+        db.session.add(BlockedIP(ip_address=ip, reason=reason, user_id=current_user.id,
+                                 blocked_at=datetime.utcnow()))
+        db.session.commit()
+        log_admin_action(current_user.id, f"Blocked IP: {ip}", None, "security")
+        return jsonify({"success": True, "message": f"IP {ip} blocked"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/security/blocked-ips/<ip>", methods=["DELETE"])
+@admin_required
+def admin_remove_blocked_ip(current_user, ip):
+    """Unblock an IP address"""
+    try:
+        from api.models.security import BlockedIP
+        blocked = BlockedIP.query.filter_by(ip_address=ip).first()
+        if not blocked:
+            return jsonify({"success": False, "error": "IP not found in block list"}), 404
+        db.session.delete(blocked)
+        db.session.commit()
+        log_admin_action(current_user.id, f"Unblocked IP: {ip}", None, "security")
+        return jsonify({"success": True, "message": f"IP {ip} unblocked"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/pending-users/<int:user_id>/approve", methods=["POST"])
+@admin_required
+def approve_pending_user(current_user, user_id):
+    """Approve a pending user registration"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"success": False, "error": "User not found"}), 404
+        user.status = "active"
+        user.is_active = True
+        user.is_verified = True
+        db.session.commit()
+        log_admin_action(current_user.id, f"Approved pending user {user.username}", user.id, "user")
+        return jsonify({"success": True, "message": f"User {user.username} approved", "user": user.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/pending-users/<int:user_id>/reject", methods=["POST"])
+@admin_required
+def reject_pending_user(current_user, user_id):
+    """Reject and delete a pending user registration"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"success": False, "error": "User not found"}), 404
+        data = request.get_json() or {}
+        reason = data.get("reason", "Registration rejected by administrator")
+        username = user.username
+        db.session.delete(user)
+        db.session.commit()
+        log_admin_action(current_user.id, f"Rejected pending user {username}: {reason}", user_id, "user")
+        return jsonify({"success": True, "message": f"User {username} rejected and removed"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/settings/wipe", methods=["POST"])
+@main_admin_required
+def wipe_system_data(current_user):
+    """Wipe system data in configurable modes (Main Admin only)"""
+    try:
+        data = request.get_json() or {}
+        mode = data.get("mode", "").upper()
+        if mode not in ("SOFT", "MEDIUM", "HARD", "CACHE"):
+            return jsonify({"success": False, "error": "Invalid mode. Use SOFT, MEDIUM, HARD, or CACHE"}), 400
+
+        from api.models.tracking_event import TrackingEvent
+
+        if mode == "SOFT":
+            # Purge tracking events only
+            TrackingEvent.query.delete()
+            AuditLog.query.delete()
+            db.session.commit()
+            msg = "Soft wipe complete: tracking events and audit logs cleared."
+
+        elif mode == "MEDIUM":
+            # Delete links, campaigns, non-admin users
+            TrackingEvent.query.delete()
+            Link.query.delete()
+            Campaign.query.delete()
+            AuditLog.query.delete()
+            User.query.filter(User.role.notin_(["main_admin", "admin"])).delete(synchronize_session=False)
+            db.session.commit()
+            msg = "Medium wipe complete: links, campaigns, and member users removed."
+
+        elif mode == "HARD":
+            # Full factory reset — keep only main_admin
+            TrackingEvent.query.delete()
+            Link.query.delete()
+            Campaign.query.delete()
+            AuditLog.query.delete()
+            User.query.filter(User.role != "main_admin").delete(synchronize_session=False)
+            db.session.commit()
+            msg = "Hard factory reset complete: all data wiped except main admin."
+
+        elif mode == "CACHE":
+            # Safe cache purge — just clear audit logs and old tracking events (>30 days)
+            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            TrackingEvent.query.filter(TrackingEvent.timestamp < thirty_days_ago).delete(synchronize_session=False)
+            AuditLog.query.filter(AuditLog.created_at < thirty_days_ago).delete(synchronize_session=False)
+            db.session.commit()
+            msg = "Cache purge complete: old logs and events cleared."
+
+        log_admin_action(current_user.id, f"System wipe: {mode}", None, "system")
+        db.session.commit()
+        return jsonify({"success": True, "message": msg, "mode": mode})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"wipe_system_data error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # Campaign Management Endpoints
 @admin_bp.route("/api/admin/campaigns", methods=["GET"])
 @admin_required
