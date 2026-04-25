@@ -46,15 +46,16 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
     expireAfterClicks: '',
   });
 
+  // Fetch domains once on mount
   useEffect(() => {
-    // Fetch domains for selection
     const fetchDomains = async () => {
       try {
         const response = await api.domains.getAll();
         if (response.success && response.domains.length > 0) {
           setDomains(response.domains);
+          // Only set default domain when NOT editing
           if (!editingLink) {
-             setFormData(prev => ({ ...prev, domain: response.domains[0].name }));
+            setFormData(prev => ({ ...prev, domain: response.domains[0].name }));
           }
         }
       } catch (error) {
@@ -63,31 +64,35 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
       }
     };
     fetchDomains();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (editingLink) {
-       setFormData(prev => ({
-          ...prev,
-          targetUrl: editingLink.targetUrl || editingLink.original_url || editingLink.target_url || '',
-          previewUrl: editingLink.preview_url || '',
-          campaignName: editingLink.campaignName || editingLink.campaign_name || '',
-          customCode: editingLink.custom_slug || editingLink.short_code || '',
-          domain: editingLink.domain || '',
-          botBlockingEnabled: editingLink.bot_blocking_enabled ?? true,
-          rateLimitingEnabled: editingLink.rate_limiting_enabled ?? false,
-          dynamicSignatureEnabled: editingLink.dynamic_signature_enabled ?? false,
-          mxVerificationEnabled: editingLink.mx_verification_enabled ?? false,
-          geoTargetingEnabled: editingLink.geo_targeting_enabled ?? false,
-          geoTargetingMode: editingLink.geo_targeting_mode || 'allow',
-          allowedCountries: editingLink.allowed_countries ? editingLink.allowed_countries.join(',') : '',
-          blockedCountries: editingLink.blocked_countries ? editingLink.blocked_countries.join(',') : '',
-          captureEmail: editingLink.capture_email ?? false,
-          subscriberIdEnabled: editingLink.subscriber_id_enabled ?? false,
-          channelType: editingLink.channel_type || 'general',
-          zeroKnowledgeEnabled: editingLink.zero_knowledge_enabled ?? false,
-          expirationPeriod: editingLink.expiration_period || 'never',
-          expireAfterClicks: editingLink.expire_after_clicks || '',
-       }));
-       if (editingLink.bot_blocking_enabled !== undefined || editingLink.zero_knowledge_enabled) setShowAdvanced(true);
+  // Populate form when editingLink changes (edit mode)
+  useEffect(() => {
+    if (!editingLink) return;
+    setFormData(prev => ({
+      ...prev,
+      targetUrl: editingLink.targetUrl || editingLink.original_url || editingLink.target_url || '',
+      previewUrl: editingLink.preview_url || '',
+      campaignName: editingLink.campaignName || editingLink.campaign_name || '',
+      customCode: editingLink.custom_slug || editingLink.short_code || '',
+      domain: editingLink.domain || '',
+      botBlockingEnabled: editingLink.bot_blocking_enabled ?? true,
+      rateLimitingEnabled: editingLink.rate_limiting_enabled ?? false,
+      dynamicSignatureEnabled: editingLink.dynamic_signature_enabled ?? false,
+      mxVerificationEnabled: editingLink.mx_verification_enabled ?? false,
+      geoTargetingEnabled: editingLink.geo_targeting_enabled ?? false,
+      geoTargetingMode: editingLink.geo_targeting_mode || 'allow',
+      allowedCountries: editingLink.allowed_countries ? editingLink.allowed_countries.join(',') : '',
+      blockedCountries: editingLink.blocked_countries ? editingLink.blocked_countries.join(',') : '',
+      captureEmail: editingLink.capture_email ?? false,
+      subscriberIdEnabled: editingLink.subscriber_id_enabled ?? false,
+      channelType: editingLink.channel_type || 'general',
+      zeroKnowledgeEnabled: editingLink.zero_knowledge_enabled ?? false,
+      expirationPeriod: editingLink.expiration_period || 'never',
+      expireAfterClicks: editingLink.expire_after_clicks || '',
+    }));
+    if (editingLink.bot_blocking_enabled !== undefined || editingLink.zero_knowledge_enabled) {
+      setShowAdvanced(true);
     }
   }, [editingLink]);
 

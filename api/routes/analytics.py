@@ -6,7 +6,7 @@ Fixes: canonical auth, broken geo query, proper logging
 import json
 import logging
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, g
 from sqlalchemy import func, desc, extract
 from api.database import db
 from api.models.link import Link
@@ -22,7 +22,7 @@ analytics_bp = Blueprint("analytics", __name__)
 @analytics_bp.route("/analytics/dashboard", methods=["GET"])
 @login_required
 def get_dashboard_analytics():
-    user_id = session.get("user_id")
+    user_id = g.user.id
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -224,7 +224,7 @@ def _format_time_ago(timestamp):
 @analytics_bp.route("/analytics/realtime", methods=["GET"])
 @login_required
 def get_realtime_analytics():
-    user_id = session.get("user_id")
+    user_id = g.user.id
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -289,7 +289,7 @@ def get_realtime_analytics():
 @analytics_bp.route("/analytics/performance", methods=["GET"])
 @login_required
 def get_performance_data():
-    user_id = session.get("user_id")
+    user_id = g.user.id
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -342,7 +342,7 @@ def get_performance_data():
 @analytics_bp.route("/analytics/summary", methods=["GET"])
 @login_required
 def get_analytics_summary():
-    user_id = session.get("user_id")
+    user_id = g.user.id
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -384,7 +384,7 @@ def get_analytics_summary():
 @login_required
 def get_analytics_overview():
     """Enhanced analytics overview for modern UI with charts and metrics"""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -561,7 +561,7 @@ def get_analytics_overview():
 @login_required
 def get_geography_analytics():
     """Get geographic analytics for user's tracking links"""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -664,7 +664,7 @@ def get_geography_analytics():
 def get_geographic_distribution():
     """Get visitor distribution by country — uses actual 'country' column"""
     try:
-        user_id = session.get('user_id')
+        user_id = g.user.id
 
         results = db.session.query(
             TrackingEvent.country,
@@ -708,7 +708,7 @@ def get_geographic_distribution():
 @login_required
 def get_visitor_flow():
     """Get data for visitor behavioral flow visualization"""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     # ... (Authentication check omitted for brevity, assumed to be handled by decorator)
     
     try:
@@ -778,7 +778,7 @@ def get_visitor_flow():
 @login_required
 def get_ab_test_performance():
     """Get data for A/B test performance table"""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     # ... (Authentication check omitted for brevity, assumed to be handled by decorator)
     
     try:

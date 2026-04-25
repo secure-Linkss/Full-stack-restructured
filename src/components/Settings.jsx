@@ -80,26 +80,9 @@ import api from '../services/api';
 	    setTestStatus(null);
 	    try {
 	      toast.info('Sending test notification...');
-	      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-	      const response = await fetch('/api/user/telegram/test', {
-	        method: 'POST',
-	        headers: {
-	          'Content-Type': 'application/json',
-	          'Authorization': `Bearer ${token}`
-	        },
-	        body: JSON.stringify({
-	          botToken: settings.telegram_bot_token,
-	          chatId: settings.telegram_chat_id
-	        })
-	      });
-	
-	      if (response.ok) {
-	        setTestStatus('success');
-	        toast.success('Test notification sent! Check your Telegram.');
-	      } else {
-	        setTestStatus('error');
-	        toast.error('Failed to send test notification. Check your token and chat ID.');
-	      }
+	      await api.account.testTelegram(settings.telegram_bot_token, settings.telegram_chat_id);
+	      setTestStatus('success');
+	      toast.success('Test notification sent! Check your Telegram.');
 	    } catch (error) {
 	      setTestStatus('error');
 	      toast.error('Failed to send test notification.');
@@ -287,14 +270,7 @@ const DangerZone = () => {
     const secondConfirm = window.prompt('Type "DELETE" to confirm account deletion:');
     if (secondConfirm !== 'DELETE') return toast.error('Deletion cancelled.');
     try {
-      await fetch('/api/user/delete-account', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
+      await api.account.deleteAccount();
       toast.success('Account deletion initiated. You will be logged out.');
       setTimeout(() => { localStorage.clear(); window.location.href = '/login'; }, 2000);
     } catch (error) {

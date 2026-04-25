@@ -5,7 +5,7 @@ import json
 import os
 import logging
 import stripe
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from api.database import db
 from api.models.user import User
 from api.models.payment import Payment
@@ -59,7 +59,7 @@ def create_checkout_session():
 
         data = request.get_json() or {}
         plan_type = data.get('plan_type', 'monthly')
-        user_id = session.get('user_id')
+        user_id = g.user.id
 
         user = User.query.get(user_id)
         if not user:
@@ -231,7 +231,7 @@ def create_portal_session():
         if not stripe_client:
             return jsonify({'success': False, 'error': 'Stripe not configured'}), 503
 
-        user_id = session.get('user_id')
+        user_id = g.user.id
         user = User.query.get(user_id)
 
         if not user or not user.stripe_customer_id:

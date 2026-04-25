@@ -12,7 +12,7 @@ import os
 
 import pyotp
 import qrcode
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, g
 from datetime import datetime, timedelta
 
 from api.database import db
@@ -366,8 +366,7 @@ def refresh_token():
 @login_required
 def generate_2fa():
     try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+        user = g.user
 
         if user.two_factor_enabled:
             return jsonify({"error": "2FA is already enabled. Disable first."}), 400
@@ -398,8 +397,7 @@ def generate_2fa():
 @login_required
 def enable_2fa():
     try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+        user = g.user
         data = request.get_json() or {}
         token = data.get("token")
 
@@ -424,8 +422,7 @@ def enable_2fa():
 @login_required
 def disable_2fa():
     try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+        user = g.user
         data = request.get_json() or {}
         password = data.get("password")
 

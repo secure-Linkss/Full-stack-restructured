@@ -3,7 +3,7 @@ payments.py — Unified payment plans & subscription routes
 """
 import os
 import logging
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from api.database import db
 from api.models.user import User
 from api.models.payment import Payment
@@ -39,7 +39,7 @@ def get_plans():
 @login_required
 def get_subscription_status():
     """Get current user subscription status"""
-    user = User.query.get(session.get("user_id"))
+    user = User.query.get(g.user.id)
     return jsonify({
         "success": True,
         "plan_type": user.plan_type,
@@ -57,7 +57,7 @@ def get_subscription_status():
 @login_required
 def get_payment_history():
     """Get all payments for current user"""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     payments = Payment.query.filter_by(user_id=user_id).order_by(Payment.created_at.desc()).all()
     return jsonify({"success": True, "payments": [p.to_dict() for p in payments]}), 200
 

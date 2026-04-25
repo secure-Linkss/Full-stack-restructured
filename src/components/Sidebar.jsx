@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import Logo from './Logo';
+import api from '../services/api';
 
 const navGroups = [
   {
@@ -18,27 +19,27 @@ const navGroups = [
   {
     label: 'Link Management',
     items: [
-      { to: '/tracking-links', icon: Link, label: 'Tracking Links', count: 2, isUser: true },
-      { to: '/link-shortener', icon: Zap, label: 'Link Shortener', count: 9, isUser: true },
-      { to: '/campaigns', icon: FolderKanban, label: 'Campaigns', count: 4, isUser: true },
+      { to: '/tracking-links', icon: Link, label: 'Tracking Links', isUser: true },
+      { to: '/link-shortener', icon: Zap, label: 'Link Shortener', isUser: true },
+      { to: '/campaigns', icon: FolderKanban, label: 'Campaigns', isUser: true },
       { to: '/purl-engine', icon: Mail, label: 'PURL & Email Intel', isUser: true },
     ]
   },
   {
     label: 'Analytics & Live Data',
     items: [
-      { to: '/live-activity', icon: Activity, label: 'Live Activity', count: 3, isUser: true },
-      { to: '/analytics', icon: BarChart3, label: 'Analytics', count: 5, isUser: true },
-      { to: '/geography', icon: Globe, label: 'Geography', count: 6, isUser: true },
+      { to: '/live-activity', icon: Activity, label: 'Live Activity', isUser: true },
+      { to: '/analytics', icon: BarChart3, label: 'Analytics', isUser: true },
+      { to: '/geography', icon: Globe, label: 'Geography', isUser: true },
     ]
   },
   {
     label: 'Account & Support',
     items: [
-      { to: '/notifications', icon: Bell, label: 'Notifications', isUser: true },
-      { to: '/tickets', icon: MessageSquare, label: 'Support Tickets', isUser: true },
-      { to: '/security', icon: Shield, label: 'Security', count: 7, isUser: true },
-      { to: '/settings', icon: Settings, label: 'Settings', count: 8, isUser: true },
+      { to: '/notifications', icon: Bell, label: 'Notifications', isUser: true, liveKey: 'unread' },
+      { to: '/tickets', icon: MessageSquare, label: 'Support Tickets', isUser: true, liveKey: 'tickets' },
+      { to: '/security', icon: Shield, label: 'Security', isUser: true },
+      { to: '/settings', icon: Settings, label: 'Settings', isUser: true },
     ]
   },
   {
@@ -52,6 +53,30 @@ const navGroups = [
 const Sidebar = ({ user, isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed }) => {
   const isAdmin = user?.role === 'main_admin' || user?.role === 'admin';
   const location = useLocation();
+  const [liveCounts, setLiveCounts] = useState({ unread: 0, tickets: 0 });
+
+  // Fetch live badge counts (unread notifications + open support tickets)
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [notifRes, ticketRes] = await Promise.allSettled([
+          api.notifications.getAll(),
+          api.support.getTickets(),
+        ]);
+        const notifs = notifRes.status === 'fulfilled' ? (notifRes.value?.notifications || notifRes.value || []) : [];
+        const tickets = ticketRes.status === 'fulfilled' ? (ticketRes.value?.tickets || ticketRes.value || []) : [];
+        const unread = Array.isArray(notifs) ? notifs.filter(n => !n.is_read && !n.read).length : 0;
+        const openTickets = Array.isArray(tickets) ? tickets.filter(t => t.status === 'open').length : 0;
+        setLiveCounts({ unread, tickets: openTickets });
+      } catch {
+        // fail silently
+      }
+    };
+    if (user) fetchCounts();
+    // Refresh every 2 minutes
+    const interval = setInterval(() => { if (user) fetchCounts(); }, 120000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Handle window resize for mobile
   useEffect(() => {
@@ -142,9 +167,9 @@ const Sidebar = ({ user, isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollap
                           {(!isCollapsed || isMobileOpen) && (
                             <>
                               <span className="flex-1 text-[0.9rem] truncate">{item.label}</span>
-                              {item.count && (
-                                <Badge className="ml-auto pointer-events-none badge-dim-blue tabular-nums-custom ml-2 px-1.5 py-0">
-                                  {item.count}
+                              {item.liveKey && liveCounts[item.liveKey] > 0 && (
+                                <Badge className="ml-2 pointer-events-none bg-[#ef4444] text-white text-[10px] font-bold px-1.5 py-0 min-w-[18px] text-center">
+                                  {liveCounts[item.liveKey] > 99 ? '99+' : liveCounts[item.liveKey]}
                                 </Badge>
                               )}
                             </>

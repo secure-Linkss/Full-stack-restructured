@@ -5,7 +5,7 @@ Pixel tracking is handled by track.py — no duplicate here.
 import re
 import logging
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from api.database import db
 from api.models.tracking_event import TrackingEvent
 from api.models.link import Link
@@ -121,7 +121,7 @@ def _format_event(event, short_code, link=None):
 def get_events():
     """Get paginated tracking events for user's links"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 50, type=int)
         link_id_filter = request.args.get("link_id", type=int)
@@ -174,7 +174,7 @@ def get_events():
 @login_required
 def get_live_events():
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         limit = request.args.get("limit", 20, type=int)
 
         rows = (db.session.query(TrackingEvent, Link)
@@ -199,7 +199,7 @@ def get_live_events():
 @events_bp.route("/api/events/<int:event_id>", methods=["GET"])
 @login_required
 def get_event_detail(event_id):
-    user_id = session.get("user_id")
+    user_id = g.user.id
     row = (db.session.query(TrackingEvent, Link)
            .join(Link)
            .filter(TrackingEvent.id == event_id, Link.user_id == user_id)
@@ -215,7 +215,7 @@ def get_event_detail(event_id):
 @events_bp.route("/api/events/<int:event_id>", methods=["DELETE"])
 @login_required
 def delete_event(event_id):
-    user_id = session.get("user_id")
+    user_id = g.user.id
     row = (db.session.query(TrackingEvent, Link)
            .join(Link)
            .filter(TrackingEvent.id == event_id, Link.user_id == user_id)
@@ -233,7 +233,7 @@ def delete_event(event_id):
 @login_required
 def get_captured_emails():
     """List all captured emails across user's links"""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 50, type=int)
 
@@ -276,7 +276,7 @@ def get_captured_emails():
 @login_required
 def get_event_stats():
     """Quick statistics for current user's events"""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     link_ids = [l.id for l in Link.query.filter_by(user_id=user_id).with_entities(Link.id).all()]
 
     if not link_ids:

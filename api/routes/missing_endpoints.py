@@ -1161,7 +1161,7 @@ def admin_update_rate_limit_settings(current_user):
 
 @missing_bp.route("/api/admin/primary-domain", methods=["GET"])
 @admin_required
-def admin_get_primary_domain():
+def admin_get_primary_domain(current_user):
     from api.models.admin_settings import AdminSettings
     setting = AdminSettings.query.filter_by(setting_key="primary_domain").first()
     primary = setting.setting_value if setting else None
@@ -1607,3 +1607,52 @@ def user_delete_api_key_v2(kid):
     db.session.delete(key)
     db.session.commit()
     return jsonify({"success": True, "message": "API key deleted"})
+
+
+# ============================================================
+# ADMIN: SEND EMAIL TO USER
+# ============================================================
+
+@missing_bp.route("/api/admin/users/<int:uid>/send-email", methods=["POST"])
+@admin_required
+def admin_send_email_to_user(current_user, uid):
+    """Send a custom email to a specific user via SMTP."""
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    data = request.get_json() or {}
+    subject = data.get("subject", "Message from BrainLink Admin")
+    body = data.get("message", "").strip()
+    if not body:
+        return jsonify({"success": False, "error": "Message body required"}), 400
+
+    smtp_host = os.environ.get("SMTP_HOST")
+    if smtp_host:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText
+            smtp_port = int(os.environ.get("SMTP_PORT", 587))
+            smtp_user = os.environ.get("SMTP_USER", "")
+            smtp_pass = os.environ.get("SMTP_PASS", "")
+            from_email = os.environ.get("SMTP_FROM", smtp_user)
+            msg = MIMEText(body, "plain")
+            msg["Subject"] = subject
+            msg["From"] = from_email
+            msg["To"] = user.email
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                if smtp_user and smtp_pass:
+                    server.login(smtp_user, smtp_pass)
+                server.sendmail(from_email, [user.email], msg.as_string())
+        except Exception as e:
+            logger.error(f"Admin send-email error: {e}")
+            return jsonify({"success": False, "error": f"Email delivery failed: {e}"}), 500
+
+    # Also create an in-app notification
+    db.session.add(Notification(
+        user_id=user.id, title=subject, message=body,
+        type="info", priority="medium"
+    ))
+    log_admin_action(current_user.id, f"Sent email to user {user.email}: {subject}", target_id=user.id)
+    db.session.commit()
+    return jsonify({"success": True, "message": f"Email sent to {user.email}"})

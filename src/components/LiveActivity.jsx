@@ -93,7 +93,7 @@ const LiveActivity = () => {
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginatedEvents = filtered.slice(0, pageSize);
+  const paginatedEvents = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   // Inspect modal
   const InspectModal = ({ event, onClose }) => {

@@ -70,7 +70,12 @@ const AdminUsers = ({ isOwner = false, userRole = 'admin' }) => {
         toast.success(`User ${user.username} suspended.`);
         fetchData();
       } else if (action === 'Activate User') {
-        await api.adminUsers.activate(user.id);
+        // For pending users: approve. For suspended users: lift suspension.
+        if (user.status === 'pending') {
+          await api.adminUsers.activate(user.id);
+        } else {
+          await api.adminUsers.unsuspend(user.id);
+        }
         toast.success(`User ${user.username} activated.`);
         fetchData();
       } else if (action === 'Promote Test Admin') {
@@ -82,6 +87,13 @@ const AdminUsers = ({ isOwner = false, userRole = 'admin' }) => {
           toast.success(`${user.username} demoted back to member.`);
           fetchData();
         }
+      } else if (action === 'Send Email') {
+        const subject = window.prompt(`Email subject to ${user.email}:`, 'Message from BrainLink Admin');
+        if (subject === null) return;
+        const message = window.prompt('Email message body:');
+        if (!message) return toast.error('Message cannot be empty.');
+        await api.adminUsers.sendEmail(user.id, subject, message);
+        toast.success(`Email sent to ${user.email}.`);
       } else {
         toast.info(`${action} action triggered for user: ${user.email}`);
       }

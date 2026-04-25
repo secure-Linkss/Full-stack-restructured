@@ -83,14 +83,6 @@ const Notifications = () => {
     });
   };
 
-  const toggleSelectAll = () => {
-    if (selected.size === filtered.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(filtered.map(n => n.id)));
-    }
-  };
-
   const getIcon = (type) => {
     switch (type) {
       case 'payment': return <CreditCard className="w-5 h-5 text-[#10b981]" />;
@@ -106,6 +98,14 @@ const Notifications = () => {
     if (filter === 'all') return true;
     return (n.notification_type || n.type) === filter;
   });
+
+  const toggleSelectAll = () => {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map(n => n.id)));
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.is_read && !n.read).length;
 

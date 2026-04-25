@@ -13,7 +13,7 @@ user_bp = Blueprint("user", __name__)
 
 
 def _get_user():
-    return User.query.get(session.get("user_id"))
+    return User.query.get(g.user.id)
 
 
 # ---------- Profile — both /user/profile and /profile are supported ----------

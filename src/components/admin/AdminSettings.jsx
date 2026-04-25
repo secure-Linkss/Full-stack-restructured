@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   Settings, Save, Key, Globe, Shield, RefreshCw, AlertTriangle,
-  Trash2, Mail, CreditCard, Send, Database, FileX, Ban, Plus, X
+  Trash2, Mail, Send, Database, FileX, Ban, Plus, X
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -17,6 +17,7 @@ const AdminSettings = () => {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     companyName: 'BrainLink',
+    supportEmail: '',
     maintenanceMode: false,
     enableRegistrations: true,
     stripeEnabled: true,
@@ -24,6 +25,9 @@ const AdminSettings = () => {
     telegramEnabled: false,
     telegramBotToken: '',
     telegramChatId: '',
+    telegramOnNewUser: true,
+    telegramOnCryptoPayment: true,
+    telegramOnSupportTicket: true,
   });
 
   const [wipeConfirm, setWipeConfirm] = useState('');
@@ -64,12 +68,16 @@ const AdminSettings = () => {
   const fetchSecuritySettings = async () => {
     setSecurityLoading(true);
     try {
-      const [rlRes, ipRes] = await Promise.all([
-        api.admin?.security?.getRateLimitSettings ? api.admin.security.getRateLimitSettings() : api.adminSecurity?.getRateLimitSettings?.() || {},
-        api.admin?.security?.getBlockedIPs ? api.admin.security.getBlockedIPs() : api.adminSecurity?.getBlockedIPs?.() || {},
+      const [rlRes, ipRes] = await Promise.allSettled([
+        api.admin.security.getRateLimitSettings(),
+        api.admin.security.getBlockedIPs(),
       ]);
-      if (rlRes?.settings) setRateLimitSettings(prev => ({ ...prev, ...rlRes.settings }));
-      setBlockedIPs(ipRes?.blocked_ips || ipRes?.ips || []);
+      if (rlRes.status === 'fulfilled' && rlRes.value?.settings) {
+        setRateLimitSettings(prev => ({ ...prev, ...rlRes.value.settings }));
+      }
+      if (ipRes.status === 'fulfilled') {
+        setBlockedIPs(ipRes.value?.blocked_ips || ipRes.value?.ips || []);
+      }
     } catch {
       // silent
     } finally {
@@ -80,7 +88,7 @@ const AdminSettings = () => {
   const saveRateLimits = async () => {
     setSaving(true);
     try {
-      await (api.admin?.security?.updateRateLimitSettings || api.adminSecurity?.updateRateLimitSettings)?.(rateLimitSettings);
+      await api.admin.security.updateRateLimitSettings(rateLimitSettings);
       toast.success('Rate limit settings saved.');
     } catch {
       toast.error('Failed to save rate limit settings.');
@@ -92,7 +100,7 @@ const AdminSettings = () => {
   const handleBlockIP = async () => {
     if (!newIP.trim()) return toast.error('Enter an IP address.');
     try {
-      await (api.adminSecurity?.blockIP || api.admin?.security?.addBlockedIP)?.(newIP.trim(), newIPReason || 'Blocked by admin');
+      await api.admin.security.addBlockedIP(newIP.trim(), newIPReason || 'Blocked by admin');
       setBlockedIPs(prev => [...prev, { ip_address: newIP.trim(), reason: newIPReason || 'Blocked by admin' }]);
       setNewIP('');
       setNewIPReason('');
@@ -104,7 +112,7 @@ const AdminSettings = () => {
 
   const handleUnblockIP = async (ip) => {
     try {
-      await (api.adminSecurity?.unblockIP || api.admin?.security?.removeBlockedIP)?.(ip);
+      await api.admin.security.removeBlockedIP(ip);
       setBlockedIPs(prev => prev.filter(b => b.ip_address !== ip));
       toast.success(`IP ${ip} unblocked.`);
     } catch {
@@ -162,9 +170,8 @@ const AdminSettings = () => {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-[#141d2e] border border-[#1e2d47]">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-[#141d2e] border border-[#1e2d47]">
           <TabsTrigger value="general" className="text-xs uppercase tracking-widest"><Globe className="w-3.5 h-3.5 mr-2"/> General</TabsTrigger>
-          <TabsTrigger value="payment" className="text-xs uppercase tracking-widest"><CreditCard className="w-3.5 h-3.5 mr-2"/> Payment</TabsTrigger>
           <TabsTrigger value="telegram" className="text-xs uppercase tracking-widest"><Send className="w-3.5 h-3.5 mr-2"/> Telegram API</TabsTrigger>
           <TabsTrigger value="security" className="text-xs uppercase tracking-widest"><Shield className="w-3.5 h-3.5 mr-2"/> Security</TabsTrigger>
           <TabsTrigger value="danger" className="text-xs uppercase tracking-widest text-[#ef4444]"><AlertTriangle className="w-3.5 h-3.5 mr-2"/> Danger Zone</TabsTrigger>
@@ -182,7 +189,7 @@ const AdminSettings = () => {
                    </div>
                    <div className="space-y-2">
                      <Label>Support Email</Label>
-                     <Input className="enterprise-input" placeholder="support@domain.com" />
+                     <Input className="enterprise-input" placeholder="support@domain.com" value={settings.supportEmail || ''} onChange={e => updateSetting('supportEmail', e.target.value)} />
                    </div>
                 </div>
                 <div className="pt-4 space-y-4 border-t border-border mt-4">
@@ -202,29 +209,6 @@ const AdminSettings = () => {
                    </div>
                 </div>
                 <div className="flex justify-end pt-4"><Button onClick={() => handleSave('General')} disabled={saving} className="btn-primary shadow-lg"><Save className="w-4 h-4 mr-2"/> Save Constants</Button></div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="payment" className="space-y-6">
-            <Card className="border-[#1e2d47] bg-card">
-              <CardHeader><CardTitle>Payment & Gateway Integration</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                  <Label className="text-base">Enable Stripe Engine</Label>
-                  <Switch checked={settings.stripeEnabled} onCheckedChange={c => updateSetting('stripeEnabled', c)} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div className="space-y-2">
-                     <Label>Stripe Publishable Key</Label>
-                     <Input className="enterprise-input font-mono text-xs" type="password" value={settings.stripePublishableKey || ''} onChange={e => updateSetting('stripePublishableKey', e.target.value)} placeholder="pk_live_..." />
-                   </div>
-                   <div className="space-y-2">
-                     <Label>Stripe Secret Key</Label>
-                     <Input className="enterprise-input font-mono text-xs" type="password" value={settings.stripeSecretKey || ''} onChange={e => updateSetting('stripeSecretKey', e.target.value)} placeholder="sk_live_..." />
-                   </div>
-                </div>
-                <div className="flex justify-end pt-4"><Button onClick={() => handleSave('Payment')} disabled={saving} className="btn-primary shadow-lg"><Save className="w-4 h-4 mr-2"/> Compile Gateways</Button></div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -254,9 +238,9 @@ const AdminSettings = () => {
                 <div className="pt-4">
                    <Label className="mb-3 block">Trigger Matrices</Label>
                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">New User Registration</span> <Switch defaultChecked /></div>
-                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">Crypto Payment Pending</span> <Switch defaultChecked /></div>
-                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">Support Ticket Opened</span> <Switch defaultChecked /></div>
+                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">New User Registration</span> <Switch checked={settings.telegramOnNewUser} onCheckedChange={c => updateSetting('telegramOnNewUser', c)} /></div>
+                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">Crypto Payment Pending</span> <Switch checked={settings.telegramOnCryptoPayment} onCheckedChange={c => updateSetting('telegramOnCryptoPayment', c)} /></div>
+                      <div className="p-3 border border-border rounded bg-card flex justify-between items-center"><span className="text-xs">Support Ticket Opened</span> <Switch checked={settings.telegramOnSupportTicket} onCheckedChange={c => updateSetting('telegramOnSupportTicket', c)} /></div>
                    </div>
                 </div>
 

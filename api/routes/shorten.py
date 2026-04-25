@@ -26,7 +26,7 @@ def get_shortened_links():
         for lnk in links:
             result.append({
                 "id": lnk.id,
-                "original_url": lnk.original_url,
+                "original_url": lnk.target_url or lnk.original_url or "",
                 "short_code": lnk.short_code,
                 "shortened_url": f"{base_url}/t/{lnk.short_code}",
                 "click_count": lnk.total_clicks or 0,

@@ -15,7 +15,7 @@ messages_bp = Blueprint("messages", __name__)
 
 
 def _get_user():
-    return User.query.get(session.get("user_id"))
+    return User.query.get(g.user.id)
 
 
 # ---------- Threads ----------

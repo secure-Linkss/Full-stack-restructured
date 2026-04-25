@@ -122,9 +122,28 @@ const Analytics = () => {
     setDateRange(range);
   };
 
-  const handleExport = () => {
-    toast.info('Exporting analytics data...');
-    // Mock export logic
+  const handleExport = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
+      toast.loading('Exporting analytics data...');
+      const res = await fetch(`/api/analytics/export?format=csv&days=${days}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-${dateRange}-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success('Analytics exported.');
+    } catch {
+      toast.dismiss();
+      toast.error('Export failed.');
+    }
   };
 
   const metricCards = [

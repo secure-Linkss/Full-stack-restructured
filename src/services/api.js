@@ -1,7 +1,9 @@
 // Real API Service for Brain Link Tracker
 // Replaces mockApi.js with actual backend API calls
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Use relative /api path in production (Vercel) so requests go to the same domain.
+// In local dev, Vite's proxy in vite.config.js forwards /api -> http://localhost:5000.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -525,10 +527,24 @@ const api = {
     },
     getDashboard: () => fetchWithAuth(`${API_BASE_URL}/admin/dashboard/stats`),
     getMetrics: () => fetchWithAuth(`${API_BASE_URL}/admin/metrics`),
+    getIntelligence: () => fetchWithAuth(`${API_BASE_URL}/admin/intelligence`),
+    getAlerts: () => fetchWithAuth(`${API_BASE_URL}/admin/alerts`),
     getUsersGraph: (days = 30) => fetchWithAuth(`${API_BASE_URL}/admin/users/graph?days=${days}`),
     getRevenueChart: (months = 12) => fetchWithAuth(`${API_BASE_URL}/admin/revenue/chart?months=${months}`),
     getPrimaryDomain: () => fetchWithAuth(`${API_BASE_URL}/admin/primary-domain`),
     setPrimaryDomain: (domain) => fetchWithAuth(`${API_BASE_URL}/admin/primary-domain`, { method: 'POST', body: JSON.stringify({ domain }) }),
+  },
+
+  // ==================== ADMIN CONTACTS APIs ====================
+  adminContacts: {
+    getSubmissions: (page = 1, perPage = 20) => fetchWithAuth(`${API_BASE_URL}/contact/submissions?page=${page}&per_page=${perPage}`),
+    markAsRead: (id) => fetchWithAuth(`${API_BASE_URL}/admin/contact/${id}/read`, { method: 'POST' }),
+    reply: (id, message) => fetchWithAuth(`${API_BASE_URL}/admin/contact/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+    resolve: (id) => fetchWithAuth(`${API_BASE_URL}/admin/contact/${id}/resolve`, { method: 'POST' }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/contact/${id}`, { method: 'DELETE' }),
   },
 
   // ==================== ADMIN SETTINGS APIs ====================
@@ -537,6 +553,7 @@ const api = {
     addDomain: (data) => fetchWithAuth(`${API_BASE_URL}/admin/domains`, { method: 'POST', body: JSON.stringify(data) }),
     updateDomain: (id, data) => fetchWithAuth(`${API_BASE_URL}/admin/domains/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteDomain: (id) => fetchWithAuth(`${API_BASE_URL}/admin/domains/${id}`, { method: 'DELETE' }),
+    verifyDomain: (id) => fetchWithAuth(`${API_BASE_URL}/admin/domains/${id}/verify`, { method: 'POST' }),
     get: () => fetchWithAuth(`${API_BASE_URL}/admin/settings`),
     update: (settings) => fetchWithAuth(`${API_BASE_URL}/admin/settings`, {
       method: 'PUT',
@@ -619,6 +636,10 @@ const api = {
       method: 'PATCH',
       body: JSON.stringify({ suspend: true, reason }),
     }),
+    unsuspend: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/suspend`, {
+      method: 'PATCH',
+      body: JSON.stringify({ suspend: false }),
+    }),
     activate: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/approve`, {
       method: 'POST',
     }),
@@ -644,6 +665,10 @@ const api = {
     demoteTest: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/demote-test`, {
       method: 'POST',
     }),
+    sendEmail: (id, subject, message) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/send-email`, {
+      method: 'POST',
+      body: JSON.stringify({ subject, message }),
+    }),
   },
 
   // ==================== ADMIN - CAMPAIGNS APIs ====================
@@ -660,7 +685,10 @@ const api = {
   // ==================== ADMIN - LINKS APIs ====================
   adminLinks: {
     getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/links`),
-    delete: (id) => fetchWithAuth(`${API_BASE_URL}/links/${id}`, { method: 'DELETE' }),
+    delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/links/${id}`, { method: 'DELETE' }),
+    pause: (id) => fetchWithAuth(`${API_BASE_URL}/admin/links/${id}/pause`, { method: 'PATCH' }),
+    resume: (id) => fetchWithAuth(`${API_BASE_URL}/admin/links/${id}/resume`, { method: 'PATCH' }),
+    update: (id, data) => fetchWithAuth(`${API_BASE_URL}/admin/links/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
 
   // ==================== ADMIN - PAYMENTS APIs ====================
@@ -828,6 +856,8 @@ const api = {
 
   // ==================== USER PAYMENTS APIs ====================
   payments: {
+    getPlans: () => fetchWithAuth(`${API_BASE_URL}/payments/plans`),
+    getSubscription: () => fetchWithAuth(`${API_BASE_URL}/payments/subscription`),
     getHistory: () => fetchWithAuth(`${API_BASE_URL}/payments/history`),
     createCheckoutSession: (planId) => fetchWithAuth(`${API_BASE_URL}/payments/checkout`, {
       method: 'POST',
@@ -838,6 +868,16 @@ const api = {
       body: JSON.stringify({ tx_hash: txHash, network }),
     }),
     getCryptoWallets: () => fetchWithAuth(`${API_BASE_URL}/crypto-payments/wallets`),
+    getMyPayments: () => fetchWithAuth(`${API_BASE_URL}/crypto-payments/my-payments`),
+    getCryptoStatus: (txId) => fetchWithAuth(`${API_BASE_URL}/crypto-payments/status/${txId}`),
+    submitCryptoProof: (data) => fetchWithAuth(`${API_BASE_URL}/crypto-payments/submit-proof`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    createStripeCheckout: (plan, billingCycle = 'monthly') => fetchWithAuth(`${API_BASE_URL}/payments/stripe/create-checkout-session`, {
+      method: 'POST',
+      body: JSON.stringify({ plan, billing_cycle: billingCycle }),
+    }),
   },
 
   // ==================== USER API KEYS APIs ====================
@@ -850,6 +890,15 @@ const api = {
     }),
     revoke: (id) => fetchWithAuth(`${API_BASE_URL}/user/api-keys/${id}/revoke`, { method: 'POST' }),
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/user/api-keys/${id}`, { method: 'DELETE' }),
+  },
+
+  // ==================== USER ACCOUNT APIs ====================
+  account: {
+    testTelegram: (botToken, chatId) => fetchWithAuth(`${API_BASE_URL}/user/telegram/test`, {
+      method: 'POST',
+      body: JSON.stringify({ botToken, chatId }),
+    }),
+    deleteAccount: () => fetchWithAuth(`${API_BASE_URL}/user/delete-account`, { method: 'DELETE' }),
   },
 };
 

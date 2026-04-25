@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Plus, FolderKanban, RefreshCw, Trash2, Edit, BarChart3, Filter } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
@@ -15,6 +16,7 @@ import EditCampaignModal from './EditCampaignModal';
 
 // --- Main Component ---
 const Campaigns = () => {
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -61,15 +63,17 @@ const Campaigns = () => {
     } else if (action === 'Delete') {
        if (window.confirm(`Are you absolutely sure you want to delete campaign ${campaign.name}?`)) {
           try {
-             await api.campaigns.delete(campaign.name);
+             await api.campaigns.delete(campaign.id);
              toast.success('Campaign deleted successfully.');
              fetchData();
           } catch (e) {
              toast.error('Failed to delete campaign.');
           }
        }
+    } else if (action === 'View Analytics') {
+       navigate(`/analytics?campaign=${encodeURIComponent(campaign.name)}`);
     } else {
-       toast.info(`${action} action triggered for campaign: ${campaign.name}`);
+       toast.info(`${action} for campaign: ${campaign.name}`);
     }
   };
 
@@ -153,7 +157,21 @@ const Campaigns = () => {
         searchPlaceholder="Search campaigns by name or ID..."
         onSearch={setSearchQuery}
         onRefresh={handleRefresh}
-        onExport={() => toast.info('Exporting campaigns...')}
+        onExport={async () => {
+          if (!campaigns.length) return toast.error('No campaigns to export.');
+          const headers = ['Name', 'Status', 'Total Clicks', 'Captured Emails', 'Created'];
+          const rows = filteredCampaigns.map(c => [
+            c.name || '', c.status || '', c.total_clicks || 0, c.captured_emails || 0,
+            c.created_at ? new Date(c.created_at).toLocaleDateString() : ''
+          ]);
+          const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `campaigns-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+          URL.revokeObjectURL(url);
+          toast.success('Campaigns exported.');
+        }}
         filterOptions={[
           { value: 'all', label: 'All' },
           { value: 'active', label: 'Active' },

@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from api.database import db
 from api.models.link import Link
 from api.models.tracking_event import TrackingEvent
@@ -50,7 +50,7 @@ def get_email_clients():
     Return distribution of email clients that fired pixel events.
     Only events with email_opened=True or captured_email are considered.
     """
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link_ids = [l.id for l in Link.query.filter_by(user_id=user_id).all()]
 
     if not link_ids:
@@ -95,7 +95,7 @@ def get_click_latency():
     Returns click latency per PURL — delta between PURL creation time and first click.
     Query params: link_id (optional)
     """
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link_id = request.args.get('link_id', type=int)
 
     query = PurlMapping.query.filter_by(user_id=user_id, clicked=True)
@@ -156,7 +156,7 @@ def get_link_decay(link_id):
     Shows how engagement decays after a link is shared.
     Query params: period=7d|14d|30d|60d|90d (default: 30d)
     """
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -213,7 +213,7 @@ def get_link_decay(link_id):
 @login_required
 def get_email_intelligence():
     """Combined email intelligence dashboard data."""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link_ids = [l.id for l in Link.query.filter_by(user_id=user_id).all()]
 
     # PURL stats

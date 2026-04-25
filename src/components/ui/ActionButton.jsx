@@ -3,7 +3,7 @@ import { Button } from './button';
 import { Copy, RefreshCw, Link, Trash2, Edit, Plus, Send, CheckCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 
-const ActionButton = ({ action, onClick, disabled, loading, children, className = '' }) => {
+const ActionButton = ({ action, onClick, disabled, loading, children, className = '', copyText = '' }) => {
   const getProps = () => {
     switch (action) {
       case 'copy':
@@ -13,9 +13,10 @@ const ActionButton = ({ action, onClick, disabled, loading, children, className 
           size: 'icon',
           tooltip: 'Copy to Clipboard',
           defaultClick: () => {
-            // Mock clipboard copy
-            navigator.clipboard.writeText('Mock data copied!');
-            toast.success('Copied to clipboard!');
+            navigator.clipboard.writeText(copyText || '').then(
+              () => toast.success('Copied to clipboard!'),
+              () => toast.error('Copy failed.')
+            );
           },
         };
       case 'regenerate':

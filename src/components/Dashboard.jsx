@@ -64,13 +64,24 @@ const Dashboard = () => {
 
   const handleExport = async () => {
     try {
-      toast.promise(api.analytics.exportData('csv'), {
-        loading: 'Exporting dashboard data...',
-        success: 'Dashboard data exported successfully.',
-        error: 'Export failed'
+      toast.loading('Exporting dashboard data...');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch('/api/analytics/export?format=csv', {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dashboard-export-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success('Dashboard data exported.');
     } catch (error) {
-      // toast handles error
+      toast.dismiss();
+      toast.error('Export failed.');
     }
   };
 
@@ -133,12 +144,27 @@ const Dashboard = () => {
     return null;
   };
 
-  const handleExportEmails = () => {
-    toast.promise(new Promise(resolve => setTimeout(resolve, 1500)), {
-      loading: 'Extracting captured emails & country profiles...',
-      success: 'leads_capture_export.csv downloaded successfully.',
-      error: 'Failed to extract arrays'
-    });
+  const handleExportEmails = async () => {
+    try {
+      toast.loading('Extracting captured leads...');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch('/api/analytics/export?format=csv&type=emails', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads-capture-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success('leads_capture_export.csv downloaded.');
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to export leads.');
+    }
   };
 
   return (

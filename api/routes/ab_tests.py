@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from api.models.ab_test import ABTest, ABTestVariant
 from api.models.link import Link
 from api.models.user import User
@@ -25,7 +25,7 @@ def login_required(f):
 def get_ab_tests():
     """Get all A/B tests for current user"""
     try:
-        user_id = session.get('user_id')
+        user_id = g.user.id
         link_id = request.args.get('link_id', type=int)
         query = ABTest.query.filter_by(user_id=user_id)
         if link_id:
@@ -42,7 +42,7 @@ def get_ab_tests():
 def create_ab_test():
     """Create new A/B test"""
     try:
-        user_id = session.get('user_id')
+        user_id = g.user.id
         data = request.get_json()
         link_id = data.get('link_id')
         name = data.get('name')
@@ -91,7 +91,7 @@ def create_ab_test():
 def get_ab_test(test_id):
     """Get specific A/B test"""
     try:
-        user_id = session.get('user_id')
+        user_id = g.user.id
         ab_test = ABTest.query.filter_by(id=test_id, user_id=user_id).first()
         if not ab_test:
             return jsonify({'error': 'A/B test not found'}), 404
@@ -106,7 +106,7 @@ def get_ab_test(test_id):
 def update_ab_test(test_id):
     """Update A/B test"""
     try:
-        user_id = session.get('user_id')
+        user_id = g.user.id
         ab_test = ABTest.query.filter_by(id=test_id, user_id=user_id).first()
         if not ab_test:
             return jsonify({'error': 'A/B test not found'}), 404
@@ -128,7 +128,7 @@ def update_ab_test(test_id):
 def delete_ab_test(test_id):
     """Delete A/B test"""
     try:
-        user_id = session.get('user_id')
+        user_id = g.user.id
         ab_test = ABTest.query.filter_by(id=test_id, user_id=user_id).first()
         if not ab_test:
             return jsonify({'error': 'A/B test not found'}), 404

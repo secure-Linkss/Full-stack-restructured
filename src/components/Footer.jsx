@@ -6,17 +6,26 @@ const Footer = ({ isPublic = false }) => {
   const currentYear = new Date().getFullYear();
 
   if (!isPublic) {
-    // Dashboard Minimal Footer
+    // Dashboard / Admin Footer — branded with Logo
     return (
-      <footer className="w-full border-t border-border bg-[rgba(20,29,46,0.5)] mt-auto py-4 px-6 relative z-10 hidden sm:block">
-        <div className="flex justify-between items-center text-xs text-muted-foreground w-full">
-          <div>
-            &copy; {currentYear} <span className="font-semibold text-foreground">Brain Link Tracker</span>. All rights reserved.
-          </div>
-          <div className="flex flex-wrap gap-4">
-            <Link to="/support" className="hover:text-primary transition-colors">Support</Link>
-            <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
-            <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+      <footer className="w-full border-t border-border bg-[#0b0f1a] mt-auto relative z-10">
+        <div className="max-w-full px-6 py-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Brand */}
+            <div className="flex items-center gap-3">
+              <Logo size="sm" />
+              <span className="text-xs text-muted-foreground">
+                &copy; {currentYear} Brain Link Tracker Inc. All rights reserved.
+              </span>
+            </div>
+            {/* Links */}
+            <div className="flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
+              <Link to="/tickets" className="hover:text-[#10b981] transition-colors">Support</Link>
+              <Link to="/privacy" className="hover:text-[#10b981] transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-[#10b981] transition-colors">Terms</Link>
+              <span className="text-border">|</span>
+              <span className="text-[#10b981] font-semibold text-[10px] uppercase tracking-widest">v2.0 Production</span>
+            </div>
           </div>
         </div>
       </footer>

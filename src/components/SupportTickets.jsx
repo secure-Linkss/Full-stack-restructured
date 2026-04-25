@@ -15,16 +15,36 @@ const SupportTickets = () => {
   const [newTicket, setNewTicket] = useState({ subject: '', message: '', priority: 'normal' });
   const [replyMessage, setReplyMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loadingThread, setLoadingThread] = useState(false);
 
   const fetchTickets = async () => {
     try {
-      const response = await api.support?.getTickets() || { tickets: [] };
+      const response = await api.support.getTickets();
       const data = response.tickets || response || [];
       setTickets(Array.isArray(data) ? data : []);
+      // Refresh active ticket data if one is selected
+      if (activeTicket) {
+        const updated = (Array.isArray(data) ? data : []).find(t => t.id === activeTicket.id);
+        if (updated) openTicket(updated);
+      }
     } catch (error) {
       toast.error('Failed to load support history.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openTicket = async (ticket) => {
+    setIsCreating(false);
+    setLoadingThread(true);
+    setActiveTicket(ticket);
+    try {
+      const full = await api.support.getTicket(ticket.id);
+      setActiveTicket(full.ticket || full);
+    } catch {
+      // keep the list-view data if detail fetch fails
+    } finally {
+      setLoadingThread(false);
     }
   };
 
@@ -51,12 +71,15 @@ const SupportTickets = () => {
 
   const handleReply = async (e) => {
     e.preventDefault();
-    if (!replyMessage) return;
+    if (!replyMessage.trim()) return;
     setSubmitting(true);
     try {
       await api.support.replyToTicket(activeTicket.id, replyMessage);
       toast.success('Reply sent.');
       setReplyMessage('');
+      // Re-fetch the full ticket thread to show the new message
+      const full = await api.support.getTicket(activeTicket.id);
+      setActiveTicket(full.ticket || full);
       fetchTickets();
     } catch (error) {
       toast.error('Failed to send reply.');
@@ -113,9 +136,9 @@ const SupportTickets = () => {
               <div className="text-center py-10 text-muted-foreground text-xs"><MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-20" /> No tickets found.</div>
             ) : (
                filteredTickets.map(ticket => (
-                 <button 
-                   key={ticket.id} 
-                   onClick={() => { setActiveTicket(ticket); setIsCreating(false); }}
+                 <button
+                   key={ticket.id}
+                   onClick={() => openTicket(ticket)}
                    className={`w-full text-left p-3 mb-2 rounded-lg border transition-all ${activeTicket?.id === ticket.id ? 'bg-[rgba(59,130,246,0.05)] border-[#3b82f6]/30' : 'bg-transparent border-transparent hover:bg-white/5'}`}
                  >
                    <div className="flex justify-between items-start mb-1">
@@ -183,26 +206,42 @@ const SupportTickets = () => {
                  
                  {/* Thread area */}
                  <div className="flex-1 p-5 overflow-y-auto custom-scrollbar space-y-6 bg-background/30">
-                    {/* Initial Message */}
-                    <div className="flex items-start gap-4">
-                       <div className="w-8 h-8 rounded bg-[#3b82f6]/20 flex items-center justify-center shrink-0 border border-[#3b82f6]/40 text-[#3b82f6] font-bold text-xs">Me</div>
-                       <div className="bg-[rgba(255,255,255,0.03)] border border-border p-4 rounded-xl rounded-tl-sm w-full">
-                         <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{activeTicket._msg || activeTicket.messages?.[0]?.content || "Initial details not fully synchronized in preview."}</p>
-                       </div>
-                    </div>
-                    {/* Admin Reply Mock if array exists */}
-                    {(activeTicket.messages || []).slice(1).map((msg, i) => (
-                       <div key={i} className="flex items-start gap-4 flex-row-reverse">
-                         <div className="w-8 h-8 rounded bg-[#10b981]/20 flex items-center justify-center shrink-0 border border-[#10b981]/40 text-[#10b981]"><ShieldAlert className="w-4 h-4"/></div>
-                         <div className="bg-[rgba(16,185,129,0.05)] border border-[#10b981]/20 p-4 rounded-xl rounded-tr-sm w-full">
-                           <div className="flex justify-between items-center mb-2">
-                              <span className="text-xs font-bold text-[#10b981]">Support Agent</span>
-                              <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleDateString()}</span>
+                   {loadingThread ? (
+                     <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin"></div></div>
+                   ) : (
+                     <>
+                       {/* Render all messages in the thread */}
+                       {((activeTicket.messages || []).length === 0) && (
+                         <div className="flex items-start gap-4">
+                           <div className="w-8 h-8 rounded bg-[#3b82f6]/20 flex items-center justify-center shrink-0 border border-[#3b82f6]/40 text-[#3b82f6] font-bold text-xs">Me</div>
+                           <div className="bg-[rgba(255,255,255,0.03)] border border-border p-4 rounded-xl rounded-tl-sm w-full">
+                             <div className="flex justify-between items-center mb-2">
+                               <span className="text-xs font-bold text-[#3b82f6]">You</span>
+                               <span className="text-[10px] text-muted-foreground">{new Date(activeTicket.created_at).toLocaleDateString()}</span>
+                             </div>
+                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{activeTicket.message || activeTicket._msg || 'No message content available.'}</p>
                            </div>
-                           <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                          </div>
-                       </div>
-                    ))}
+                       )}
+                       {(activeTicket.messages || []).map((msg, i) => {
+                         const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply;
+                         return (
+                           <div key={i} className={`flex items-start gap-4 ${isAdmin ? 'flex-row-reverse' : ''}`}>
+                             <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 border font-bold text-xs ${isAdmin ? 'bg-[#10b981]/20 border-[#10b981]/40 text-[#10b981]' : 'bg-[#3b82f6]/20 border-[#3b82f6]/40 text-[#3b82f6]'}`}>
+                               {isAdmin ? <ShieldAlert className="w-4 h-4" /> : 'Me'}
+                             </div>
+                             <div className={`p-4 rounded-xl w-full border ${isAdmin ? 'bg-[rgba(16,185,129,0.05)] border-[#10b981]/20 rounded-tr-sm' : 'bg-[rgba(255,255,255,0.03)] border-border rounded-tl-sm'}`}>
+                               <div className="flex justify-between items-center mb-2">
+                                 <span className={`text-xs font-bold ${isAdmin ? 'text-[#10b981]' : 'text-[#3b82f6]'}`}>{isAdmin ? 'Support Agent' : 'You'}</span>
+                                 <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</span>
+                               </div>
+                               <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{msg.content || msg.message}</p>
+                             </div>
+                           </div>
+                         );
+                       })}
+                     </>
+                   )}
                  </div>
 
                  {/* Reply box */}

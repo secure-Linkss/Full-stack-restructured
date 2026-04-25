@@ -23,11 +23,11 @@ domains_bp = Blueprint("domains_routes", __name__)
 def get_user_domains():
     """Get available domains for the user"""
     try:
-        user_id = session.get("user_id")
-        
+        user_id = g.user.id
+
         # Get global active domains (created by admin or system, meant for everyone)
         global_domains = Domain.query.filter_by(is_active=True, created_by=None).all()
-        
+
         # Get user's custom domains
         user_domains = Domain.query.filter_by(created_by=user_id).all()
         
@@ -64,7 +64,7 @@ def add_custom_domain():
         domain = Domain(
             domain=domain_name,
             domain_type="custom",
-            created_by=session.get("user_id"),
+            created_by=g.user.id,
             verification_token=verification_token,
             is_active=False,
             is_verified=False
@@ -88,12 +88,12 @@ def add_custom_domain():
 def verify_domain(domain_id):
     """Verify DNS ownership of a custom domain"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         domain = Domain.query.filter_by(id=domain_id, created_by=user_id).first()
-        
+
         if not domain:
             return jsonify({"success": False, "error": "Domain not found or unauthorized"}), 404
-            
+
         if domain.is_verified:
             return jsonify({"success": True, "message": "Domain already verified", "domain": domain.to_dict()}), 200
             
@@ -123,12 +123,12 @@ def verify_domain(domain_id):
 def delete_domain(domain_id):
     """Delete a custom domain"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         domain = Domain.query.filter_by(id=domain_id, created_by=user_id).first()
-        
+
         if not domain:
             return jsonify({"success": False, "error": "Domain not found or unauthorized"}), 404
-            
+
         db.session.delete(domain)
         db.session.commit()
         
@@ -236,7 +236,7 @@ def _check_domain_reachable(domain_name: str) -> dict:
 @login_required
 def check_domain_health(domain_id):
     """Live reachability + DNS health check for a domain."""
-    user_id = session.get("user_id")
+    user_id = g.user.id
     domain = Domain.query.filter(
         (Domain.id == domain_id) &
         ((Domain.created_by == user_id) | (Domain.created_by == None))  # noqa: E711

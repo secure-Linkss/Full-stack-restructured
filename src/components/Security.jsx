@@ -81,9 +81,38 @@ const Security = () => {
 		setDateRange(range);
 	};
 
-	const handleExport = () => {
-		toast.info('Exporting security logs...');
-		// Mock export logic
+	const handleExport = async () => {
+		try {
+			const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+			toast.loading('Exporting security logs...');
+			const res = await fetch('/api/security/logs/export?format=csv', {
+				headers: { 'Authorization': `Bearer ${token}` },
+			});
+			if (!res.ok) {
+				// Fallback: export current in-memory logs as CSV
+				const headers = ['Timestamp', 'Type', 'IP Address', 'Country', 'Action', 'Severity'];
+				const rows = securityLogs.map(l => [
+					l.timestamp || '', l.type || '', l.ip || '', l.country || '', l.action || '', l.severity || ''
+				]);
+				const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+				const blob = new Blob([csv], { type: 'text/csv' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url; a.download = `security-logs-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+				URL.revokeObjectURL(url);
+			} else {
+				const blob = await res.blob();
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url; a.download = `security-logs-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+				URL.revokeObjectURL(url);
+			}
+			toast.dismiss();
+			toast.success('Security logs exported.');
+		} catch (error) {
+			toast.dismiss();
+			toast.error('Export failed.');
+		}
 	};
 
 	const metricCards = [

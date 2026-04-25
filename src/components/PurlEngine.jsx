@@ -56,8 +56,6 @@ const PurlGeneratorTab = ({ links, onGenerated }) => {
     if (!csvFile) { toast.error('Upload a CSV file first'); return; }
     setGenerating(true);
     try {
-      const res = await api.purl.generateCSV(selectedLinkId, new FormData());
-      // Use FormData-based approach
       const formData = new FormData();
       formData.append('file', csvFile);
       const finalRes = await api.purl.generateCSV(selectedLinkId, formData);

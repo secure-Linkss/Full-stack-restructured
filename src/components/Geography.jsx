@@ -47,7 +47,18 @@ const Geography = () => {
           topCountryVisitors: 0,
           totalCities: 0
         });
-        setCountryData(response.countries || []);
+        // Normalize country data — InteractiveMap needs coordinates: [lng, lat]
+        const normalized = (response.countries || []).map(c => ({
+          ...c,
+          name: c.country || c.name || '',
+          clicks: c.clicks || c.total_clicks || 0,
+          visitors: c.visitors || c.unique_visitors || 0,
+          coordinates: c.coordinates || (
+            (c.lng != null && c.lat != null) ? [c.lng, c.lat] :
+            (c.longitude != null && c.latitude != null) ? [c.longitude, c.latitude] : null
+          ),
+        }));
+        setCountryData(normalized);
       }
     } catch (error) {
       console.error('Error fetching geography data:', error);

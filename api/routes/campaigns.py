@@ -23,7 +23,7 @@ campaigns_bp = Blueprint('campaigns', __name__)
 @login_required
 def get_campaigns():
     """Get all campaigns for current user, including aggregated stats"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     
     try:
         # Get all unique campaign names associated with the user's links
@@ -73,7 +73,7 @@ def get_campaigns():
 @login_required
 def create_campaign():
     """Create new campaign (by associating a name with a new or existing link) or update existing"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     data = request.get_json()
 
     name = data.get('name', '').strip()
@@ -119,7 +119,7 @@ def create_campaign():
 @login_required
 def get_campaign_details(campaign_name):
     """Get details for a specific campaign"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     try:
         # Get all links belonging to this campaign for the user
         campaign_links = Link.query.filter_by(user_id=user_id, campaign_name=campaign_name).all()
@@ -165,7 +165,7 @@ def get_campaign_details(campaign_name):
 @login_required
 def update_campaign(campaign_name):
     """Update campaign name"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     data = request.get_json()
 
     new_name = data.get('new_name', '').strip()
@@ -198,7 +198,7 @@ def update_campaign(campaign_name):
 @login_required
 def delete_campaign(campaign_name):
     """Delete campaign and all associated links and tracking events"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     try:
         # Find all links associated with this campaign
         links_to_delete = Link.query.filter_by(user_id=user_id, campaign_name=campaign_name).all()
@@ -476,7 +476,7 @@ def auto_create_campaign(campaign_name, user_id):
 @login_required
 def get_campaign_by_id(campaign_id):
     """Get campaign by numeric ID"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
     if not campaign:
         return jsonify({'error': 'Campaign not found'}), 404
@@ -496,7 +496,7 @@ def get_campaign_by_id(campaign_id):
 @login_required
 def update_campaign_by_id(campaign_id):
     """Update campaign by id"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
     if not campaign:
         return jsonify({'error': 'Campaign not found'}), 404
@@ -523,7 +523,7 @@ def update_campaign_by_id(campaign_id):
 @login_required
 def delete_campaign_by_id(campaign_id):
     """Delete campaign by id"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
     if not campaign:
         return jsonify({'error': 'Campaign not found'}), 404
@@ -543,7 +543,7 @@ def delete_campaign_by_id(campaign_id):
 @login_required
 def campaign_performance(campaign_id):
     """Get performance metrics for a campaign"""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     campaign = Campaign.query.filter_by(id=campaign_id, owner_id=user_id).first()
     if not campaign:
         return jsonify({'error': 'Campaign not found'}), 404

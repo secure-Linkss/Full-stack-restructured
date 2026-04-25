@@ -56,7 +56,8 @@ const AppearanceSettings = () => {
     try {
       // Upload background image using profile avatar upload (can be extended for backgrounds)
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/user/settings/background`, {
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const response = await fetch(`${apiBase}/user/settings/background`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,

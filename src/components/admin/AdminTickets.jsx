@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Clock, Search, CheckCircle, RefreshCw, Send, ShieldAlert, User, Mail, Shield, Trash2 } from 'lucide-react';
+import { MessageSquare, Clock, Search, CheckCircle, RefreshCw, Send, ShieldAlert, User, Mail, Shield, Trash2, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'sonner';
 
@@ -12,10 +12,11 @@ const AdminTickets = () => {
   
   const [replyMessage, setReplyMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loadingThread, setLoadingThread] = useState(false);
 
   const fetchTickets = async () => {
     try {
-      const response = await api.adminTickets?.getAll() || { tickets: [] };
+      const response = await api.adminTickets.getAll();
       const data = response.tickets || response || [];
       setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -25,20 +26,34 @@ const AdminTickets = () => {
     }
   };
 
+  const openTicket = async (ticket) => {
+    setActiveTicket(ticket);
+    setLoadingThread(true);
+    try {
+      const full = await api.adminTickets.getById(ticket.id);
+      setActiveTicket(full.ticket || full);
+    } catch {
+      // keep list-view data if detail fetch fails
+    } finally {
+      setLoadingThread(false);
+    }
+  };
+
   useEffect(() => {
     fetchTickets();
   }, []);
 
   const handleReply = async (e) => {
     e.preventDefault();
-    if (!replyMessage) return;
+    if (!replyMessage.trim()) return;
     setSubmitting(true);
     try {
-      if (api.adminTickets?.reply) {
-         await api.adminTickets.reply(activeTicket.id, replyMessage);
-      }
+      await api.adminTickets.reply(activeTicket.id, replyMessage);
       toast.success('Reply submitted and sent to user.');
       setReplyMessage('');
+      // Refresh the thread
+      const full = await api.adminTickets.getById(activeTicket.id);
+      setActiveTicket(full.ticket || full);
       fetchTickets();
     } catch (error) {
       toast.error('Failed to send reply.');
@@ -50,9 +65,7 @@ const AdminTickets = () => {
   const handleCloseTicket = async () => {
     if (!window.confirm(`Mark ticket ${activeTicket.id} as resolved?`)) return;
     try {
-      if (api.adminTickets?.close) {
-        await api.adminTickets.close(activeTicket.id);
-      }
+      await api.adminTickets.close(activeTicket.id);
       toast.success('Ticket marked as resolved.');
       setActiveTicket(null);
       fetchTickets();
@@ -64,9 +77,7 @@ const AdminTickets = () => {
   const handleDeleteTicket = async (ticket) => {
     if (!window.confirm(`Permanently delete ticket ${ticket.id || ticket.subject}?`)) return;
     try {
-      if (api.adminTickets?.delete) {
-        await api.adminTickets.delete(ticket.id);
-      }
+      await api.adminTickets.delete(ticket.id);
       toast.success('Ticket deleted.');
       if (activeTicket?.id === ticket.id) setActiveTicket(null);
       fetchTickets();
@@ -124,7 +135,7 @@ const AdminTickets = () => {
                    key={ticket.id}
                    className={`w-full text-left p-3 mb-2 rounded-lg border transition-all ${activeTicket?.id === ticket.id ? 'bg-[rgba(59,130,246,0.05)] border-[#3b82f6]/50' : 'bg-transparent border-transparent hover:bg-white/5'}`}
                  >
-                   <button className="w-full text-left" onClick={() => setActiveTicket(ticket)}>
+                   <button className="w-full text-left" onClick={() => openTicket(ticket)}>
                      <div className="flex justify-between items-start mb-1">
                        <span className="text-[10px] uppercase tracking-widest font-bold text-[#3b82f6]">{ticket.id}</span>
                        <span className={`badge-dim-${ticket.status === 'resolved' ? 'green' : 'amber'} text-[9px] px-1.5 py-0`}>{ticket.status}</span>
@@ -180,18 +191,45 @@ const AdminTickets = () => {
                  
                  {/* Thread area */}
                  <div className="flex-1 p-5 overflow-y-auto custom-scrollbar space-y-6 bg-background/50">
-                    {/* Initial User Message */}
-                    <div className="flex items-start gap-4">
-                       <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center shrink-0 text-muted-foreground"><User className="w-4 h-4"/></div>
-                       <div className="bg-[rgba(255,255,255,0.03)] border border-border p-4 rounded-xl rounded-tl-sm w-full">
-                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-foreground">Client Request</span>
+                   {loadingThread ? (
+                     <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin"></div></div>
+                   ) : (
+                     <>
+                       {/* Show initial message if no messages array or as fallback */}
+                       {((activeTicket.messages || []).length === 0) && (
+                         <div className="flex items-start gap-4">
+                           <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center shrink-0 text-muted-foreground"><User className="w-4 h-4"/></div>
+                           <div className="bg-[rgba(255,255,255,0.03)] border border-border p-4 rounded-xl rounded-tl-sm w-full">
+                             <div className="flex justify-between items-center mb-2">
+                               <span className="text-xs font-bold text-foreground">{activeTicket.user_email || activeTicket.email || 'Client'}</span>
+                               <span className="text-[10px] text-muted-foreground">{new Date(activeTicket.created_at).toLocaleString()}</span>
+                             </div>
+                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{activeTicket.message || activeTicket._msg || 'No message content.'}</p>
+                           </div>
                          </div>
-                         <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{activeTicket._msg || activeTicket.messages?.[0]?.content || "Initial constraint error."}</p>
-                       </div>
-                    </div>
-                    
-                    {/* Render existing replies logic here if activeTicket.messages exists */}
+                       )}
+                       {/* Render full message thread */}
+                       {(activeTicket.messages || []).map((msg, i) => {
+                         const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply;
+                         return (
+                           <div key={i} className={`flex items-start gap-4 ${isAdmin ? 'flex-row-reverse' : ''}`}>
+                             <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${isAdmin ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'bg-secondary text-muted-foreground'}`}>
+                               {isAdmin ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                             </div>
+                             <div className={`p-4 rounded-xl w-full border ${isAdmin ? 'bg-[rgba(59,130,246,0.05)] border-[#3b82f6]/20 rounded-tr-sm' : 'bg-[rgba(255,255,255,0.03)] border-border rounded-tl-sm'}`}>
+                               <div className="flex justify-between items-center mb-2">
+                                 <span className={`text-xs font-bold ${isAdmin ? 'text-[#3b82f6]' : 'text-foreground'}`}>
+                                   {isAdmin ? 'Support Agent' : (msg.sender_email || activeTicket.user_email || 'Client')}
+                                 </span>
+                                 <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</span>
+                               </div>
+                               <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{msg.content || msg.message}</p>
+                             </div>
+                           </div>
+                         );
+                       })}
+                     </>
+                   )}
                  </div>
 
                  {/* Admin Reply box */}

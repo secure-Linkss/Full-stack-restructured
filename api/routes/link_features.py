@@ -22,7 +22,7 @@ import bleach
 import requests as http_requests
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, session, send_file
+from flask import g, Blueprint, request, jsonify, session, send_file
 from api.database import db
 from api.models.link import Link
 from api.models.link_health_log import LinkHealthLog
@@ -76,7 +76,7 @@ def get_link_qr(link_id):
     import qrcode
     import qrcode.image.svg
 
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -170,7 +170,7 @@ def _perform_health_check(link):
 @login_required
 def get_link_health(link_id):
     """Return latest health status + last 10 check logs."""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -194,7 +194,7 @@ def get_link_health(link_id):
 @rate_limiter.rate_limit(requests_per_minute=10, requests_per_hour=60)
 def run_link_health_check(link_id):
     """Manually trigger a health check for a specific link."""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -232,7 +232,7 @@ def run_link_health_check(link_id):
 @link_features_bp.route('/api/links/<int:link_id>/pixels', methods=['GET'])
 @login_required
 def get_link_pixels(link_id):
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -255,7 +255,7 @@ def get_link_pixels(link_id):
 @login_required
 @rate_limiter.rate_limit(requests_per_minute=20)
 def update_link_pixels(link_id):
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -296,7 +296,7 @@ def update_link_pixels(link_id):
 @link_features_bp.route('/api/links/<int:link_id>/og-metadata', methods=['GET'])
 @login_required
 def get_og_metadata(link_id):
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -316,7 +316,7 @@ def get_og_metadata(link_id):
 @login_required
 @rate_limiter.rate_limit(requests_per_minute=20)
 def update_og_metadata(link_id):
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -366,7 +366,7 @@ def _validate_routing_rules(rules):
 @link_features_bp.route('/api/links/<int:link_id>/routing-rules', methods=['GET'])
 @login_required
 def get_routing_rules(link_id):
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -385,7 +385,7 @@ def get_routing_rules(link_id):
 @login_required
 @rate_limiter.rate_limit(requests_per_minute=20)
 def update_routing_rules(link_id):
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({'success': False, 'error': 'Link not found'}), 404
@@ -421,7 +421,7 @@ def _gen_short_code():
 @rate_limiter.rate_limit(requests_per_minute=5, requests_per_hour=30)
 def export_links():
     """Export all user links as CSV."""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     links = Link.query.filter_by(user_id=user_id).order_by(Link.created_at.desc()).all()
 
     scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
@@ -480,7 +480,7 @@ def bulk_import_links():
     Limits: 500 links per request, URL must be http/https.
     Duplicates (same target_url + campaign_name) are skipped.
     """
-    user_id = session.get('user_id')
+    user_id = g.user.id
     user = User.query.get(user_id)
     if not user:
         return jsonify({'success': False, 'error': 'Authentication required'}), 401

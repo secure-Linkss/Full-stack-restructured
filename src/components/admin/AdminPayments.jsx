@@ -174,6 +174,8 @@ const AdminPayments = ({ isOwner = false }) => {
   const [metrics, setMetrics]             = useState({ totalRevenue: 0, totalTransactions: 0, activeSubscriptions: 0, pendingCrypto: 0 });
   const [cryptoWallets, setCryptoWallets] = useState({ BTC: '', ETH: '', USDT: '', BNB: '', LTC: '' });
   const [cryptoSettings, setCryptoSettings] = useState({ required_confirmations: 30, auto_confirm_enabled: true });
+  const [stripeSettings, setStripeSettings] = useState({ stripeEnabled: true, stripePublishableKey: '', stripeSecretKey: '' });
+  const [isSavingStripe, setIsSavingStripe] = useState(false);
   const [loading, setLoading]             = useState(true);
   const [isSavingWallet, setIsSavingWallet] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -185,13 +187,14 @@ const AdminPayments = ({ isOwner = false }) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txsData, subsData, cryptoData, failedData, walletsData, settingsData] = await Promise.allSettled([
+      const [txsData, subsData, cryptoData, failedData, walletsData, settingsData, stripeData] = await Promise.allSettled([
         api.adminPayments.getTransactions(),
         api.adminPayments.getSubscriptions(),
         api.adminPayments.getCryptoPayments(),
         api.adminPayments.getFailedPayments(),
         api.adminPayments.getAdminWallets(),
         api.adminPayments.getCryptoSettings(),
+        api.adminSettings.getStripeSettings(),
       ]);
 
       const txs  = txsData.status  === 'fulfilled' && Array.isArray(txsData.value)  ? txsData.value  : [];
@@ -227,6 +230,15 @@ const AdminPayments = ({ isOwner = false }) => {
 
       if (settingsData.status === 'fulfilled' && settingsData.value?.settings) {
         setCryptoSettings(settingsData.value.settings);
+      }
+
+      if (stripeData.status === 'fulfilled' && stripeData.value) {
+        const s = stripeData.value;
+        setStripeSettings({
+          stripeEnabled: s.stripe_enabled ?? s.stripeEnabled ?? true,
+          stripePublishableKey: s.stripe_publishable_key || s.stripePublishableKey || '',
+          stripeSecretKey: s.stripe_secret_key || s.stripeSecretKey || '',
+        });
       }
 
       setMetrics({
@@ -320,6 +332,23 @@ const AdminPayments = ({ isOwner = false }) => {
       toast.error('Failed to save settings.');
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  // ── Stripe save ────────────────────────────────────────────────────────────
+  const saveStripe = async () => {
+    setIsSavingStripe(true);
+    try {
+      await api.adminSettings.updateStripeSettings({
+        stripe_enabled: stripeSettings.stripeEnabled,
+        stripe_publishable_key: stripeSettings.stripePublishableKey,
+        stripe_secret_key: stripeSettings.stripeSecretKey,
+      });
+      toast.success('Stripe configuration saved.');
+    } catch {
+      toast.error('Failed to save Stripe settings.');
+    } finally {
+      setIsSavingStripe(false);
     }
   };
 
@@ -591,6 +620,43 @@ const AdminPayments = ({ isOwner = false }) => {
 
           {/* ── CONFIG TAB ──────────────────────────────────────────────────── */}
           <TabsContent value="settings" className="space-y-6">
+
+            {/* Stripe Gateway Config */}
+            <div className="enterprise-card">
+              <div className="p-4 border-b border-border bg-[rgba(255,255,255,0.02)] flex items-center justify-between">
+                <h3 className="text-sm font-semibold flex items-center"><CreditCard className="w-4 h-4 mr-2 text-[#3b82f6]" /> Stripe Gateway Configuration</h3>
+                {!isOwner && <span className="text-[10px] bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/30 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Owner Only</span>}
+              </div>
+              <div className="p-6 space-y-5 max-w-2xl">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-[rgba(255,255,255,0.02)]">
+                  <div>
+                    <p className="text-sm font-medium">Enable Stripe Engine</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Accept card payments via Stripe checkout.</p>
+                  </div>
+                  <button onClick={() => setStripeSettings(s => ({ ...s, stripeEnabled: !s.stripeEnabled }))} disabled={!isOwner} className="ml-4 shrink-0">
+                    {stripeSettings.stripeEnabled
+                      ? <ToggleRight className="w-8 h-8 text-[#10b981]" />
+                      : <ToggleLeft className="w-8 h-8 text-muted-foreground" />}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-widest mb-1.5 block">Stripe Publishable Key</label>
+                    <input type="password" disabled={!isOwner} value={stripeSettings.stripePublishableKey} onChange={e => setStripeSettings(s => ({ ...s, stripePublishableKey: e.target.value }))} placeholder="pk_live_..." className="enterprise-input font-mono text-xs w-full" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-widest mb-1.5 block">Stripe Secret Key</label>
+                    <input type="password" disabled={!isOwner} value={stripeSettings.stripeSecretKey} onChange={e => setStripeSettings(s => ({ ...s, stripeSecretKey: e.target.value }))} placeholder="sk_live_..." className="enterprise-input font-mono text-xs w-full" />
+                  </div>
+                </div>
+                {isOwner && (
+                  <button onClick={saveStripe} disabled={isSavingStripe} className="btn-primary">
+                    {isSavingStripe ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                    Save Stripe Configuration
+                  </button>
+                )}
+              </div>
+            </div>
 
             {/* Confirmation threshold */}
             <div className="enterprise-card">

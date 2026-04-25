@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, RefreshCw, CheckCircle, Clock, Search, Eye, X, Send, Trash2, MessageSquare, User } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '../../services/api';
 
 const AdminContacts = () => {
   const [submissions, setSubmissions] = useState([]);
@@ -15,8 +16,7 @@ const AdminContacts = () => {
   const fetchData = async (p = 1) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/contact/submissions?page=${p}&per_page=20`, { credentials: 'include' });
-      const data = await res.json();
+      const data = await api.adminContacts.getSubmissions(p, 20);
       setSubmissions(data.submissions || []);
       setTotal(data.total || 0);
       setPage(p);
@@ -32,10 +32,9 @@ const AdminContacts = () => {
   const handleView = async (sub) => {
     setViewing(sub);
     setReplyText('');
-    // Mark as read if unread
     if (!sub.status || sub.status === 'unread') {
       try {
-        await fetch(`/api/admin/contact/${sub.id}/read`, { method: 'POST', credentials: 'include' });
+        await api.adminContacts.markAsRead(sub.id);
         setSubmissions(prev => prev.map(s => s.id === sub.id ? { ...s, status: 'read' } : s));
       } catch { /* silent */ }
     }
@@ -46,13 +45,7 @@ const AdminContacts = () => {
     if (!replyText.trim()) return;
     setReplying(true);
     try {
-      const res = await fetch(`/api/admin/contact/${viewing.id}/reply`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: replyText }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+      await api.adminContacts.reply(viewing.id, replyText);
       toast.success(`Reply sent to ${viewing.email}`);
       setReplyText('');
       fetchData(page);
@@ -66,26 +59,24 @@ const AdminContacts = () => {
 
   const handleResolve = async (sub) => {
     try {
-      const res = await fetch(`/api/admin/contact/${sub.id}/resolve`, { method: 'POST', credentials: 'include' });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+      await api.adminContacts.resolve(sub.id);
       toast.success('Enquiry marked as resolved.');
       setSubmissions(prev => prev.map(s => s.id === sub.id ? { ...s, status: 'resolved' } : s));
       if (viewing?.id === sub.id) setViewing(prev => ({ ...prev, status: 'resolved' }));
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to resolve');
     }
   };
 
   const handleDelete = async (sub) => {
     if (!window.confirm(`Delete enquiry from ${sub.name || sub.email}?`)) return;
     try {
-      const res = await fetch(`/api/admin/contact/${sub.id}`, { method: 'DELETE', credentials: 'include' });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
+      await api.adminContacts.delete(sub.id);
       toast.success('Enquiry deleted.');
       if (viewing?.id === sub.id) setViewing(null);
       fetchData(page);
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to delete');
     }
   };
 
@@ -172,7 +163,7 @@ const AdminContacts = () => {
                     <p className="text-xs text-muted-foreground">{sub.created_at ? new Date(sub.created_at).toLocaleString() : '—'}</p>
                   </td>
                   <td className="py-3 text-right">
-                    <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button onClick={() => handleView(sub)} className="p-1.5 rounded hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors" title="View & Reply">
                         <MessageSquare className="w-4 h-4" />
                       </button>

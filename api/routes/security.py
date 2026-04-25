@@ -578,7 +578,7 @@ def get_threat_dashboard():
 def get_security_logs():
     """Get security logs for the authenticated user"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         period = request.args.get("period", "7")
         days = int(period)
         

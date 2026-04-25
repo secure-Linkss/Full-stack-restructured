@@ -18,12 +18,19 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [dashboardStats, metrics, intel, alertsData] = await Promise.all([
+        const results = await Promise.allSettled([
           api.admin.getDashboard(),
-          fetch('/api/admin/metrics', { credentials: 'include' }).then(r => r.json()),
-          fetch('/api/admin/intelligence', { credentials: 'include' }).then(r => r.json()),
-          fetch('/api/admin/alerts', { credentials: 'include' }).then(r => r.json()),
+          api.admin.getMetrics(),
+          api.admin.getIntelligence(),
+          api.admin.getAlerts(),
         ]);
+
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed > 0) toast.error(`${failed} dashboard data source(s) failed to load.`);
+
+        const [dashboardStats, metrics, intel, alertsData] = results.map(r =>
+          r.status === 'fulfilled' ? r.value : (r.reason?.message?.includes('alerts') ? { alerts: [] } : {})
+        );
 
         setStats({
           totalUsers: metrics.users?.total || dashboardStats.users?.total || 0,

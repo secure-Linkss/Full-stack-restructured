@@ -10,6 +10,7 @@ import {
   Clock, XCircle, Shield, RefreshCw, ArrowRight
 } from 'lucide-react'
 import { toast } from 'sonner'
+import api from '../services/api'
 
 const CURRENCIES = [
   { code: 'BTC', name: 'Bitcoin', icon: '₿', color: '#f7931a', explorerUrl: 'https://www.blockchain.com/btc/tx/' },
@@ -82,21 +83,15 @@ const CryptoPaymentForm = ({ planType = 'pro', planPrice = '0', onSuccess, onCan
 
   const fetchWallets = async () => {
     try {
-      const r = await fetch('/api/crypto-payments/wallets', { headers: authHeaders(), credentials: 'include' })
-      if (r.ok) {
-        const d = await r.json()
-        setWallets(Array.isArray(d.wallets) ? d.wallets : [])
-      }
+      const d = await api.payments.getCryptoWallets()
+      setWallets(Array.isArray(d.wallets) ? d.wallets : [])
     } catch (_) { /* silent */ }
   }
 
   const fetchConfirmationThreshold = async () => {
     try {
-      const r = await fetch('/api/admin/crypto-payments/settings', { headers: authHeaders(), credentials: 'include' })
-      if (r.ok) {
-        const d = await r.json()
-        setRequiredConfs(d.settings?.required_confirmations || 30)
-      }
+      const d = await api.adminPayments.getCryptoSettings().catch(() => null)
+      if (d?.settings?.required_confirmations) setRequiredConfs(d.settings.required_confirmations)
     } catch (_) { /* silent */ }
   }
 
@@ -114,21 +109,15 @@ const CryptoPaymentForm = ({ planType = 'pro', planPrice = '0', onSuccess, onCan
     if (!txHash.trim()) { toast.error('Transaction hash is required'); return }
     setLoading(true)
     try {
-      const r = await fetch('/api/crypto-payments/submit-proof', {
-        method: 'POST',
-        headers: authHeaders(),
-        credentials: 'include',
-        body: JSON.stringify({
-          plan_type: planType,
-          currency: selectedCurrency,
-          tx_hash: txHash.trim(),
-          amount_usd: planPrice,
-          amount_crypto: 0,
-          wallet_address: currentWallet?.wallet_address || '',
-        }),
+      const d = await api.payments.submitCryptoProof({
+        plan_type: planType,
+        currency: selectedCurrency,
+        tx_hash: txHash.trim(),
+        amount_usd: planPrice,
+        amount_crypto: 0,
+        wallet_address: currentWallet?.wallet_address || '',
       })
-      const d = await r.json()
-      if (r.ok && d.success) {
+      if (d.success) {
         setTransactionId(d.transaction_id)
         setPollStatus({ status: 'pending', confirmations: 0, required: requiredConfs })
         setStep('polling')
@@ -149,12 +138,8 @@ const CryptoPaymentForm = ({ planType = 'pro', planPrice = '0', onSuccess, onCan
     clearInterval(pollRef.current)
     const poll = async () => {
       try {
-        const r = await fetch(`/api/crypto-payments/status/${txId}`, {
-          headers: authHeaders(),
-          credentials: 'include',
-        })
-        if (!r.ok) return
-        const d = await r.json()
+        const d = await api.payments.getCryptoStatus(txId).catch(() => null)
+        if (!d) return
         setPollStatus({
           status: d.status,
           confirmations: d.confirmations || 0,

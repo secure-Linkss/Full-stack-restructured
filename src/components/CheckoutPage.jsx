@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CreditCard, Bitcoin, ArrowLeft, Check, Zap, Shield, ExternalLink, RefreshCw } from 'lucide-react';
 import CryptoPaymentForm from './CryptoPaymentForm';
 import { toast } from 'sonner';
+import api from '../services/api';
 
 const PLANS = {
   free:       { label: 'Free',       price: 0,     features: ['5 links/month', 'Basic analytics', 'Standard support'] },
@@ -23,12 +24,7 @@ const CheckoutPage = () => {
   const handleStripe = async () => {
     setStripeLoading(true);
     try {
-      const res = await fetch('/api/payments/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ plan, billing_cycle: billing }),
-      }).then(r => r.json());
-
+      const res = await api.payments.createStripeCheckout(plan, billing);
       const url = res.url || res.checkout_url || res.session_url;
       if (url) {
         window.location.href = url;

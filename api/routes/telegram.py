@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from api.database import db
 from api.models.user import User
 import requests
@@ -9,7 +9,7 @@ telegram_bp = Blueprint('telegram', __name__)
 def require_auth():
     if 'user_id' not in session:
         return None
-    return User.query.get(session['user_id'])
+    return User.query.get(g.user.id)
 
 @telegram_bp.route('/api/telegram/test', methods=['POST'])
 def test_telegram():

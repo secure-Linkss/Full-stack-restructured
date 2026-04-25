@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import DataTable from '@/components/ui/DataTable';
 import RateLimiting from './RateLimiting';
+import api from '../../services/api';
 
 const StatBadge = ({ value, label, color = 'blue' }) => {
   const colors = { red: 'border-red-500/30 text-red-400', amber: 'border-amber-500/30 text-amber-400', green: 'border-green-500/30 text-green-400', blue: 'border-blue-500/30 text-blue-400', purple: 'border-purple-500/30 text-purple-400' };
@@ -24,12 +25,10 @@ const AdminSecurity = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [logsRes, intelRes] = await Promise.all([
-        fetch('/api/admin/audit-logs?limit=100', { credentials: 'include' }),
-        fetch('/api/admin/intelligence', { credentials: 'include' }),
+      const [logsRaw, intel] = await Promise.all([
+        api.adminLogs.getAll({ limit: 100 }).catch(() => []),
+        api.admin.getIntelligence().catch(() => ({})),
       ]);
-      const logsRaw = await logsRes.json();
-      const intel = await intelRes.json();
 
       const logsArr = Array.isArray(logsRaw) ? logsRaw : (logsRaw.logs || logsRaw.audit_logs || []);
       const logs = logsArr.map(log => ({

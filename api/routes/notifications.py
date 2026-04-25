@@ -19,7 +19,7 @@ def get_notifications():
     per_page = request.args.get("per_page", 20, type=int)
     unread_only = request.args.get("unread_only", "false").lower() == "true"
 
-    query = Notification.query.filter_by(user_id=session.get("user_id"))
+    query = Notification.query.filter_by(user_id=g.user.id)
     if unread_only:
         query = query.filter_by(read=False)
 
@@ -27,7 +27,7 @@ def get_notifications():
         page=page, per_page=per_page, error_out=False
     )
 
-    unread_count = Notification.query.filter_by(user_id=session.get("user_id"), read=False).count()
+    unread_count = Notification.query.filter_by(user_id=g.user.id, read=False).count()
 
     return jsonify({
         "success": True,
@@ -42,14 +42,14 @@ def get_notifications():
 @notifications_bp.route("/api/notifications/count", methods=["GET"])
 @login_required
 def get_notification_count():
-    count = Notification.query.filter_by(user_id=session.get("user_id"), read=False).count()
+    count = Notification.query.filter_by(user_id=g.user.id, read=False).count()
     return jsonify({"success": True, "count": count}), 200
 
 
 @notifications_bp.route("/api/notifications/<int:notification_id>/read", methods=["PATCH", "PUT"])
 @login_required
 def mark_as_read(notification_id):
-    notif = Notification.query.filter_by(id=notification_id, user_id=session.get("user_id")).first()
+    notif = Notification.query.filter_by(id=notification_id, user_id=g.user.id).first()
     if not notif:
         return jsonify({"success": False, "error": "Notification not found"}), 404
     notif.read = True
@@ -60,7 +60,7 @@ def mark_as_read(notification_id):
 @notifications_bp.route("/api/notifications/mark-all-read", methods=["PATCH", "PUT"])
 @login_required
 def mark_all_read():
-    Notification.query.filter_by(user_id=session.get("user_id"), read=False).update({"read": True})
+    Notification.query.filter_by(user_id=g.user.id, read=False).update({"read": True})
     db.session.commit()
     return jsonify({"success": True}), 200
 
@@ -68,7 +68,7 @@ def mark_all_read():
 @notifications_bp.route("/api/notifications/<int:notification_id>", methods=["DELETE"])
 @login_required
 def delete_notification(notification_id):
-    notif = Notification.query.filter_by(id=notification_id, user_id=session.get("user_id")).first()
+    notif = Notification.query.filter_by(id=notification_id, user_id=g.user.id).first()
     if not notif:
         return jsonify({"success": False, "error": "Notification not found"}), 404
     db.session.delete(notif)

@@ -17,9 +17,10 @@ const AdminLinks = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const linksData = await api.admin?.links?.getAll() || [];
+      const linksData = await api.adminLinks.getAll().catch(() => []);
+      const normalizedData = Array.isArray(linksData) ? linksData : (linksData.links || []);
       
-      const mappedLinks = linksData.map(l => ({
+      const mappedLinks = normalizedData.map(l => ({
         ...l,
         shortUrl: l.short_code ? `b.link/${l.short_code}` : (l.shortUrl || l.short_url || ''),
         targetUrl: l.target_url || l.targetUrl || '',
@@ -44,7 +45,7 @@ const AdminLinks = () => {
     try {
       if (action === 'Delete Link') {
         if (window.confirm(`FORCE DELETE: Are you sure you want to eradicate the endpoint ${link.shortUrl}?`)) {
-          await api.adminLinks?.delete(link.id);
+          await api.adminLinks.delete(link.id);
           toast.success('Link completely removed from matrix.');
           fetchData();
         }
@@ -53,9 +54,15 @@ const AdminLinks = () => {
         navigator.clipboard.writeText(url);
         toast.success('Link tracking URL copied.');
       } else if (action === 'Pause Link') {
-          toast.success(`Endpoint [${link.shortUrl}] paralyzed.`);
+        await api.adminLinks.pause(link.id);
+        toast.success(`Endpoint [${link.shortUrl}] paused.`);
+        fetchData();
+      } else if (action === 'Resume Link') {
+        await api.adminLinks.resume(link.id);
+        toast.success(`Endpoint [${link.shortUrl}] resumed.`);
+        fetchData();
       } else {
-        toast.info(`${action} routine activated for: ${link.shortUrl}`);
+        toast.info(`${action} for: ${link.shortUrl}`);
       }
     } catch (error) {
       toast.error(`Action failed: Network Error`);

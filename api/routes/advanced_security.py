@@ -3,31 +3,16 @@ Advanced Security Routes
 Enterprise-grade security endpoints with AI-powered threat detection
 """
 
-from flask import Blueprint, request, jsonify, session, g
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime, timedelta
-from functools import wraps
 import json
 import time
 
 # Import the advanced security system
 from ..services.advanced_security_system import advanced_security, ThreatLevel, SecurityAction
+from ..middleware.auth_decorators import login_required
 
 advanced_security_bp = Blueprint('advanced_security', __name__)
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        # Set user in g for use in routes
-        from ..models.user import User
-        g.user = User.query.get(session['user_id'])
-        if not g.user:
-            return jsonify({'error': 'User not found'}), 401
-        
-        return f(*args, **kwargs)
-    return decorated_function
 
 @advanced_security_bp.route('/api/security/advanced/analyze', methods=['POST'])
 @login_required

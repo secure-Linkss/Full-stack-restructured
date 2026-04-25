@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from './ui/alert'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { Key, Copy, Trash2, RefreshCw, Eye, EyeOff, Plus, AlertCircle, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import api from '../services/api'
 
 const APIKeyManager = () => {
   const [apiKeys, setApiKeys] = useState([])
@@ -24,13 +25,9 @@ const APIKeyManager = () => {
   const fetchAPIKeys = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/api-keys')
-      if (response.ok) {
-        const data = await response.json()
-        setApiKeys(data.api_keys || [])
-      }
+      const data = await api.userApiKeys.getAll()
+      setApiKeys(data.api_keys || data || [])
     } catch (error) {
-      console.error('Error fetching API keys:', error)
       toast.error('Failed to load API keys')
     } finally {
       setLoading(false)
@@ -42,74 +39,36 @@ const APIKeyManager = () => {
       toast.error('Please enter a name for the API key')
       return
     }
-
     try {
-      const response = await fetch('/api/api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newKeyName,
-          expires_in_days: newKeyExpiry
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setCreatedKey(data.api_key)
-        setApiKeys([data.api_key, ...apiKeys])
-        setNewKeyName('')
-        toast.success('API key created successfully')
-      } else {
-        toast.error('Failed to create API key')
-      }
+      const data = await api.userApiKeys.create({ name: newKeyName, expires_in_days: newKeyExpiry })
+      setCreatedKey(data.api_key)
+      setApiKeys([data.api_key, ...apiKeys])
+      setNewKeyName('')
+      toast.success('API key created successfully')
     } catch (error) {
-      console.error('Error creating API key:', error)
       toast.error('Failed to create API key')
     }
   }
 
   const deleteAPIKey = async (keyId) => {
-    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
-      return
-    }
-
+    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) return
     try {
-      const response = await fetch(`/api/api-keys/${keyId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        setApiKeys(apiKeys.filter(key => key.id !== keyId))
-        toast.success('API key deleted successfully')
-      } else {
-        toast.error('Failed to delete API key')
-      }
+      await api.userApiKeys.delete(keyId)
+      setApiKeys(apiKeys.filter(key => key.id !== keyId))
+      toast.success('API key deleted successfully')
     } catch (error) {
-      console.error('Error deleting API key:', error)
       toast.error('Failed to delete API key')
     }
   }
 
   const regenerateAPIKey = async (keyId) => {
-    if (!confirm('Are you sure you want to regenerate this API key? The old key will stop working immediately.')) {
-      return
-    }
-
+    if (!confirm('Are you sure you want to regenerate this API key? The old key will stop working immediately.')) return
     try {
-      const response = await fetch(`/api/api-keys/${keyId}/regenerate`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setCreatedKey(data.api_key)
-        setApiKeys(apiKeys.map(key => key.id === keyId ? data.api_key : key))
-        toast.success('API key regenerated successfully')
-      } else {
-        toast.error('Failed to regenerate API key')
-      }
+      const data = await api.userApiKeys.revoke(keyId)
+      setCreatedKey(data.api_key)
+      setApiKeys(apiKeys.map(key => key.id === keyId ? (data.api_key || key) : key))
+      toast.success('API key regenerated successfully')
     } catch (error) {
-      console.error('Error regenerating API key:', error)
       toast.error('Failed to regenerate API key')
     }
   }

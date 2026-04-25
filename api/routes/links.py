@@ -35,8 +35,8 @@ def validate_custom_slug(slug):
 def get_links():
     """Get all links for current user"""
     try:
-        user_id = session.get("user_id")
-        user = User.query.get(user_id)
+        user = g.user  # Always use g.user (set by @login_required) — reliable on stateless serverless
+        user_id = user.id
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 20, type=int)
         campaign_id = request.args.get("campaign_id", type=int)
@@ -61,10 +61,8 @@ def get_links():
 def create_link():
     """Create new tracking link with advanced features"""
     try:
-        user_id = session.get("user_id")
-        user = db.session.get(User, user_id)
-        if not user:
-            return jsonify({"error": "User not found"}), 404
+        user = g.user  # set by @login_required
+        user_id = user.id
 
         # ── Trial plan limits ─────────────────────────────────────────────
         if getattr(user, 'plan_type', 'free') == 'trial':
@@ -177,7 +175,7 @@ def create_link():
 def get_link(link_id):
     """Get specific link"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id  # set by @login_required
         link = Link.query.filter_by(id=link_id, user_id=user_id).first()
         if not link:
             return jsonify({"error": "Link not found"}), 404
@@ -189,7 +187,7 @@ def get_link(link_id):
 def update_link(link_id):
     """Update link"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id  # set by @login_required
         link = Link.query.filter_by(id=link_id, user_id=user_id).first()
         if not link:
             return jsonify({"error": "Link not found"}), 404
@@ -271,7 +269,7 @@ def update_link(link_id):
 def delete_link(link_id):
     """Delete link and its tracking events"""
     try:
-        user_id = g.user.id if hasattr(g, 'user') and g.user else session.get("user_id")
+        user_id = g.user.id  # set by @login_required
         link = Link.query.filter_by(id=link_id, user_id=user_id).first()
         if not link:
             return jsonify({"error": "Link not found"}), 404
@@ -287,9 +285,7 @@ def delete_link(link_id):
 @links_bp.route("/links/regenerate/<int:link_id>", methods=["POST"])
 @login_required
 def regenerate_link(link_id):
-    user = User.query.get(session["user_id"])
-    if not user:
-        return jsonify({"success": False, "error": "Authentication required"}), 401
+    user = g.user
     link = Link.query.filter_by(id=link_id, user_id=user.id).first()
     if not link:
         return jsonify({"success": False, "error": "Link not found or access denied"}), 404
@@ -320,9 +316,7 @@ def regenerate_link(link_id):
 @links_bp.route("/links/stats", methods=["GET"])
 @login_required
 def get_links_stats():
-    user = User.query.get(session["user_id"])
-    if not user:
-        return jsonify({"success": False, "error": "Authentication required"}), 401
+    user = g.user
     try:
         user_links = Link.query.filter_by(user_id=user.id).all()
         link_ids = [link.id for link in user_links]
@@ -355,9 +349,7 @@ def get_links_stats():
 @links_bp.route("/links/<int:link_id>/toggle-status", methods=["POST"])
 @login_required
 def toggle_link_status(link_id):
-    user = User.query.get(session["user_id"])
-    if not user:
-        return jsonify({"success": False, "error": "Authentication required"}), 401
+    user = g.user
     link = Link.query.filter_by(id=link_id, user_id=user.id).first()
     if not link:
         return jsonify({"success": False, "error": "Link not found or access denied"}), 404
@@ -378,7 +370,7 @@ def toggle_link_status(link_id):
 @login_required
 def get_link_analytics(link_id):
     """Get analytics for a specific link"""
-    user_id = session.get("user_id")
+    user_id = g.user.id  # set by @login_required
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({"error": "Link not found"}), 404
@@ -414,7 +406,7 @@ def get_link_analytics(link_id):
 @login_required
 def get_link_geo_fencing(link_id):
     """Get geo-fencing settings for a link"""
-    user_id = session.get("user_id")
+    user_id = g.user.id  # set by @login_required
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({"error": "Link not found"}), 404
@@ -433,7 +425,7 @@ def get_link_geo_fencing(link_id):
 @login_required
 def update_link_geo_fencing(link_id):
     """Update geo-fencing settings for a link"""
-    user_id = session.get("user_id")
+    user_id = g.user.id  # set by @login_required
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({"error": "Link not found"}), 404
@@ -462,7 +454,7 @@ def get_inbox_score(link_id):
     GET /api/links/<id>/inbox-score
     Returns the Inbox Survival Score™ for a link.
     """
-    user_id = session.get("user_id")
+    user_id = g.user.id  # set by @login_required
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({"error": "Link not found"}), 404
@@ -484,7 +476,7 @@ def optimize_link_endpoint(link_id):
     Auto-Stealth Optimization: analyses the link and returns an optimized
     configuration. Premium / High Inbox Mode feature.
     """
-    user_id = session.get("user_id")
+    user_id = g.user.id  # set by @login_required
     link = Link.query.filter_by(id=link_id, user_id=user_id).first()
     if not link:
         return jsonify({"error": "Link not found"}), 404
@@ -513,7 +505,7 @@ def get_all_inbox_scores():
     GET /api/links/inbox-scores
     Returns inbox scores for all of the authenticated user's links (batch).
     """
-    user_id = session.get("user_id")
+    user_id = g.user.id  # set by @login_required
     links = Link.query.filter_by(user_id=user_id).order_by(Link.created_at.desc()).limit(50).all()
 
     try:

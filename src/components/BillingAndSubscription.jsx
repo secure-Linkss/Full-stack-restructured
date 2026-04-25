@@ -129,10 +129,8 @@ const BillingAndSubscription = () => {
     try {
       const [profileRes, walletsRes, paymentsRes] = await Promise.allSettled([
         api.profile.get(),
-        fetch('/api/crypto-payments/wallets').then(r => r.json()),
-        fetch('/api/crypto-payments/my-payments', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }).then(r => r.json()),
+        api.payments.getCryptoWallets(),
+        api.payments.getMyPayments(),
       ]);
 
       if (profileRes.status === 'fulfilled') {
@@ -154,11 +152,8 @@ const BillingAndSubscription = () => {
         setMyPayments(paymentsRes.value.payments);
       }
 
-      // Get required confirmations (public-ish — use settings if available)
       try {
-        const settingsRes = await fetch('/api/admin/crypto-payments/settings', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }).then(r => r.json());
+        const settingsRes = await api.adminPayments.getCryptoSettings().catch(() => null);
         if (settingsRes?.settings?.required_confirmations) {
           setRequiredConfs(settingsRes.settings.required_confirmations);
         }
@@ -185,9 +180,7 @@ const BillingAndSubscription = () => {
   const pollTx = async (txId) => {
     setPollingId(txId);
     try {
-      const res = await fetch(`/api/crypto-payments/status/${txId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      }).then(r => r.json());
+      const res = await api.payments.getCryptoStatus(txId);
 
       if (res.success) {
         setMyPayments(prev => prev.map(p =>
@@ -212,11 +205,7 @@ const BillingAndSubscription = () => {
   const handleStripeCheckout = async () => {
     setStripeLoading(true);
     try {
-      const res = await fetch('/api/payments/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ plan: billingInfo?.plan || 'pro', billing_cycle: 'monthly' })
-      }).then(r => r.json());
+      const res = await api.payments.createStripeCheckout(billingInfo?.plan || 'pro', 'monthly');
 
       if (res.url || res.checkout_url || res.session_url) {
         window.location.href = res.url || res.checkout_url || res.session_url;

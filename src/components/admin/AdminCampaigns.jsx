@@ -17,7 +17,8 @@ const AdminCampaigns = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const campaignsData = await api.admin?.campaigns?.getAll() || [];
+      const raw = await api.admin.campaigns.getAll().catch(() => []);
+      const campaignsData = Array.isArray(raw) ? raw : (raw.campaigns || []);
       
       const mappedCampaigns = campaignsData.map(c => ({
         ...c,
@@ -42,12 +43,14 @@ const AdminCampaigns = () => {
     try {
       if (action === 'Delete Campaign') {
         if (window.confirm(`FORCE DELETE: Are you sure you want to eradicate the campaign [${campaign.name}] routing array?`)) {
-          await (api.admin?.campaigns?.delete || api.adminCampaigns?.delete)(campaign.id);
+          await api.admin.campaigns.delete(campaign.id);
           toast.success('Campaign vector purged globally.');
           fetchData();
         }
       } else if (action === 'Pause Campaign') {
+          await api.adminCampaigns.suspend(campaign.id);
           toast.success(`Campaign [${campaign.name}] halted.`);
+          fetchData();
       } else {
         toast.info(`${action} routine activated for: ${campaign.name}`);
       }

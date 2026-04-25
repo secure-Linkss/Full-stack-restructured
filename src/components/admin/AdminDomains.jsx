@@ -21,12 +21,10 @@ const AdminDomains = () => {
   const fetchDomains = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/domains', { credentials: 'include' });
-      const data = await response.json();
+      const data = await api.adminSettings.getDomains();
       const list = data?.domains || data || [];
       setDomains(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.error('Failed to load domains:', error);
       toast.error('Failed to load global domains.');
     } finally {
       setLoading(false);
@@ -44,7 +42,7 @@ const AdminDomains = () => {
     if (!newDomain || !newDomain.includes('.')) return toast.error('Enter a valid FQDN / Hostname');
     setAdding(true);
     try {
-      await fetch('/api/admin/domains', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: newDomain }) });
+      await api.adminSettings.addDomain({ domain: newDomain });
       toast.success(`Globally integrated domain: ${newDomain}`);
       setNewDomain('');
       fetchDomains();
@@ -96,7 +94,7 @@ const AdminDomains = () => {
   };
 
   const handleVerify = async (id, name) => {
-    toast.promise(api.domains.verify(id), {
+    toast.promise(api.adminSettings.verifyDomain(id), {
       loading: `Running DNS Verification against ${name}...`,
       success: () => {
         fetchDomains();
@@ -139,7 +137,7 @@ const AdminDomains = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
         <div className="lg:col-span-1">
-          <div className="enterprise-card p-5 sticky top-6">
+          <div className="enterprise-card p-5 lg:sticky lg:top-6">
             <div className="border-b border-border pb-3 mb-4 flex items-center">
               <Server className="w-4 h-4 mr-2 text-[#3b82f6]" /> 
               <h3 className="text-sm font-semibold text-foreground tracking-wide uppercase">Add Routing Core</h3>
@@ -168,7 +166,7 @@ const AdminDomains = () => {
             <div className="p-4 border-b border-border bg-[rgba(255,255,255,0.01)] flex justify-between items-center">
               <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Active Routing Pool</h3>
               <div className="flex items-center gap-2">
-                <span className="badge-dim-blue">{domains.length} Active Nodes</span>
+                <span className="text-[10px] font-mono tracking-widest px-2 py-0.5 rounded uppercase bg-[#3b82f6]/10 text-[#3b82f6]">{domains.length} Active Nodes</span>
                 <button onClick={fetchDomains} className="p-1.5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors" title="Refresh">
                   <RefreshCw className="w-4 h-4" />
                 </button>

@@ -30,33 +30,23 @@ const LinkShortener = () => {
 	  const fetchData = async () => {
 	    setLoading(true);
 	    try {
-	      // Assuming api.getShortenedLinks and api.getShortenerMetrics are placeholders 
-	      // for the new api.shorten.getAll and a dashboard metric endpoint.
-	      // Since the new api.js doesn't have getShortenedLinks/getShortenerMetrics, 
-	      // I'll assume the backend uses the /shorten endpoint for links and a general dashboard endpoint for metrics.
-	      const [linksResponse, metricsResponse] = await Promise.all([
-	        api.shorten.getAll(),
-	        api.dashboard.getMetrics(), // Reusing dashboard metrics for now
-	      ]);
-	      
-	      // The actual links data is likely in a 'links' property of the response
-	      const linksData = linksResponse.links || linksResponse; 
+	      // Fetch shortener links — compute all metrics from the returned data (no site-wide bleed)
+	      const linksResponse = await api.shorten.getAll();
+	      const linksData = Array.isArray(linksResponse) ? linksResponse : (linksResponse.links || linksResponse || []);
 	      setLinks(linksData);
 	      if (linksData.length > 0 && !selectedLink) {
-	        setSelectedLink(linksData[0]); // Select the first link by default
+	        setSelectedLink(linksData[0]);
 	      } else if (linksData.length > 0 && selectedLink) {
-	        // Update the selected link if it still exists in the list
 	        const updatedSelected = linksData.find(l => l.id === selectedLink.id);
 	        if (updatedSelected) setSelectedLink(updatedSelected);
 	      } else {
 	        setSelectedLink(null);
 	      }
-	      
-	      // Filter metrics for shortener-specific ones if possible, otherwise use general
+	      // Shortener-specific metrics derived entirely from this user's shortened links
 	      setMetrics({
-	        totalLinks: linksData.length, // Fallback to count
-	        activeLinks: linksData.filter(l => l.status === 'active').length, // Fallback to count
-	        totalClicks: metricsResponse.totalClicks || 0,
+	        totalLinks: linksData.length,
+	        activeLinks: linksData.filter(l => l.status === 'active').length,
+	        totalClicks: linksData.reduce((sum, l) => sum + (l.clicks || 0), 0),
 	      });
 	      
 	      toast.success('Shortened links refreshed.');
@@ -107,9 +97,15 @@ const LinkShortener = () => {
 		          toast.error(`Failed to delete link: ${error.message}`);
 		        }
 		      }
+		    } else if (action === 'Copy Link') {
+		      navigator.clipboard.writeText(link.shortUrl || '').then(
+		        () => toast.success('Short link copied to clipboard!'),
+		        () => toast.error('Copy failed — please copy manually.')
+		      );
+		    } else if (action === 'Edit') {
+		      toast.info('Open the Tracking Links page to edit full link settings.');
 		    } else {
-		      toast.info(`${action} action triggered for link: ${link.shortUrl}`);
-		      // Mock action logic for other actions like Edit, View Analytics
+		      toast.info(`${action} for: ${link.shortUrl}`);
 		    }
 		  };
 		
@@ -226,7 +222,20 @@ const LinkShortener = () => {
         searchPlaceholder="Search links by short URL or target URL..."
         onSearch={setSearchQuery}
         onRefresh={handleRefresh}
-        onExport={() => toast.info('Exporting shortened links...')}
+        onExport={async () => {
+          try {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            toast.loading('Exporting shortened links...');
+            const res = await fetch('/api/links/export', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `shortened-links-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+            URL.revokeObjectURL(url);
+            toast.dismiss(); toast.success('Links exported.');
+          } catch { toast.dismiss(); toast.error('Export failed.'); }
+        }}
         filterOptions={[
           { value: 'all', label: 'All' },
           { value: 'active', label: 'Active' },

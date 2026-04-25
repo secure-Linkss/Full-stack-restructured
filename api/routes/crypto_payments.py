@@ -14,7 +14,7 @@ Required confirmations default: 30 (configurable via AdminSettings.crypto_requir
 
 import logging
 import requests as http_requests
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from api.database import db
 from api.models.user import User
 from api.models.notification import Notification
@@ -274,7 +274,7 @@ def admin_add_wallet(current_user):
         existing.network = network
         existing.is_active = data.get("is_active", True)
         existing.notes = data.get("notes", existing.notes)
-        existing.updated_by = session.get("user_id")
+        existing.updated_by = current_user.id
         db.session.commit()
         return jsonify({"success": True, "wallet": existing.to_dict()}), 200
 
@@ -283,7 +283,7 @@ def admin_add_wallet(current_user):
         wallet_address=address,
         network=network,
         is_active=True,
-        updated_by=session.get("user_id"),
+        updated_by=current_user.id,
         notes=data.get("notes", "")
     )
     db.session.add(wallet)
@@ -307,7 +307,7 @@ def admin_update_wallet(current_user, wallet_id):
         wallet.network = data["network"]
     if "notes" in data:
         wallet.notes = data["notes"]
-    wallet.updated_by = session.get("user_id")
+    wallet.updated_by = current_user.id
     db.session.commit()
     return jsonify({"success": True, "wallet": wallet.to_dict()}), 200
 
@@ -321,7 +321,7 @@ def admin_update_wallet(current_user, wallet_id):
 def submit_payment_proof():
     """Submit crypto payment proof for admin verification"""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         data = request.get_json()
 
         required = ["plan_type", "currency", "tx_hash", "amount_usd"]
@@ -429,7 +429,7 @@ def admin_get_all_payments():
 def confirm_payment(tx_id):
     """Confirm crypto payment — activates user subscription"""
     try:
-        admin_id = session.get("user_id")
+        admin_id = g.user.id
         data = request.get_json() or {}
 
         tx = CryptoPaymentTransaction.query.get(tx_id)
@@ -502,7 +502,7 @@ def confirm_payment(tx_id):
 def reject_payment(tx_id):
     """Reject crypto payment proof"""
     try:
-        admin_id = session.get("user_id")
+        admin_id = g.user.id
         data = request.get_json() or {}
         reason = data.get("reason", "Payment proof could not be verified")
 
@@ -557,7 +557,7 @@ def get_payment_status(tx_id):
     Called by the frontend every ~15s until confirmations >= required or status changes.
     """
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         tx = CryptoPaymentTransaction.query.filter_by(id=tx_id, user_id=user_id).first()
         if not tx:
             return jsonify({"success": False, "error": "Transaction not found"}), 404
@@ -652,7 +652,7 @@ def get_payment_status(tx_id):
 def get_my_payments():
     """List the current user's crypto payment history."""
     try:
-        user_id = session.get("user_id")
+        user_id = g.user.id
         txns = CryptoPaymentTransaction.query.filter_by(user_id=user_id)\
             .order_by(CryptoPaymentTransaction.created_at.desc()).all()
         return jsonify({"success": True, "payments": [t.to_dict() for t in txns]}), 200

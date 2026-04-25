@@ -9,7 +9,7 @@ import re
 import logging
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify, session, send_file
+from flask import g, Blueprint, request, jsonify, session, send_file
 from api.database import db
 
 # RFC 5322-inspired email regex (practical subset)
@@ -36,7 +36,7 @@ def generate_purls():
       - JSON: { "link_id": 1, "recipients": [{"name": "...", "email": "..."}, ...] }
       - Multipart: link_id=<int>, file=<csv with name,email columns>
     """
-    user_id = session.get('user_id')
+    user_id = g.user.id
 
     if request.content_type and 'multipart' in request.content_type:
         link_id = request.form.get('link_id', type=int)
@@ -126,7 +126,7 @@ def generate_purls():
 @login_required
 def list_purls():
     """List all PURL mappings for current user, optionally filtered by link_id."""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link_id = request.args.get('link_id', type=int)
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 50, type=int), 200)
@@ -154,7 +154,7 @@ def list_purls():
 @purl_bp.route('/api/purl/<int:purl_id>', methods=['DELETE'])
 @login_required
 def delete_purl(purl_id):
-    user_id = session.get('user_id')
+    user_id = g.user.id
     purl = PurlMapping.query.filter_by(id=purl_id, user_id=user_id).first()
     if not purl:
         return jsonify({'success': False, 'error': 'PURL not found'}), 404
@@ -167,7 +167,7 @@ def delete_purl(purl_id):
 @login_required
 def export_purls():
     """Export PURLs as CSV."""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link_id = request.args.get('link_id', type=int)
 
     scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
@@ -213,7 +213,7 @@ def export_purls():
 @login_required
 def get_honeypot_stats():
     """Return bot vs human breakdown for the current user's events."""
-    user_id = session.get('user_id')
+    user_id = g.user.id
     link_ids = [l.id for l in Link.query.filter_by(user_id=user_id).all()]
 
     if not link_ids:

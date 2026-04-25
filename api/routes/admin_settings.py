@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify, session
 from functools import wraps
 from api.database import db
 from api.models.user import User
@@ -14,7 +14,7 @@ def login_required(f):
         if 'user_id' not in session:
             return jsonify({'error': 'Authentication required'}), 401
         
-        user = User.query.get(session['user_id'])
+        user = User.query.get(g.user.id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
