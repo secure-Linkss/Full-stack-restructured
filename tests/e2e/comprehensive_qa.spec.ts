@@ -584,9 +584,8 @@ test.describe('7. Admin Support Hub — Conversation Thread View', () => {
 test.describe('8. Quantum Redirect — Click Flow Verification', () => {
   test('tracking link follows /t/ → /validate → /route → /bridge chain', async ({ page }) => {
     const { fails } = collectErrors(page);
-    // Get a link from the API
-    const token = await page.evaluate(() => localStorage.getItem('token') || '');
     await loginAsBrain(page);
+    // Token is now available after login
 
     const apiResp = await page.request.get(`${PROD}/api/links?per_page=5`, {
       headers: { 'Authorization': `Bearer ${await page.evaluate(() => localStorage.getItem('token') || '')}` }
@@ -698,7 +697,9 @@ test.describe('9. API Endpoint Health Checks', () => {
     });
     expect(resp.status(), 'GET /api/settings should return 200 for authenticated user').toBe(200);
     const data = await resp.json();
-    expect(data).toHaveProperty('telegram_enabled');
+    // API wraps settings inside a 'settings' key: {settings: {telegram_enabled: ...}, success: true}
+    const settings = data.settings || data;
+    expect(settings).toHaveProperty('telegram_enabled');
   });
 });
 
