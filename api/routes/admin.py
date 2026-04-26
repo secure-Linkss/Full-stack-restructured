@@ -289,7 +289,7 @@ def delete_user_action(current_user, user_id):
         uid = user.id
         username = user.username
 
-        # Clear all FK references in dependency order
+        # Use raw engine connection to avoid ORM session state issues from per-statement rollbacks
         sqls = [
             "DELETE FROM notifications WHERE user_id = :uid",
             "DELETE FROM tracking_events WHERE user_id = :uid",
@@ -315,17 +315,17 @@ def delete_user_action(current_user, user_id):
             "UPDATE domains SET created_by = NULL WHERE created_by = :uid",
             "DELETE FROM links WHERE user_id = :uid",
             "DELETE FROM campaigns WHERE owner_id = :uid",
+            "DELETE FROM users WHERE id = :uid",
         ]
-        for sql in sqls:
-            try:
-                db.session.execute(text(sql), {"uid": uid})
-            except Exception as e:
-                logger.warning(f"Cascade step skipped ({e}): {sql[:60]}")
-                db.session.rollback()
+        with db.engine.connect() as conn:
+            for sql in sqls:
+                try:
+                    conn.execute(text(sql), {"uid": uid})
+                except Exception as e:
+                    logger.warning(f"Cascade step skipped: {sql[:60]} — {e}")
+            conn.commit()
 
         log_admin_action(current_user.id, f"Deleted user {username}", uid, "user")
-        db.session.delete(user)
-        db.session.commit()
         return jsonify({"message": f"User {username} deleted successfully"})
 
     except Exception as e:
@@ -835,70 +835,6 @@ def export_audit_logs(current_user):
     except Exception as e:
         print(f"Error exporting audit logs: {e}")
         return jsonify({"error": str(e)}), 500
-
-@admin_bp.route("/api/admin/users/<int:user_id>/delete", methods=["POST"])
-@admin_required
-def delete_user_endpoint(current_user, user_id):
-    """Delete a user (Admin can only delete members, Main Admin can delete anyone except themselves)"""
-    try:
-        user_to_delete = User.query.get_or_404(user_id)
-        
-        # Prevent self-deletion
-        if user_to_delete.id == current_user.id:
-            return jsonify({"error": "Cannot delete yourself"}), 400
-        
-        # Admin can only delete members
-        if current_user.role == "admin" and user_to_delete.role != "member":
-            return jsonify({"error": "Access denied"}), 403
-        
-        username = user_to_delete.username
-        uid = user_to_delete.id
-
-        # Raw SQL cascade: clear ALL FK references before deleting user
-        # Order matters: delete child records before parents
-        def _exec(sql):
-            try:
-                db.session.execute(text(sql), {"uid": uid})
-            except Exception:
-                db.session.rollback()
-                db.session.execute(text(sql), {"uid": uid})
-
-        _exec("DELETE FROM notifications WHERE user_id = :uid")
-        _exec("DELETE FROM tracking_events WHERE user_id = :uid")
-        _exec("DELETE FROM audit_logs WHERE actor_id = :uid")
-        _exec("DELETE FROM messages WHERE sender_id = :uid")
-        _exec("DELETE FROM threads WHERE user_id = :uid OR admin_id = :uid")
-        _exec("DELETE FROM api_keys WHERE user_id = :uid")
-        _exec("DELETE FROM ab_tests WHERE user_id = :uid")
-        _exec("DELETE FROM purl_mappings WHERE user_id = :uid")
-        _exec("DELETE FROM subscription_verifications WHERE user_id = :uid")
-        _exec("DELETE FROM subscription_history WHERE user_id = :uid")
-        _exec("DELETE FROM support_ticket_comments WHERE author_id = :uid")
-        _exec("DELETE FROM crypto_payment_transactions WHERE user_id = :uid")
-        _exec("UPDATE support_tickets SET user_id = NULL WHERE user_id = :uid")
-        _exec("UPDATE support_tickets SET assigned_to = NULL WHERE assigned_to = :uid")
-        _exec("UPDATE support_tickets SET resolved_by = NULL WHERE resolved_by = :uid")
-        _exec("UPDATE support_tickets SET closed_by = NULL WHERE closed_by = :uid")
-        _exec("UPDATE security_threats SET user_id = NULL WHERE user_id = :uid")
-        _exec("UPDATE security_threats SET resolved_by = NULL WHERE resolved_by = :uid")
-        _exec("UPDATE ip_blocklist SET blocked_by = NULL WHERE blocked_by = :uid")
-        _exec("UPDATE admin_settings SET updated_by = NULL WHERE updated_by = :uid")
-        _exec("UPDATE domains SET created_by = NULL WHERE created_by = :uid")
-        _exec("DELETE FROM links WHERE user_id = :uid")
-        _exec("DELETE FROM campaigns WHERE owner_id = :uid")
-
-        log_admin_action(current_user.id, f"Deleted user {username}", uid, "user")
-
-        db.session.delete(user_to_delete)
-        db.session.commit()
-
-        return jsonify({"message": f"User {username} deleted successfully"})
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error deleting user: {e}")
-        return jsonify({"error": str(e)}), 500
-
 
 @admin_bp.route("/api/admin/users/<int:user_id>/promote-test", methods=["POST"])
 @admin_required
