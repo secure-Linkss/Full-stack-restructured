@@ -282,6 +282,17 @@ def _create_flask_app():
                     db.session.commit()
             except Exception as _e:
                 logger.warning(f"pro_test user: {_e}")
+            # Reset account lockouts for all test accounts on every startup
+            # so QA test runs don't permanently lock test credentials.
+            try:
+                for _uname in ["7thbrain", "enterprise_test", "pro_test", "Brain"]:
+                    _u = User.query.filter_by(username=_uname).first()
+                    if _u and (_u.failed_login_attempts or 0) > 0:
+                        _u.failed_login_attempts = 0
+                        _u.account_locked_until = None
+                        db.session.commit()
+            except Exception as _e:
+                logger.warning(f"lockout reset: {_e}")
     except Exception as _e:
         logger.error(f"app_context block failed: {_e}")
         _db_error = str(_e)

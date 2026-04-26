@@ -5,6 +5,15 @@
 // In local dev, Vite's proxy in vite.config.js forwards /api -> http://localhost:5000.
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+// Convert any period string ("24h","7d","30d","90d") to integer days string.
+// Backend receives a clean numeric string that avoids any parsing edge cases.
+const normalizePeriod = (p) => {
+  const s = String(p).trim().toLowerCase();
+  if (s.includes('h')) return String(Math.max(1, Math.floor(parseInt(s) / 24)));
+  if (s.includes('d')) return String(parseInt(s));
+  return s;
+};
+
 // Helper function to get auth token
 const getAuthToken = () => {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -87,7 +96,7 @@ const api = {
   // ==================== DASHBOARD APIs ====================
   dashboard: {
     getMetrics: async (dateRange = '7d') => {
-      const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${dateRange}`);
+      const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${normalizePeriod(dateRange)}`);
       // Transform response to match Dashboard expectations.
       // Handle both camelCase (JS convention) and snake_case (Python backend convention).
       const totalLinks    = response.totalLinks    || response.total_links    || 0;
@@ -117,9 +126,7 @@ const api = {
       };
     },
     getPerformanceOverTime: async (dateRange = '30d') => {
-      // Accept either a raw period string ('24h', '7d', '30d', '90d') or a numeric days value
-      const period = typeof dateRange === 'number' ? `${dateRange}d` : dateRange;
-      const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${period}`);
+      const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${normalizePeriod(dateRange)}`);
       // Handle both camelCase and snake_case keys from the backend
       const perfData = response.performanceOverTime || response.performance_over_time || [];
       return {
@@ -303,9 +310,9 @@ const api = {
 
   // ==================== ANALYTICS APIs ====================
   analytics: {
-    getOverview: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/overview?period=${String(dateRange).replace(/d$/,'')}`),
-    getClicksOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${dateRange}`),
-    getVisitorsOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${dateRange}`),
+    getOverview: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/overview?period=${normalizePeriod(dateRange)}`),
+    getClicksOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${normalizePeriod(dateRange)}`),
+    getVisitorsOverTime: (dateRange) => fetchWithAuth(`${API_BASE_URL}/analytics/performance?period=${normalizePeriod(dateRange)}`),
     getGeography: () => fetchWithAuth(`${API_BASE_URL}/analytics/geography`),
     getDevices: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview`).then(data => data.devices),
     getBrowsers: () => fetchWithAuth(`${API_BASE_URL}/analytics/overview`), // Placeholder

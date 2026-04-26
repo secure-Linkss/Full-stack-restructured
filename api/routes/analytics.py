@@ -19,6 +19,20 @@ from api.middleware.auth_decorators import login_required
 logger = logging.getLogger(__name__)
 analytics_bp = Blueprint("analytics", __name__)
 
+
+def _parse_period(period_str, default=7):
+    """Convert period string like '24h', '7d', '30d', '90d', '7' → integer days."""
+    try:
+        p = str(period_str).strip().lower()
+        if 'h' in p:
+            hours = int(''.join(c for c in p if c.isdigit()))
+            return max(1, hours // 24)
+        if 'd' in p:
+            return int(''.join(c for c in p if c.isdigit()))
+        return int(p)
+    except Exception:
+        return default
+
 @analytics_bp.route("/analytics/dashboard", methods=["GET"])
 @login_required
 def get_dashboard_analytics():
@@ -29,19 +43,8 @@ def get_dashboard_analytics():
     
     try:
         period = request.args.get("period", "7d")  # Default to 7 days
-        
-        # Extract days from period (e.g., "7d"->7, "24h"->1, "30"->30)
-        try:
-            p = str(period).strip()
-            if p.endswith('h'):
-                days = max(1, int(p[:-1]) // 24)
-            elif p.endswith('d'):
-                days = int(p[:-1])
-            else:
-                days = int(p)
-        except (ValueError, TypeError):
-            days = 7
-        
+        days = _parse_period(period, default=7)
+
         # Calculate date range
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
@@ -308,16 +311,12 @@ def get_performance_data():
     
     try:
         period = request.args.get("period", "7")
-        try:
-            if str(period).endswith("h"): days = max(1, int(period[:-1]) // 24)
-            elif str(period).endswith("d"): days = int(period[:-1])
-            else: days = int(period)
-        except (ValueError, TypeError): days = 7
-        
+        days = _parse_period(period, default=7)
+
         # Get user's OWN links only
         user_links = Link.query.filter_by(user_id=user_id).all()
         link_ids = [link.id for link in user_links]
-        
+
         if not link_ids:
             return jsonify({"performanceData": []})
         
@@ -402,15 +401,11 @@ def get_analytics_overview():
     
     try:
         period = request.args.get("period", "7")
-        try:
-            if str(period).endswith("h"): days = max(1, int(period[:-1]) // 24)
-            elif str(period).endswith("d"): days = int(period[:-1])
-            else: days = int(period)
-        except (ValueError, TypeError): days = 7
-        
+        days = _parse_period(period, default=7)
+
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
-        
+
         # Get user's OWN links only (admin sees their own data in non-admin tabs)
         user_links = Link.query.filter_by(user_id=user_id).all()
         link_ids = [link.id for link in user_links]
@@ -583,17 +578,7 @@ def get_geography_analytics():
     
     try:
         period = request.args.get("period", "7")
-        # Accept "24h", "7d", "30d", "90d", "365", "7", etc.
-        try:
-            p = str(period).strip()
-            if p.endswith('h'):
-                days = max(1, int(p[:-1]) // 24)
-            elif p.endswith('d'):
-                days = int(p[:-1])
-            else:
-                days = int(p)
-        except (ValueError, TypeError):
-            days = 7
+        days = _parse_period(period, default=7)
 
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
