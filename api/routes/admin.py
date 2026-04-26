@@ -764,25 +764,38 @@ def delete_user_endpoint(current_user, user_id):
         username = user_to_delete.username
         uid = user_to_delete.id
 
-        # Raw SQL cascade: nullify or delete ALL FK references in one shot
-        db.session.execute(text("DELETE FROM notifications WHERE user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM tracking_events WHERE user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM audit_logs WHERE actor_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM links WHERE user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM campaigns WHERE owner_id = :uid OR user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM messages WHERE user_id = :uid OR admin_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM message_replies WHERE sender_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM api_keys WHERE user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM ab_tests WHERE user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM purl_mappings WHERE user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM subscription_verifications WHERE user_id = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM support_ticket_replies WHERE author_id = :uid"), {"uid": uid})
-        db.session.execute(text("UPDATE support_tickets SET user_id = NULL, assigned_to = NULL, resolved_by = NULL, closed_by = NULL WHERE user_id = :uid OR assigned_to = :uid OR resolved_by = :uid OR closed_by = :uid"), {"uid": uid})
-        db.session.execute(text("UPDATE security_threats SET user_id = NULL, resolved_by = NULL WHERE user_id = :uid OR resolved_by = :uid"), {"uid": uid})
-        db.session.execute(text("UPDATE blocked_ips SET blocked_by = NULL WHERE blocked_by = :uid"), {"uid": uid})
-        db.session.execute(text("UPDATE admin_settings SET updated_by = NULL WHERE updated_by = :uid"), {"uid": uid})
-        db.session.execute(text("UPDATE domains SET created_by = NULL WHERE created_by = :uid"), {"uid": uid})
-        db.session.execute(text("DELETE FROM crypto_payment_transactions WHERE user_id = :uid"), {"uid": uid})
+        # Raw SQL cascade: clear ALL FK references before deleting user
+        # Order matters: delete child records before parents
+        def _exec(sql):
+            try:
+                db.session.execute(text(sql), {"uid": uid})
+            except Exception:
+                db.session.rollback()
+                db.session.execute(text(sql), {"uid": uid})
+
+        _exec("DELETE FROM notifications WHERE user_id = :uid")
+        _exec("DELETE FROM tracking_events WHERE user_id = :uid")
+        _exec("DELETE FROM audit_logs WHERE actor_id = :uid")
+        _exec("DELETE FROM messages WHERE sender_id = :uid")
+        _exec("DELETE FROM threads WHERE user_id = :uid OR admin_id = :uid")
+        _exec("DELETE FROM api_keys WHERE user_id = :uid")
+        _exec("DELETE FROM ab_tests WHERE user_id = :uid")
+        _exec("DELETE FROM purl_mappings WHERE user_id = :uid")
+        _exec("DELETE FROM subscription_verifications WHERE user_id = :uid")
+        _exec("DELETE FROM subscription_history WHERE user_id = :uid")
+        _exec("DELETE FROM support_ticket_comments WHERE author_id = :uid")
+        _exec("DELETE FROM crypto_payment_transactions WHERE user_id = :uid")
+        _exec("UPDATE support_tickets SET user_id = NULL WHERE user_id = :uid")
+        _exec("UPDATE support_tickets SET assigned_to = NULL WHERE assigned_to = :uid")
+        _exec("UPDATE support_tickets SET resolved_by = NULL WHERE resolved_by = :uid")
+        _exec("UPDATE support_tickets SET closed_by = NULL WHERE closed_by = :uid")
+        _exec("UPDATE security_threats SET user_id = NULL WHERE user_id = :uid")
+        _exec("UPDATE security_threats SET resolved_by = NULL WHERE resolved_by = :uid")
+        _exec("UPDATE ip_blocklist SET blocked_by = NULL WHERE blocked_by = :uid")
+        _exec("UPDATE admin_settings SET updated_by = NULL WHERE updated_by = :uid")
+        _exec("UPDATE domains SET created_by = NULL WHERE created_by = :uid")
+        _exec("DELETE FROM links WHERE user_id = :uid")
+        _exec("DELETE FROM campaigns WHERE owner_id = :uid")
 
         log_admin_action(current_user.id, f"Deleted user {username}", uid, "user")
 
