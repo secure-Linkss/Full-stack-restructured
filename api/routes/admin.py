@@ -274,25 +274,63 @@ def extend_user_subscription(current_user, user_id):
 @admin_bp.route("/api/admin/users/<int:user_id>/delete", methods=["POST"])
 @admin_required
 def delete_user_action(current_user, user_id):
-    """Delete user (POST endpoint for admin panel)"""
-    user = User.query.get_or_404(user_id)
-    
-    # Cannot delete main admin
-    if user.role == "main_admin":
-        return jsonify({"error": "Cannot delete main admin"}), 403
-    
-    # Admin can only delete members
-    if current_user.role == "admin" and user.role != "member":
-        return jsonify({"error": "Access denied"}), 403
-    
-    user_username = user.username
-    db.session.delete(user)
-    db.session.commit()
-    
-    # Log action
-    log_admin_action(current_user.id, f"Deleted user {user_username}", user_id, "user")
-    
-    return jsonify({"message": f"User {user_username} deleted successfully"})
+    """Delete user with full FK cascade"""
+    try:
+        user = User.query.get_or_404(user_id)
+
+        if user.role == "main_admin":
+            return jsonify({"error": "Cannot delete main admin"}), 403
+        if current_user.role == "admin" and user.role not in ("member", "user"):
+            return jsonify({"error": "Access denied"}), 403
+        if user.id == current_user.id:
+            return jsonify({"error": "Cannot delete yourself"}), 400
+
+        uid = user.id
+        username = user.username
+
+        # Clear all FK references in dependency order
+        sqls = [
+            "DELETE FROM notifications WHERE user_id = :uid",
+            "DELETE FROM tracking_events WHERE user_id = :uid",
+            "DELETE FROM audit_logs WHERE actor_id = :uid",
+            "DELETE FROM messages WHERE sender_id = :uid",
+            "DELETE FROM messages WHERE thread_id IN (SELECT id FROM threads WHERE user_id = :uid OR admin_id = :uid)",
+            "DELETE FROM threads WHERE user_id = :uid OR admin_id = :uid",
+            "DELETE FROM api_keys WHERE user_id = :uid",
+            "DELETE FROM ab_tests WHERE user_id = :uid",
+            "DELETE FROM purl_mappings WHERE user_id = :uid",
+            "DELETE FROM subscription_verifications WHERE user_id = :uid",
+            "DELETE FROM subscription_history WHERE user_id = :uid",
+            "DELETE FROM support_ticket_comments WHERE author_id = :uid",
+            "DELETE FROM crypto_payment_transactions WHERE user_id = :uid",
+            "UPDATE support_tickets SET user_id = NULL WHERE user_id = :uid",
+            "UPDATE support_tickets SET assigned_to = NULL WHERE assigned_to = :uid",
+            "UPDATE support_tickets SET resolved_by = NULL WHERE resolved_by = :uid",
+            "UPDATE support_tickets SET closed_by = NULL WHERE closed_by = :uid",
+            "UPDATE security_threats SET user_id = NULL WHERE user_id = :uid",
+            "UPDATE security_threats SET resolved_by = NULL WHERE resolved_by = :uid",
+            "UPDATE ip_blocklist SET blocked_by = NULL WHERE blocked_by = :uid",
+            "UPDATE admin_settings SET updated_by = NULL WHERE updated_by = :uid",
+            "UPDATE domains SET created_by = NULL WHERE created_by = :uid",
+            "DELETE FROM links WHERE user_id = :uid",
+            "DELETE FROM campaigns WHERE owner_id = :uid",
+        ]
+        for sql in sqls:
+            try:
+                db.session.execute(text(sql), {"uid": uid})
+            except Exception as e:
+                logger.warning(f"Cascade step skipped ({e}): {sql[:60]}")
+                db.session.rollback()
+
+        log_admin_action(current_user.id, f"Deleted user {username}", uid, "user")
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": f"User {username} deleted successfully"})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Delete user error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 # Link Management Endpoints (Added for Admin Panel)
 @admin_bp.route("/api/admin/links", methods=["GET"])
