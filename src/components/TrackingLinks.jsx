@@ -710,8 +710,8 @@ const TrackingLinks = () => {
             {exportLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
             Export
           </button>
-          <button className="btn-primary" onClick={() => { setEditingLink(null); setShowFormModal(true); }}>
-            <Plus className="w-4 h-4 mr-2" /> Create Link Target
+          <button className="btn-primary text-sm" onClick={() => { setEditingLink(null); setShowFormModal(true); }}>
+            <Plus className="w-4 h-4 mr-2" /><span className="hidden sm:inline">Create Link Target</span><span className="sm:hidden">Create</span>
           </button>
         </div>
       </div>

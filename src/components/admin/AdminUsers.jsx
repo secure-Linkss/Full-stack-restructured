@@ -399,7 +399,7 @@ const AdminUsers = ({ isOwner = false, userRole = 'admin' }) => {
 
       {/* Promote to Test Admin Modal */}
       <Dialog open={promoteModal.open} onOpenChange={(open) => setPromoteModal(p => ({ ...p, open }))}>
-        <DialogContent className="bg-[#141d2e] border-[#1e2d47] text-foreground max-w-sm">
+        <DialogContent className="bg-[#141d2e] border-[#1e2d47] text-foreground w-[calc(100vw-2rem)] max-w-sm mx-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FlaskConical className="w-5 h-5 text-orange-400" />

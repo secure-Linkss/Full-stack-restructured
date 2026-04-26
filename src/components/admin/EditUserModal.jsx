@@ -46,7 +46,7 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-[#141d2e] border border-[#1e2d47]">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md mx-auto bg-[#141d2e] border border-[#1e2d47] overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Edit Profile: {user?.username}</DialogTitle>
         </DialogHeader>

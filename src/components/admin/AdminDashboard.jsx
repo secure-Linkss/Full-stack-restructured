@@ -188,14 +188,11 @@ const AdminDashboard = () => {
         });
 
         setUserGrowth(dashboardStats.growth || dashboardStats.userGrowth || []);
-        setSystemHealth(dashboardStats.systemHealth || dashboardStats.system_health || {
-          'API': 'Operational', 'Database': 'Operational', 'Redirect Engine': 'Operational',
-          'Quantum Layer': 'Operational', 'Email Intel': 'Operational'
-        });
+        setSystemHealth(dashboardStats.systemHealth || dashboardStats.system_health || {});
         setIntelligence(intel || {});
         setAlerts((alertsData.alerts || []).slice(0, 5));
 
-        // Normalize geo data
+        // Normalize geo data — show empty map if no real data
         const rawCountries = geoData?.countries || geoData?.top_countries || geoData || [];
         if (Array.isArray(rawCountries) && rawCountries.length > 0) {
           setCountryData(rawCountries.map(c => ({
@@ -207,19 +204,7 @@ const AdminDashboard = () => {
             bot_blocks: c.bots || c.bot_blocks || 0,
           })));
         } else {
-          // Fallback demo data so map is always visible
-          setCountryData([
-            { country: 'US', country_code: 'US', country_name: 'United States', total_clicks: 4500, real_visitors: 3800, bot_blocks: 700 },
-            { country: 'GB', country_code: 'GB', country_name: 'United Kingdom', total_clicks: 1200, real_visitors: 1000, bot_blocks: 200 },
-            { country: 'IN', country_code: 'IN', country_name: 'India', total_clicks: 3200, real_visitors: 2700, bot_blocks: 500 },
-            { country: 'DE', country_code: 'DE', country_name: 'Germany', total_clicks: 800, real_visitors: 720, bot_blocks: 80 },
-            { country: 'BR', country_code: 'BR', country_name: 'Brazil', total_clicks: 650, real_visitors: 580, bot_blocks: 70 },
-            { country: 'NG', country_code: 'NG', country_name: 'Nigeria', total_clicks: 420, real_visitors: 350, bot_blocks: 70 },
-            { country: 'AU', country_code: 'AU', country_name: 'Australia', total_clicks: 310, real_visitors: 280, bot_blocks: 30 },
-            { country: 'CA', country_code: 'CA', country_name: 'Canada', total_clicks: 290, real_visitors: 250, bot_blocks: 40 },
-            { country: 'JP', country_code: 'JP', country_name: 'Japan', total_clicks: 220, real_visitors: 200, bot_blocks: 20 },
-            { country: 'GH', country_code: 'GH', country_name: 'Ghana', total_clicks: 180, real_visitors: 155, bot_blocks: 25 },
-          ]);
+          setCountryData([]);
         }
       } catch (error) {
         toast.error('Failed to load admin dashboard data.');

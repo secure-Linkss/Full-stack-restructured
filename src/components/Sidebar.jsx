@@ -114,7 +114,9 @@ const Sidebar = ({ user, isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollap
         <div className="flex items-center justify-between h-16 px-4 border-b border-border shrink-0">
           {!isCollapsed || isMobileOpen ? (
             <div className="flex-1 flex items-center justify-between">
-              <Logo size="md" />
+              <NavLink to="/" className="flex-shrink-0" onClick={() => setIsMobileOpen(false)}>
+                <Logo size="md" />
+              </NavLink>
               <button
                 className="lg:hidden p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors"
                 onClick={() => setIsMobileOpen(false)}
@@ -124,9 +126,11 @@ const Sidebar = ({ user, isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollap
             </div>
           ) : (
             <div className="w-full flex justify-center">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-[#10b981] to-[#3b82f6] flex items-center justify-center font-bold text-white shadow-lg">
-                B
-              </div>
+              <NavLink to="/" title="Home">
+                <div className="w-8 h-8 rounded-md bg-gradient-to-br from-[#10b981] to-[#3b82f6] flex items-center justify-center font-bold text-white shadow-lg">
+                  B
+                </div>
+              </NavLink>
             </div>
           )}
         </div>

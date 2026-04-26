@@ -761,18 +761,108 @@ def delete_user_endpoint(current_user, user_id):
         if current_user.role == "admin" and user_to_delete.role != "member":
             return jsonify({"error": "Access denied"}), 403
         
-        # Log the action
-        log_admin_action(current_user.id, f"Deleted user {user_to_delete.username}", user_to_delete.id, "user")
-        
-        # Delete the user
+        username = user_to_delete.username
+        uid = user_to_delete.id
+
+        # Cascade: delete related records to avoid FK violations
+        from api.models.notification import Notification
+        from api.models.tracking_event import TrackingEvent
+        Notification.query.filter_by(user_id=uid).delete()
+        AuditLog.query.filter_by(user_id=uid).delete()
+        TrackingEvent.query.filter_by(user_id=uid).delete()
+        Link.query.filter_by(user_id=uid).delete()
+        Campaign.query.filter_by(user_id=uid).delete()
+
+        # Log the action before deleting user
+        log_admin_action(current_user.id, f"Deleted user {username}", uid, "user")
+
         db.session.delete(user_to_delete)
         db.session.commit()
-        
-        return jsonify({"message": "User deleted successfully"})
+
+        return jsonify({"message": f"User {username} deleted successfully"})
         
     except Exception as e:
+        db.session.rollback()
         print(f"Error deleting user: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/users/<int:user_id>/promote-test", methods=["POST"])
+@admin_required
+def promote_test_user(current_user, user_id):
+    """Grant a user temporary test/enterprise access"""
+    try:
+        user = User.query.get_or_404(user_id)
+        data = request.get_json() or {}
+        days = int(data.get("days", 30))
+        user.plan_type = "enterprise"
+        user.is_active = True
+        user.is_verified = True
+        user.subscription_expiry = datetime.utcnow() + timedelta(days=days)
+        db.session.commit()
+        log_admin_action(current_user.id, f"Promoted user {user.username} to enterprise for {days} days", user.id, "user")
+        return jsonify({"message": f"User promoted to enterprise for {days} days", "user": user.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/users/<int:user_id>/demote-test", methods=["POST"])
+@admin_required
+def demote_test_user(current_user, user_id):
+    """Revoke test/enterprise access and demote to free"""
+    try:
+        user = User.query.get_or_404(user_id)
+        user.plan_type = "free"
+        user.subscription_expiry = None
+        db.session.commit()
+        log_admin_action(current_user.id, f"Demoted user {user.username} to free plan", user.id, "user")
+        return jsonify({"message": "User demoted to free plan", "user": user.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/users/<int:user_id>/send-email", methods=["POST"])
+@admin_required
+def send_email_to_user(current_user, user_id):
+    """Send a notification message to a user (stored as in-app notification)"""
+    try:
+        user = User.query.get_or_404(user_id)
+        data = request.get_json() or {}
+        subject = data.get("subject", "Message from Admin")
+        message = data.get("message", "")
+        if not message:
+            return jsonify({"error": "Message body is required"}), 400
+        notif = Notification(
+            user_id=user.id,
+            type="info",
+            title=subject,
+            message=message,
+        )
+        db.session.add(notif)
+        db.session.commit()
+        log_admin_action(current_user.id, f"Sent message to {user.username}: {subject}", user.id, "user")
+        return jsonify({"message": "Message sent successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/campaigns/<int:campaign_id>/suspend", methods=["POST"])
+@admin_required
+def suspend_campaign(current_user, campaign_id):
+    """Suspend (pause) a campaign"""
+    try:
+        campaign = Campaign.query.get_or_404(campaign_id)
+        campaign.status = "paused"
+        db.session.commit()
+        log_admin_action(current_user.id, f"Suspended campaign {campaign.name}", campaign.id, "campaign")
+        return jsonify({"message": "Campaign suspended", "campaign": campaign.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 @admin_bp.route("/api/admin/system/delete-all", methods=["POST"])
 @main_admin_required
@@ -783,23 +873,21 @@ def delete_all_system_data(current_user):
         if not data or data.get('confirm') != 'DELETE_ALL_DATA':
             return jsonify({"error": "Confirmation required"}), 400
         
-        # Delete all tracking events
         from api.models.tracking_event import TrackingEvent
+        from api.models.notification import Notification
+
+        # Delete in dependency order to avoid FK violations
         TrackingEvent.query.delete()
-        
-        # Delete all links
-        Link.query.delete()
-        
-        # Delete all campaigns
-        Campaign.query.delete()
-        
-        # Delete all audit logs except this action
+        Notification.query.filter(
+            Notification.user_id.in_(
+                db.session.query(User.id).filter(User.role != "main_admin")
+            )
+        ).delete(synchronize_session=False)
         AuditLog.query.delete()
-        
-        # Delete all non-main-admin users
+        Link.query.delete()
+        Campaign.query.delete()
         User.query.filter(User.role != "main_admin").delete()
-        
-        # Log this critical action
+
         log_admin_action(current_user.id, "DELETED ALL SYSTEM DATA", None, "system")
         
         db.session.commit()

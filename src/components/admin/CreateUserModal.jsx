@@ -93,7 +93,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md mx-auto overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
         </DialogHeader>

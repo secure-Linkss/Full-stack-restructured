@@ -6,26 +6,51 @@ const Footer = ({ isPublic = false }) => {
   const currentYear = new Date().getFullYear();
 
   if (!isPublic) {
-    // Dashboard / Admin Footer — branded with Logo
+    // Dashboard / Admin Footer — full detailed footer matching marketing pages
     return (
       <footer className="w-full border-t border-border bg-[#0b0f1a] mt-auto relative z-10">
-        <div className="max-w-full px-6 py-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="max-w-full px-6 pt-10 pb-6">
+          {/* Top grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             {/* Brand */}
-            <div className="flex items-center gap-3">
-              <Logo size="sm" />
-              <span className="text-xs text-muted-foreground">
-                &copy; {currentYear} Brain Link Tracker Inc. All rights reserved.
-              </span>
+            <div className="col-span-2 md:col-span-1">
+              <Link to="/">
+                <Logo size="sm" />
+              </Link>
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+                Advanced telemetry and analytics for high-performance marketing teams.
+              </p>
             </div>
-            {/* Links */}
-            <div className="flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
-              <Link to="/tickets" className="hover:text-[#10b981] transition-colors">Support</Link>
-              <Link to="/privacy" className="hover:text-[#10b981] transition-colors">Privacy</Link>
-              <Link to="/terms" className="hover:text-[#10b981] transition-colors">Terms</Link>
-              <span className="text-border">|</span>
-              <span className="text-[#10b981] font-semibold text-[10px] uppercase tracking-widest">v2.0 Production</span>
+            {/* Product */}
+            <div>
+              <h4 className="text-xs font-semibold text-foreground tracking-wider uppercase mb-3">Product</h4>
+              <ul className="space-y-2">
+                <li><Link to="/features" className="text-xs text-muted-foreground hover:text-[#10b981] transition-colors">Features</Link></li>
+                <li><Link to="/pricing" className="text-xs text-muted-foreground hover:text-[#10b981] transition-colors">Pricing</Link></li>
+              </ul>
             </div>
+            {/* Company */}
+            <div>
+              <h4 className="text-xs font-semibold text-foreground tracking-wider uppercase mb-3">Company</h4>
+              <ul className="space-y-2">
+                <li><Link to="/about" className="text-xs text-muted-foreground hover:text-[#10b981] transition-colors">About Us</Link></li>
+                <li><Link to="/contact" className="text-xs text-muted-foreground hover:text-[#10b981] transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+            {/* Legal */}
+            <div>
+              <h4 className="text-xs font-semibold text-foreground tracking-wider uppercase mb-3">Legal</h4>
+              <ul className="space-y-2">
+                <li><Link to="/privacy" className="text-xs text-muted-foreground hover:text-[#10b981] transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-xs text-muted-foreground hover:text-[#10b981] transition-colors">Terms of Service</Link></li>
+                <li><Link to="/tickets" className="text-xs text-muted-foreground hover:text-[#10b981] transition-colors">Support</Link></li>
+              </ul>
+            </div>
+          </div>
+          {/* Bottom bar */}
+          <div className="border-t border-border pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-muted-foreground">
+            <span>&copy; {currentYear} Brain Link Tracker Inc. All rights reserved.</span>
+            <span className="text-[#10b981] font-semibold text-[10px] uppercase tracking-widest">v2.0 Production</span>
           </div>
         </div>
       </footer>
@@ -38,7 +63,7 @@ const Footer = ({ isPublic = false }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 lg:gap-16">
           <div className="col-span-1 md:col-span-1">
-            <Logo size="md" />
+            <Link to="/"><Logo size="md" /></Link>
             <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
               Advanced telemetry and analytics engineered for high-performance marketing teams. Identify users, track deeply, scale endlessly.
             </p>

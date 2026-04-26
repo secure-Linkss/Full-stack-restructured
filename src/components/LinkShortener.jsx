@@ -271,7 +271,7 @@ const LinkShortener = () => {
 
       {/* Create New Link Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-	        <DialogContent className="sm:max-w-[600px] bg-card border-border">
+	        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[600px] bg-card border-border overflow-y-auto max-h-[90vh]">
 	          <DialogHeader>
 		            <DialogTitle className="text-foreground">Create New Short Link</DialogTitle>
           </DialogHeader>
