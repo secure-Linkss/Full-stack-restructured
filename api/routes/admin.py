@@ -333,6 +333,57 @@ def delete_user_action(current_user, user_id):
         logger.error(f"Delete user error: {e}")
         return jsonify({"error": str(e)}), 500
 
+@admin_bp.route("/api/admin/users/wipe-junk", methods=["POST"])
+@main_admin_required
+def wipe_junk_users(current_user):
+    """One-time bulk delete of non-essential accounts using raw engine connection."""
+    import traceback
+    data = request.get_json() or {}
+    ids_to_delete = data.get("ids", [552, 553, 554, 555, 556, 557, 6])
+    if not ids_to_delete:
+        return jsonify({"error": "No IDs provided"}), 400
+    results = []
+    try:
+        with db.engine.connect() as conn:
+            steps = [
+                "DELETE FROM notifications WHERE user_id = ANY(:ids)",
+                "DELETE FROM tracking_events WHERE user_id = ANY(:ids)",
+                "DELETE FROM audit_logs WHERE actor_id = ANY(:ids)",
+                "DELETE FROM messages WHERE sender_id = ANY(:ids)",
+                "DELETE FROM messages WHERE thread_id IN (SELECT id FROM threads WHERE user_id = ANY(:ids) OR admin_id = ANY(:ids))",
+                "DELETE FROM threads WHERE user_id = ANY(:ids) OR admin_id = ANY(:ids)",
+                "DELETE FROM api_keys WHERE user_id = ANY(:ids)",
+                "DELETE FROM ab_tests WHERE user_id = ANY(:ids)",
+                "DELETE FROM purl_mappings WHERE user_id = ANY(:ids)",
+                "DELETE FROM subscription_verifications WHERE user_id = ANY(:ids)",
+                "DELETE FROM subscription_history WHERE user_id = ANY(:ids)",
+                "DELETE FROM support_ticket_comments WHERE author_id = ANY(:ids)",
+                "DELETE FROM crypto_payment_transactions WHERE user_id = ANY(:ids)",
+                "UPDATE support_tickets SET user_id = NULL WHERE user_id = ANY(:ids)",
+                "UPDATE support_tickets SET assigned_to = NULL WHERE assigned_to = ANY(:ids)",
+                "UPDATE support_tickets SET resolved_by = NULL WHERE resolved_by = ANY(:ids)",
+                "UPDATE support_tickets SET closed_by = NULL WHERE closed_by = ANY(:ids)",
+                "UPDATE security_threats SET user_id = NULL WHERE user_id = ANY(:ids)",
+                "UPDATE security_threats SET resolved_by = NULL WHERE resolved_by = ANY(:ids)",
+                "UPDATE ip_blocklist SET blocked_by = NULL WHERE blocked_by = ANY(:ids)",
+                "UPDATE admin_settings SET updated_by = NULL WHERE updated_by = ANY(:ids)",
+                "UPDATE domains SET created_by = NULL WHERE created_by = ANY(:ids)",
+                "DELETE FROM links WHERE user_id = ANY(:ids)",
+                "DELETE FROM campaigns WHERE owner_id = ANY(:ids)",
+                "DELETE FROM users WHERE id = ANY(:ids) AND role != 'main_admin'",
+            ]
+            for sql in steps:
+                try:
+                    r = conn.execute(text(sql), {"ids": ids_to_delete})
+                    results.append({"sql": sql[:60], "rows": r.rowcount})
+                except Exception as e:
+                    results.append({"sql": sql[:60], "error": str(e)})
+            conn.commit()
+        return jsonify({"success": True, "steps": results})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "trace": traceback.format_exc()}), 500
+
+
 # Link Management Endpoints (Added for Admin Panel)
 @admin_bp.route("/api/admin/links", methods=["GET"])
 @admin_required
