@@ -17,6 +17,8 @@ const DataTable = ({
   description,
   pageSize = 10,
   actions, // Optional: function to render action buttons per row
+  expandedRowId, // Optional: id of the row that is currently expanded
+  expandedRowContent, // Optional: function(row) => ReactNode rendered below the expanded row
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
@@ -102,18 +104,27 @@ const DataTable = ({
           <TableBody>
             {paginatedData.length > 0 ? (
               paginatedData.map((row, index) => (
-                <TableRow key={row.id || index} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                  {columns.map((column) => (
-                    <TableCell key={column.accessor} className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-                      {column.cell ? column.cell(row) : row[column.accessor]}
-                    </TableCell>
-                  ))}
-                  {actions && (
-                    <TableCell className="p-4 align-middle [&:has([role=checkbox])]:pr-0 text-right">
-                      {actions(row)}
-                    </TableCell>
+                <React.Fragment key={row.id || index}>
+                  <TableRow className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                    {columns.map((column) => (
+                      <TableCell key={column.accessor} className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
+                        {column.cell ? column.cell(row) : row[column.accessor]}
+                      </TableCell>
+                    ))}
+                    {actions && (
+                      <TableCell className="p-4 align-middle [&:has([role=checkbox])]:pr-0 text-right">
+                        {actions(row)}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                  {expandedRowContent && expandedRowId === row.id && (
+                    <TableRow className="border-b-0 bg-transparent hover:bg-transparent">
+                      <TableCell colSpan={columns.length + (actions ? 1 : 0)} className="p-0">
+                        {expandedRowContent(row)}
+                      </TableCell>
+                    </TableRow>
                   )}
-                </TableRow>
+                </React.Fragment>
               ))
             ) : (
               <TableRow>

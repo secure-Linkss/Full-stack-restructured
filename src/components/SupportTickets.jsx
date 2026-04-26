@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Plus, Clock, Search, CheckCircle, RefreshCw, Send, AlertCircle, X, ShieldAlert } from 'lucide-react';
 import api from '../services/api';
 import { toast } from 'sonner';
@@ -10,12 +10,13 @@ const SupportTickets = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  
+
   // Forms
   const [newTicket, setNewTicket] = useState({ subject: '', message: '', priority: 'normal' });
   const [replyMessage, setReplyMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
+  const threadEndRef = useRef(null);
 
   const fetchTickets = async () => {
     try {
@@ -34,13 +35,19 @@ const SupportTickets = () => {
     }
   };
 
+  const scrollToBottom = () => {
+    setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+  };
+
   const openTicket = async (ticket) => {
     setIsCreating(false);
     setLoadingThread(true);
     setActiveTicket(ticket);
     try {
       const full = await api.support.getTicket(ticket.id);
-      setActiveTicket(full.ticket || full);
+      const ticketData = full.ticket || full;
+      setActiveTicket(ticketData);
+      scrollToBottom();
     } catch {
       // keep the list-view data if detail fetch fails
     } finally {
@@ -80,6 +87,7 @@ const SupportTickets = () => {
       // Re-fetch the full ticket thread to show the new message
       const full = await api.support.getTicket(activeTicket.id);
       setActiveTicket(full.ticket || full);
+      scrollToBottom();
       fetchTickets();
     } catch (error) {
       toast.error('Failed to send reply.');
@@ -88,9 +96,16 @@ const SupportTickets = () => {
     }
   };
 
+  const getStatusBadgeClass = (status) => {
+    if (status === 'resolved') return 'badge-dim-green';
+    if (status === 'closed') return 'text-muted-foreground bg-white/5 border border-white/10 text-[9px] px-1.5 py-0 rounded font-semibold uppercase';
+    if (status === 'in_progress' || status === 'waiting_response') return 'badge-dim-blue';
+    return 'badge-dim-amber'; // open
+  };
+
   const filteredTickets = tickets.filter(t => {
     if (filter !== 'all' && t.status !== filter) return false;
-    if (search && !(t.subject || '').toLowerCase().includes(search.toLowerCase()) && !(t.id || '').toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !(t.subject || '').toLowerCase().includes(search.toLowerCase()) && !(String(t.id) || '').includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -143,7 +158,7 @@ const SupportTickets = () => {
                  >
                    <div className="flex justify-between items-start mb-1">
                      <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">{ticket.id}</span>
-                     <span className={`badge-dim-${ticket.status === 'resolved' ? 'green' : 'amber'} text-[9px] px-1.5 py-0`}>{ticket.status}</span>
+                     <span className={`${getStatusBadgeClass(ticket.status)} text-[9px] px-1.5 py-0`}>{ticket.status?.replace('_', ' ')}</span>
                    </div>
                    <h4 className="text-sm font-semibold text-foreground truncate mb-2">{ticket.subject}</h4>
                    <div className="flex justify-between items-center text-[10px] text-muted-foreground">
@@ -200,7 +215,7 @@ const SupportTickets = () => {
                             <span>Created: {new Date(activeTicket.created_at).toLocaleString()}</span>
                          </div>
                        </div>
-                       <span className={`badge-dim-${activeTicket.status === 'resolved' ? 'green' : 'amber'}`}>{activeTicket.status.toUpperCase()}</span>
+                       <span className={getStatusBadgeClass(activeTicket.status)}>{(activeTicket.status || '').replace('_', ' ').toUpperCase()}</span>
                     </div>
                  </div>
                  
@@ -224,9 +239,9 @@ const SupportTickets = () => {
                          </div>
                        )}
                        {(activeTicket.messages || []).map((msg, i) => {
-                         const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply;
+                         const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply === true || msg.is_admin_reply === 'true';
                          return (
-                           <div key={i} className={`flex items-start gap-4 ${isAdmin ? 'flex-row-reverse' : ''}`}>
+                           <div key={msg.id || i} className={`flex items-start gap-4 ${isAdmin ? 'flex-row-reverse' : ''}`}>
                              <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 border font-bold text-xs ${isAdmin ? 'bg-[#10b981]/20 border-[#10b981]/40 text-[#10b981]' : 'bg-[#3b82f6]/20 border-[#3b82f6]/40 text-[#3b82f6]'}`}>
                                {isAdmin ? <ShieldAlert className="w-4 h-4" /> : 'Me'}
                              </div>
@@ -240,12 +255,13 @@ const SupportTickets = () => {
                            </div>
                          );
                        })}
+                       <div ref={threadEndRef} />
                      </>
                    )}
                  </div>
 
                  {/* Reply box */}
-                 {activeTicket.status !== 'resolved' && (
+                 {activeTicket.status !== 'resolved' && activeTicket.status !== 'closed' && (
                    <div className="p-4 border-t border-border bg-[rgba(255,255,255,0.01)] shrink-0">
                      <form onSubmit={handleReply} className="relative">
                         <textarea 

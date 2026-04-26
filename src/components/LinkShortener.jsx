@@ -152,32 +152,19 @@ const LinkShortener = () => {
 	    {
 	      header: 'Target URL',
 	      accessor: 'targetUrl',
-	      cell: (row) => <span className="text-sm text-muted-foreground truncate max-w-xs block">{row.targetUrl}</span>,
+	      cell: (row) => <span className="text-sm text-muted-foreground truncate max-w-xs block">{row.targetUrl || '—'}</span>,
 	    },
 	    {
 	      header: 'Clicks',
 	      accessor: 'clicks',
 	      sortable: true,
-	      cell: (row) => <span className="text-sm">{row.clicks.toLocaleString()}</span>,
+	      cell: (row) => <span className="text-sm">{(row.clicks || 0).toLocaleString()}</span>,
 	    },
 	    {
 	      header: 'Created',
 	      accessor: 'createdAt',
 	      sortable: true,
-	      cell: (row) => <span className="text-sm">{new Date(row.createdAt).toLocaleDateString()}</span>,
-	    },
-	    {
-	      header: 'Actions',
-	      id: 'actions',
-	      cell: ({ row }) => (
-	        <ActionIconGroup
-	          actions={[
-	            { icon: Edit, label: 'Edit Link', onClick: () => handleAction('Edit', row.original) },
-	            { icon: Copy, label: 'Copy Link', onClick: () => handleAction('Copy Link', row.original) },
-	            { icon: Trash2, label: 'Delete Link', onClick: () => handleAction('Delete', row.original) },
-	          ]}
-	        />
-	      ),
+	      cell: (row) => <span className="text-sm">{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—'}</span>,
 	    },
 	  ];
 
@@ -277,17 +264,6 @@ const LinkShortener = () => {
 		                  />
 		                </div>
 		              )}
-			              expandedContent={(row) => (
-			                <div className="p-4">
-			                  <Button 
-			                    variant="outline" 
-			                    size="sm" 
-			                    onClick={() => handleAction('Select', row)}
-			                  >
-			                    View in Enhanced Box
-			                  </Button>
-			                </div>
-			              )}
 			            />
           )}
         </CardContent>

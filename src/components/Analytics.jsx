@@ -70,9 +70,14 @@ const Analytics = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const days = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
+      // Convert period string to numeric days safely
+      let days;
+      const p = String(dateRange).trim();
+      if (p.endsWith('h')) days = Math.max(1, Math.floor(parseInt(p) / 24));
+      else if (p.endsWith('d')) days = parseInt(p);
+      else days = parseInt(p) || 30;
 
-      // Fetch analytics overview data (pass numeric days, not '7d' string)
+      // Fetch analytics overview data
       const overviewData = await api.analytics.getOverview(days);
       
       setMetrics({
@@ -147,13 +152,12 @@ const Analytics = () => {
   };
 
   const metricCards = [
-    { title: 'Total Clicks', value: metrics.totalClicks?.toLocaleString(), icon: TrendingUp, change: 1.5 },
-    { title: 'Unique Visitors', value: metrics.uniqueVisitors?.toLocaleString(), icon: Users, change: 0.8 },
-	    { title: 'Captured Emails', value: metrics.capturedEmails?.toLocaleString(), icon: Mail, change: 2.1 },
-	    { title: 'Conversion Rate', value: `${Math.round((metrics.conversionRate || 0) * 100)}%`, icon: BarChart3, change: -0.2 },
-	    { title: 'Bounce Rate', value: `${Math.round((metrics.bounceRate || 0) * 100)}%`, icon: Minus, change: 0.0 },
-    { title: 'Active Links', value: metrics.activeLinks, icon: Link, change: 0.0 },
-    { title: 'Countries Tracked', value: metrics.countriesTracked, icon: Globe, change: 0.0 },
+    { title: 'Total Clicks', value: (metrics.totalClicks || 0).toLocaleString(), icon: TrendingUp, change: metrics.totalClicksChange || 0 },
+    { title: 'Unique Visitors', value: (metrics.uniqueVisitors || 0).toLocaleString(), icon: Users, change: metrics.realVisitorsChange || 0 },
+    { title: 'Captured Emails', value: (metrics.capturedEmails || 0).toLocaleString(), icon: Mail, change: metrics.capturedEmailsChange || 0 },
+    { title: 'Conversion Rate', value: `${Number(metrics.conversionRate || 0).toFixed(1)}%`, icon: BarChart3, change: metrics.conversionRateChange || 0 },
+    { title: 'Active Links', value: metrics.activeLinks || 0, icon: Link, change: 0 },
+    { title: 'Countries Tracked', value: metrics.countriesTracked || 0, icon: Globe, change: 0 },
   ];
 
   return (
@@ -168,7 +172,7 @@ const Analytics = () => {
         onSearch={() => {}}
         onRefresh={handleRefresh}
         onExport={handleExport}
-        dateRangeOptions={['7d', '30d', '90d']}
+        dateRangeOptions={['24h', '7d', '30d', '90d']}
         onDateRangeChange={handleDateRangeChange}
         selectedDateRange={dateRange}
         extraButtons={[

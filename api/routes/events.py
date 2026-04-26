@@ -305,3 +305,52 @@ def get_event_stats():
         "bots_blocked": bots,
         "emails_captured": emails
     }), 200
+
+
+# ---------- Page-view beacon (updates event status to "on_page") ----------
+
+@events_bp.route("/api/events/page-view", methods=["POST"])
+def record_page_view():
+    """
+    Beacon fired by the landing page after a quantum redirect.
+    Updates the tracking event status to 'on_page' so LiveActivity shows the
+    green 'On Page' badge.
+
+    Body (JSON):
+      { "click_id": "<quantum_click_id>" }   — preferred
+      OR
+      { "unique_id": "<unique_id>" }
+      OR
+      { "link_id": <int> }                    — falls back to most-recent event
+
+    No auth required — called from the visitor's browser on the destination page.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        click_id = data.get("click_id")
+        unique_id = data.get("unique_id")
+        link_id = data.get("link_id")
+
+        event = None
+        if click_id:
+            event = TrackingEvent.query.filter_by(quantum_click_id=click_id).first()
+        if not event and unique_id:
+            event = TrackingEvent.query.filter_by(unique_id=unique_id).first()
+        if not event and link_id:
+            event = (TrackingEvent.query
+                     .filter_by(link_id=link_id)
+                     .order_by(TrackingEvent.timestamp.desc())
+                     .first())
+
+        if not event:
+            return jsonify({"success": False, "error": "No matching tracking event found"}), 404
+
+        event.on_page = True
+        event.status = "on_page"
+        db.session.commit()
+        return jsonify({"success": True, "message": "Page view recorded"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"record_page_view error: {e}")
+        return jsonify({"success": False, "error": "Failed to record page view"}), 500

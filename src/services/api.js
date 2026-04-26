@@ -88,40 +88,50 @@ const api = {
   dashboard: {
     getMetrics: async (dateRange = '7d') => {
       const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${dateRange}`);
-      // Transform response to match Dashboard expectations
+      // Transform response to match Dashboard expectations.
+      // Handle both camelCase (JS convention) and snake_case (Python backend convention).
+      const totalLinks    = response.totalLinks    || response.total_links    || 0;
+      const totalClicks   = response.totalClicks   || response.total_clicks   || 0;
+      const realVisitors  = response.realVisitors  || response.real_visitors  || 0;
+      const capturedEmails = response.capturedEmails || response.captured_emails || 0;
+      const activeLinks   = response.activeLinks   || response.active_links   || 0;
+      const conversionRate = response.conversionRate || response.conversion_rate || 0;
       return {
-        totalLinks: response.totalLinks || 0,
-        totalClicks: response.totalClicks || 0,
-        realVisitors: response.realVisitors || 0,
-        botBlocked: response.botsBlocked || response.botBlocked || 0,
-        capturedEmails: response.capturedEmails || 0,
-        activeLinks: response.activeLinks || 0,
-        conversionRate: response.conversionRate || 0,
-        avgClicksPerLink: Math.round((response.totalClicks || 0) / (response.totalLinks || 1)),
-        countries: response.topCountries?.length || 0,
-        // Calculate changes (compare with previous period)
-        totalLinksChange: response.totalLinksChange || 0,
-        totalClicksChange: response.totalClicksChange || 0,
-        realVisitorsChange: response.realVisitorsChange || 0,
-        capturedEmailsChange: response.capturedEmailsChange || 0,
-        activeLinksChange: response.activeLinksChange || 0,
-        conversionRateChange: response.conversionRateChange || 0,
-        avgClicksPerLinkChange: response.avgClicksPerLinkChange || 0
+        totalLinks,
+        totalClicks,
+        realVisitors,
+        botBlocked: response.botsBlocked || response.botBlocked || response.bots_blocked || response.bot_blocked || 0,
+        capturedEmails,
+        activeLinks,
+        conversionRate,
+        avgClicksPerLink: Math.round(totalClicks / (totalLinks || 1)),
+        countries: response.topCountries?.length || response.top_countries?.length || 0,
+        // Period-over-period changes
+        totalLinksChange:      response.totalLinksChange      || response.total_links_change      || 0,
+        totalClicksChange:     response.totalClicksChange     || response.total_clicks_change     || 0,
+        realVisitorsChange:    response.realVisitorsChange    || response.real_visitors_change    || 0,
+        capturedEmailsChange:  response.capturedEmailsChange  || response.captured_emails_change  || 0,
+        activeLinksChange:     response.activeLinksChange     || response.active_links_change     || 0,
+        conversionRateChange:  response.conversionRateChange  || response.conversion_rate_change  || 0,
+        avgClicksPerLinkChange: response.avgClicksPerLinkChange || response.avg_clicks_per_link_change || 0,
       };
     },
-    getPerformanceOverTime: async (days = 30) => {
-      const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${days}d`);
-      const perfData = response.performanceOverTime || [];
+    getPerformanceOverTime: async (dateRange = '30d') => {
+      // Accept either a raw period string ('24h', '7d', '30d', '90d') or a numeric days value
+      const period = typeof dateRange === 'number' ? `${dateRange}d` : dateRange;
+      const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=${period}`);
+      // Handle both camelCase and snake_case keys from the backend
+      const perfData = response.performanceOverTime || response.performance_over_time || [];
       return {
         labels: perfData.map(d => d.date || d.label),
         clicks: perfData.map(d => d.clicks || 0),
-        visitors: perfData.map(d => d.visitors || d.realVisitors || 0),
-        emailCaptures: perfData.map(d => d.emailCaptures || d.emails || 0)
+        visitors: perfData.map(d => d.visitors || d.realVisitors || d.real_visitors || 0),
+        emailCaptures: perfData.map(d => d.emailCaptures || d.email_captures || d.emails || 0)
       };
     },
     getDeviceBreakdown: async () => {
       const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=30d`);
-      const deviceData = response.deviceBreakdown || { desktop: 0, mobile: 0, tablet: 0 };
+      const deviceData = response.deviceBreakdown || response.device_breakdown || { desktop: 0, mobile: 0, tablet: 0 };
       return {
         labels: ['Desktop', 'Mobile', 'Tablet'],
         data: [
@@ -133,7 +143,7 @@ const api = {
     },
     getTopCountries: async () => {
       const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=30d`);
-      return (response.topCountries || []).map(country => ({
+      return (response.topCountries || response.top_countries || []).map(country => ({
         name: country.country || country.name,
         flag: country.flag || '',
         clicks: country.clicks || 0,
@@ -143,21 +153,21 @@ const api = {
     },
     getCampaignPerformance: async () => {
       const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=30d`);
-      return (response.campaignPerformance || []).map(campaign => ({
+      return (response.campaignPerformance || response.campaign_performance || []).map(campaign => ({
         id: campaign.id,
         name: campaign.name,
         clicks: campaign.clicks || 0,
         conversions: campaign.emails || campaign.conversions || 0,
-        conversionRate: campaign.conversion || campaign.conversionRate || '0%',
+        conversionRate: campaign.conversion || campaign.conversionRate || campaign.conversion_rate || '0%',
         status: campaign.status || 'active'
       }));
     },
     getRecentCaptures: async () => {
       const response = await fetchWithAuth(`${API_BASE_URL}/analytics/dashboard?period=30d`);
-      return (response.recentCaptures || []).map(capture => ({
+      return (response.recentCaptures || response.recent_captures || []).map(capture => ({
         email: capture.email,
         link: capture.campaign || capture.link,
-        timestamp: capture.time || capture.timestamp,
+        timestamp: capture.time || capture.timestamp || capture.created_at,
         country: capture.country || 'Unknown'
       }));
     },
@@ -500,13 +510,16 @@ const api = {
   admin: {
     campaigns: {
       getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/campaigns`),
+      getById: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`),
       delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, { method: 'DELETE' }),
+      suspend: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}/suspend`, { method: 'POST' }),
     },
     announcements: {
       getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/announcements`),
       create: (data) => fetchWithAuth(`${API_BASE_URL}/admin/announcements`, { method: 'POST', body: JSON.stringify(data) }),
       update: (id, data) => fetchWithAuth(`${API_BASE_URL}/admin/announcements/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/announcements/${id}`, { method: 'DELETE' }),
+      broadcast: (id) => fetchWithAuth(`${API_BASE_URL}/admin/announcements/${id}/broadcast`, { method: 'POST' }),
     },
     users: {
       getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/users`),

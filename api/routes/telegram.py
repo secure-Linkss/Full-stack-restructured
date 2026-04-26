@@ -1,21 +1,23 @@
 from flask import g, Blueprint, request, jsonify, session
 from api.database import db
 from api.models.user import User
+from api.middleware.auth_decorators import login_required
 import requests
 import os
 
 telegram_bp = Blueprint('telegram', __name__)
 
 def require_auth():
-    if 'user_id' not in session:
-        return None
-    return User.query.get(g.user.id)
+    """Prefer g.user (set by JWT middleware). Fall back gracefully."""
+    if hasattr(g, 'user') and g.user:
+        return g.user
+    return None
 
 @telegram_bp.route('/api/telegram/test', methods=['POST'])
+@telegram_bp.route('/api/user/telegram/test', methods=['POST'])
+@login_required
 def test_telegram():
-    user = require_auth()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
+    user = g.user
     
     try:
         data = request.get_json()
@@ -63,10 +65,9 @@ def test_telegram():
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
 
 @telegram_bp.route('/api/telegram/settings', methods=['GET', 'POST'])
+@login_required
 def telegram_settings():
-    user = require_auth()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
+    user = g.user
     
     if request.method == 'GET':
         return jsonify({

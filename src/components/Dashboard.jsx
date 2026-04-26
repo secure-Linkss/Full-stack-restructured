@@ -21,7 +21,7 @@ const Dashboard = () => {
     setIsRefreshing(true);
     try {
       const dashboardData = await api.dashboard.getMetrics(dateRange);
-      const performanceData = await api.dashboard.getPerformanceOverTime(parseInt(dateRange));
+      const performanceData = await api.dashboard.getPerformanceOverTime(dateRange);
       const deviceData = await api.dashboard.getDeviceBreakdown();
       const countriesData = await api.dashboard.getTopCountries();
       const campaignData = await api.dashboard.getCampaignPerformance();
@@ -275,8 +275,8 @@ const Dashboard = () => {
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="clicks" name="Clicks" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorClicks)" />
-              <Area type="monotone" dataKey="visitors" name="Unique Visitors" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorVisitors)" />
+              <Area type="monotone" dataKey="clicks" name="Clicks" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorClicks)" dot={false} activeDot={{ r: 5, fill: '#3b82f6', stroke: '#0f172a', strokeWidth: 2 }} isAnimationActive={true} animationDuration={900} animationEasing="ease-out" />
+              <Area type="monotone" dataKey="visitors" name="Unique Visitors" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorVisitors)" dot={false} activeDot={{ r: 5, fill: '#10b981', stroke: '#0f172a', strokeWidth: 2 }} isAnimationActive={true} animationDuration={900} animationEasing="ease-out" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -293,7 +293,7 @@ const Dashboard = () => {
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#f0f4ff' }} width={80} />
                 <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(255,255,255,0.02)'}} />
-                <Bar dataKey="value" name="Traffic" radius={[0, 4, 4, 0]} maxBarSize={20}>
+                <Bar dataKey="value" name="Traffic" radius={[0, 4, 4, 0]} maxBarSize={20} isAnimationActive={true} animationDuration={800} animationEasing="ease-out">
                   {deviceDataForChart.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={deviceColors[index % deviceColors.length]} />
                   ))}

@@ -182,13 +182,14 @@ def suspend_user(current_user, user_id):
     
     data = request.get_json()
     suspend = data.get("suspend", True)
-    
+
     user.is_active = not suspend
+    user.status = "suspended" if suspend else "active"
     db.session.commit()
-    
+
     action = "Suspended" if suspend else "Unsuspended"
     log_admin_action(current_user.id, f"{action} user {user.username}", user.id, "user")
-    
+
     return jsonify(user.to_dict())
 
 @admin_bp.route("/api/admin/users/<int:user_id>/approve", methods=["POST"])

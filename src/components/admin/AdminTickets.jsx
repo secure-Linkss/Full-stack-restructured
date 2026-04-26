@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Clock, Search, CheckCircle, RefreshCw, Send, ShieldAlert, User, Mail, Shield, Trash2, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'sonner';
@@ -13,6 +13,18 @@ const AdminTickets = () => {
   const [replyMessage, setReplyMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
+  const threadEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+  };
+
+  const getStatusBadgeClass = (status) => {
+    if (status === 'resolved') return 'badge-dim-green';
+    if (status === 'closed') return 'text-muted-foreground bg-white/5 border border-white/10 text-[9px] px-1.5 py-0 rounded font-semibold uppercase';
+    if (status === 'in_progress' || status === 'waiting_response') return 'badge-dim-blue';
+    return 'badge-dim-amber';
+  };
 
   const fetchTickets = async () => {
     try {
@@ -32,6 +44,7 @@ const AdminTickets = () => {
     try {
       const full = await api.adminTickets.getById(ticket.id);
       setActiveTicket(full.ticket || full);
+      scrollToBottom();
     } catch {
       // keep list-view data if detail fetch fails
     } finally {
@@ -54,6 +67,7 @@ const AdminTickets = () => {
       // Refresh the thread
       const full = await api.adminTickets.getById(activeTicket.id);
       setActiveTicket(full.ticket || full);
+      scrollToBottom();
       fetchTickets();
     } catch (error) {
       toast.error('Failed to send reply.');
@@ -63,11 +77,12 @@ const AdminTickets = () => {
   };
 
   const handleCloseTicket = async () => {
-    if (!window.confirm(`Mark ticket ${activeTicket.id} as resolved?`)) return;
+    if (!window.confirm(`Mark ticket #${activeTicket.id} as resolved?`)) return;
     try {
       await api.adminTickets.close(activeTicket.id);
       toast.success('Ticket marked as resolved.');
-      setActiveTicket(null);
+      // Update status immediately in UI
+      setActiveTicket(prev => prev ? { ...prev, status: 'resolved' } : null);
       fetchTickets();
     } catch (error) {
       toast.error('Action failed.');
@@ -138,7 +153,7 @@ const AdminTickets = () => {
                    <button className="w-full text-left" onClick={() => openTicket(ticket)}>
                      <div className="flex justify-between items-start mb-1">
                        <span className="text-[10px] uppercase tracking-widest font-bold text-[#3b82f6]">{ticket.id}</span>
-                       <span className={`badge-dim-${ticket.status === 'resolved' ? 'green' : 'amber'} text-[9px] px-1.5 py-0`}>{ticket.status}</span>
+                       <span className={`${getStatusBadgeClass(ticket.status)} text-[9px] px-1.5 py-0`}>{(ticket.status || '').replace('_', ' ')}</span>
                      </div>
                      <h4 className="text-sm font-semibold text-foreground truncate mb-1">{ticket.subject}</h4>
                      <div className="flex items-center text-[10px] text-muted-foreground/80 mb-2 truncate">
@@ -210,15 +225,15 @@ const AdminTickets = () => {
                        )}
                        {/* Render full message thread */}
                        {(activeTicket.messages || []).map((msg, i) => {
-                         const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply;
+                         const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply === true || msg.is_admin_reply === 'true';
                          return (
-                           <div key={i} className={`flex items-start gap-4 ${isAdmin ? 'flex-row-reverse' : ''}`}>
-                             <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${isAdmin ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'bg-secondary text-muted-foreground'}`}>
+                           <div key={msg.id || i} className={`flex items-start gap-4 ${isAdmin ? 'flex-row-reverse' : ''}`}>
+                             <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${isAdmin ? 'bg-[#10b981]/20 text-[#10b981]' : 'bg-secondary text-muted-foreground'}`}>
                                {isAdmin ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
                              </div>
-                             <div className={`p-4 rounded-xl w-full border ${isAdmin ? 'bg-[rgba(59,130,246,0.05)] border-[#3b82f6]/20 rounded-tr-sm' : 'bg-[rgba(255,255,255,0.03)] border-border rounded-tl-sm'}`}>
+                             <div className={`p-4 rounded-xl w-full border ${isAdmin ? 'bg-[rgba(16,185,129,0.05)] border-[#10b981]/20 rounded-tr-sm' : 'bg-[rgba(255,255,255,0.03)] border-border rounded-tl-sm'}`}>
                                <div className="flex justify-between items-center mb-2">
-                                 <span className={`text-xs font-bold ${isAdmin ? 'text-[#3b82f6]' : 'text-foreground'}`}>
+                                 <span className={`text-xs font-bold ${isAdmin ? 'text-[#10b981]' : 'text-foreground'}`}>
                                    {isAdmin ? 'Support Agent' : (msg.sender_email || activeTicket.user_email || 'Client')}
                                  </span>
                                  <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</span>
@@ -228,12 +243,13 @@ const AdminTickets = () => {
                            </div>
                          );
                        })}
+                       <div ref={threadEndRef} />
                      </>
                    )}
                  </div>
 
                  {/* Admin Reply box */}
-                 {activeTicket.status !== 'resolved' && (
+                 {activeTicket.status !== 'resolved' && activeTicket.status !== 'closed' && (
                    <div className="p-4 border-t border-border bg-card shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.1)]">
                      <form onSubmit={handleReply} className="relative">
                         <textarea 

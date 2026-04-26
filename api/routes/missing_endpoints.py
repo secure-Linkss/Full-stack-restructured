@@ -17,6 +17,7 @@ from api.models.notification import Notification
 from api.models.audit_log import AuditLog
 from api.models.tracking_event import TrackingEvent
 from api.middleware.auth_decorators import login_required, admin_required
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 missing_bp = Blueprint("missing_endpoints", __name__)
@@ -525,89 +526,259 @@ def admin_contact_submissions(current_user):
 @missing_bp.route("/api/admin/support-tickets", methods=["GET"])
 @admin_required
 def admin_get_support_tickets(current_user):
-    from api.models.message import Thread
-    threads = Thread.query.order_by(Thread.updated_at.desc()).all()
-    return jsonify({"success": True, "tickets": [t.to_dict() for t in threads]})
+    """Get all support tickets with user info and reply counts"""
+    try:
+        query = text("""
+            SELECT
+                st.*,
+                u.username AS user_username,
+                u.email AS user_email,
+                assigned.username AS assigned_username,
+                (SELECT COUNT(*) FROM support_ticket_comments WHERE ticket_id = st.id) AS reply_count
+            FROM support_tickets st
+            JOIN users u ON st.user_id = u.id
+            LEFT JOIN users assigned ON st.assigned_to = assigned.id
+            ORDER BY
+                CASE st.priority
+                    WHEN 'urgent' THEN 1
+                    WHEN 'high' THEN 2
+                    WHEN 'medium' THEN 3
+                    ELSE 4
+                END,
+                st.updated_at DESC
+        """)
+        rows = db.session.execute(query)
+        tickets = []
+        for row in rows:
+            t = dict(row._mapping)
+            for dt_field in ("created_at", "updated_at", "resolved_at"):
+                if t.get(dt_field) and hasattr(t[dt_field], "isoformat"):
+                    t[dt_field] = t[dt_field].isoformat()
+            tickets.append(t)
+        return jsonify({"success": True, "tickets": tickets})
+    except Exception as e:
+        print(f"Error getting admin tickets: {e}")
+        return jsonify({"success": False, "error": "Failed to load tickets"}), 500
 
 
 @missing_bp.route("/api/admin/support-tickets/<int:tid>", methods=["GET", "PUT"])
 @admin_required
 def admin_support_ticket_detail(current_user, tid):
-    from api.models.message import Thread, Message
-    thread = Thread.query.get(tid)
-    if not thread:
-        return jsonify({"success": False, "error": "Ticket not found"}), 404
-    if request.method == "PUT":
-        data = request.get_json() or {}
-        if "status" in data: thread.status = data["status"]
-        if "admin_id" in data: thread.admin_id = data["admin_id"]
-        db.session.commit()
-    messages = thread.messages.order_by(Message.created_at.asc()).all()
-    return jsonify({
-        "success": True, "ticket": thread.to_dict(),
-        "messages": [m.to_dict() for m in messages]
-    })
+    """Get full ticket detail with messages thread"""
+    try:
+        if request.method == "PUT":
+            data = request.get_json() or {}
+            updates = []
+            params = {"tid": tid, "updated_at": datetime.utcnow()}
+            if "status" in data:
+                updates.append("status = :status")
+                params["status"] = data["status"]
+                if data["status"] in ("resolved", "closed"):
+                    updates.append("resolved_at = :resolved_at")
+                    params["resolved_at"] = datetime.utcnow()
+            if "assigned_to" in data:
+                updates.append("assigned_to = :assigned_to")
+                params["assigned_to"] = data["assigned_to"]
+            updates.append("updated_at = :updated_at")
+            if updates:
+                db.session.execute(
+                    text(f"UPDATE support_tickets SET {', '.join(updates)} WHERE id = :tid"),
+                    params
+                )
+                db.session.commit()
+
+        ticket_query = text("""
+            SELECT
+                st.*,
+                u.username AS user_username,
+                u.email AS user_email,
+                assigned.username AS assigned_username
+            FROM support_tickets st
+            JOIN users u ON st.user_id = u.id
+            LEFT JOIN users assigned ON st.assigned_to = assigned.id
+            WHERE st.id = :tid
+        """)
+        ticket_row = db.session.execute(ticket_query, {"tid": tid}).first()
+        if not ticket_row:
+            return jsonify({"success": False, "error": "Ticket not found"}), 404
+
+        ticket = dict(ticket_row._mapping)
+        for dt_field in ("created_at", "updated_at", "resolved_at"):
+            if ticket.get(dt_field) and hasattr(ticket[dt_field], "isoformat"):
+                ticket[dt_field] = ticket[dt_field].isoformat()
+
+        messages_query = text("""
+            SELECT
+                stc.id,
+                stc.ticket_id,
+                stc.user_id,
+                stc.message AS content,
+                stc.message,
+                stc.is_internal,
+                stc.created_at,
+                u.username,
+                u.email AS sender_email,
+                u.role AS sender_role,
+                CASE WHEN u.role IN ('admin', 'main_admin') THEN true ELSE false END AS is_admin_reply
+            FROM support_ticket_comments stc
+            JOIN users u ON stc.user_id = u.id
+            WHERE stc.ticket_id = :tid
+            ORDER BY stc.created_at ASC
+        """)
+        messages = []
+        for row in db.session.execute(messages_query, {"tid": tid}):
+            msg = dict(row._mapping)
+            if msg.get("created_at") and hasattr(msg["created_at"], "isoformat"):
+                msg["created_at"] = msg["created_at"].isoformat()
+            messages.append(msg)
+
+        ticket["messages"] = messages
+        ticket["replies"] = messages  # backward compat
+        return jsonify({"success": True, "ticket": ticket})
+    except Exception as e:
+        print(f"Error getting admin ticket detail: {e}")
+        return jsonify({"success": False, "error": "Failed to load ticket"}), 500
 
 
 @missing_bp.route("/api/admin/support-tickets/<int:tid>/reply", methods=["POST"])
 @admin_required
 def admin_support_ticket_reply(current_user, tid):
-    from api.models.message import Thread, Message
-    thread = Thread.query.get(tid)
-    if not thread:
-        return jsonify({"success": False, "error": "Ticket not found"}), 404
-    data = request.get_json() or {}
-    body = data.get("message", "").strip()
-    if not body:
-        return jsonify({"success": False, "error": "Message required"}), 400
-    msg = Message(thread_id=tid, sender_id=current_user.id, body=body)
-    db.session.add(msg)
-    thread.admin_id = current_user.id
-    thread.updated_at = datetime.utcnow()
-    db.session.add(Notification(
-        user_id=thread.user_id, title="Support Reply",
-        message=f"Admin replied to: {thread.subject[:50]}", type="info", priority="medium"
-    ))
-    db.session.commit()
-    return jsonify({"success": True, "message": msg.to_dict()})
+    """Admin reply to a support ticket"""
+    try:
+        data = request.get_json() or {}
+        body = (data.get("message") or "").strip()
+        if not body:
+            return jsonify({"success": False, "error": "Message required"}), 400
+
+        # Verify ticket exists and get owner
+        ticket_row = db.session.execute(
+            text("SELECT user_id, subject FROM support_tickets WHERE id = :tid"),
+            {"tid": tid}
+        ).first()
+        if not ticket_row:
+            return jsonify({"success": False, "error": "Ticket not found"}), 404
+
+        owner_id = ticket_row[0]
+        subject = ticket_row[1]
+
+        # Insert comment
+        result = db.session.execute(
+            text("""
+                INSERT INTO support_ticket_comments
+                (ticket_id, user_id, message, is_internal, created_at)
+                VALUES (:tid, :user_id, :message, false, :created_at)
+                RETURNING id
+            """),
+            {"tid": tid, "user_id": current_user.id, "message": body, "created_at": datetime.utcnow()}
+        )
+        comment_id = result.fetchone()[0]
+
+        # Update ticket status to waiting_response
+        db.session.execute(
+            text("""
+                UPDATE support_tickets
+                SET status = 'waiting_response', assigned_to = :admin_id, updated_at = :updated_at
+                WHERE id = :tid AND status NOT IN ('resolved', 'closed')
+            """),
+            {"tid": tid, "admin_id": current_user.id, "updated_at": datetime.utcnow()}
+        )
+
+        # Notify ticket owner
+        db.session.add(Notification(
+            user_id=owner_id,
+            title="Support Ticket Reply",
+            message=f"Admin replied to your ticket: {(subject or '')[:60]}",
+            type="info",
+            priority="medium"
+        ))
+        db.session.commit()
+        return jsonify({"success": True, "comment_id": comment_id})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error posting admin reply: {e}")
+        return jsonify({"success": False, "error": "Failed to post reply"}), 500
 
 
 @missing_bp.route("/api/admin/support-tickets/<int:tid>/assign", methods=["POST"])
 @admin_required
 def admin_assign_ticket(current_user, tid):
-    from api.models.message import Thread
-    data = request.get_json() or {}
-    thread = Thread.query.get(tid)
-    if not thread:
-        return jsonify({"success": False, "error": "Ticket not found"}), 404
-    thread.admin_id = data.get("adminId", current_user.id)
-    db.session.commit()
-    return jsonify({"success": True, "message": "Ticket assigned"})
+    """Assign ticket to an admin"""
+    try:
+        data = request.get_json() or {}
+        admin_id = data.get("adminId", current_user.id)
+        result = db.session.execute(
+            text("""
+                UPDATE support_tickets
+                SET assigned_to = :admin_id,
+                    status = CASE WHEN status = 'open' THEN 'in_progress' ELSE status END,
+                    updated_at = :updated_at
+                WHERE id = :tid
+                RETURNING id
+            """),
+            {"admin_id": admin_id, "updated_at": datetime.utcnow(), "tid": tid}
+        )
+        if not result.fetchone():
+            return jsonify({"success": False, "error": "Ticket not found"}), 404
+        db.session.commit()
+        return jsonify({"success": True, "message": "Ticket assigned"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": "Failed to assign"}), 500
 
 
 @missing_bp.route("/api/admin/support-tickets/<int:tid>/close", methods=["POST"])
 @admin_required
 def admin_close_ticket(current_user, tid):
-    from api.models.message import Thread
-    thread = Thread.query.get(tid)
-    if not thread:
-        return jsonify({"success": False, "error": "Ticket not found"}), 404
-    thread.status = "closed"
-    db.session.commit()
-    return jsonify({"success": True, "message": "Ticket closed"})
+    """Mark ticket as resolved"""
+    try:
+        result = db.session.execute(
+            text("""
+                UPDATE support_tickets
+                SET status = 'resolved', resolved_at = :now, updated_at = :now
+                WHERE id = :tid
+                RETURNING user_id
+            """),
+            {"now": datetime.utcnow(), "tid": tid}
+        )
+        row = result.fetchone()
+        if not row:
+            return jsonify({"success": False, "error": "Ticket not found"}), 404
+
+        # Notify user
+        db.session.add(Notification(
+            user_id=row[0],
+            title="Support Ticket Resolved",
+            message=f"Your support ticket #{tid} has been marked as resolved.",
+            type="info",
+            priority="medium"
+        ))
+        db.session.commit()
+        return jsonify({"success": True, "message": "Ticket resolved"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": "Failed to resolve ticket"}), 500
 
 
 @missing_bp.route("/api/admin/support-tickets/<int:tid>", methods=["DELETE"])
 @admin_required
 def admin_delete_ticket(current_user, tid):
-    from api.models.message import Thread, Message
-    thread = Thread.query.get(tid)
-    if not thread:
-        return jsonify({"success": False, "error": "Ticket not found"}), 404
-    Message.query.filter_by(thread_id=tid).delete()
-    db.session.delete(thread)
-    db.session.commit()
-    return jsonify({"success": True, "message": "Ticket deleted"})
+    """Permanently delete a ticket and all its comments"""
+    try:
+        db.session.execute(
+            text("DELETE FROM support_ticket_comments WHERE ticket_id = :tid"),
+            {"tid": tid}
+        )
+        result = db.session.execute(
+            text("DELETE FROM support_tickets WHERE id = :tid RETURNING id"),
+            {"tid": tid}
+        )
+        if not result.fetchone():
+            return jsonify({"success": False, "error": "Ticket not found"}), 404
+        db.session.commit()
+        return jsonify({"success": True, "message": "Ticket deleted"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": "Failed to delete ticket"}), 500
 
 
 # ============================================================
@@ -650,8 +821,37 @@ def admin_contact_reply(current_user, cid):
     body = data.get("message", "").strip()
     if not body:
         return jsonify({"success": False, "error": "Message required"}), 400
-    sub.status = 'read'
-    db.session.commit()
+
+    # Ensure contact_replies table exists, then insert reply
+    try:
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS contact_replies (
+                id SERIAL PRIMARY KEY,
+                contact_id INTEGER NOT NULL REFERENCES contact_submissions(id) ON DELETE CASCADE,
+                admin_id INTEGER NOT NULL,
+                admin_name VARCHAR(255),
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """))
+        db.session.execute(text("""
+            INSERT INTO contact_replies (contact_id, admin_id, admin_name, message, created_at)
+            VALUES (:contact_id, :admin_id, :admin_name, :message, :created_at)
+        """), {
+            "contact_id": cid,
+            "admin_id": current_user.id,
+            "admin_name": current_user.username,
+            "message": body,
+            "created_at": datetime.utcnow()
+        })
+        sub.status = 'replied'
+        sub.updated_at = datetime.utcnow()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.warning(f"Contact reply store failed: {e}")
+        return jsonify({"success": False, "error": "Failed to store reply"}), 500
+
     # Try to send email reply via SMTP if configured
     smtp_host = os.environ.get("SMTP_HOST")
     if smtp_host:
@@ -673,6 +873,7 @@ def admin_contact_reply(current_user, cid):
                 server.sendmail(from_email, [sub.email], msg.as_string())
         except Exception as e:
             logger.warning(f"Email reply failed: {e}")
+
     return jsonify({"success": True, "message": f"Reply sent to {sub.email}"})
 
 
@@ -750,6 +951,23 @@ def admin_delete_announcement(current_user, aid):
         ).delete()
         db.session.commit()
     return jsonify({"success": True})
+
+
+@missing_bp.route("/api/admin/announcements/<int:aid>/broadcast", methods=["POST"])
+@admin_required
+def admin_rebroadcast_announcement(current_user, aid):
+    """Re-broadcast an existing announcement to all active users"""
+    notif = Notification.query.get(aid)
+    if not notif:
+        return jsonify({"success": False, "error": "Announcement not found"}), 404
+    users = User.query.filter(User.role.in_(["member", "user"])).all()
+    for u in users:
+        db.session.add(Notification(
+            user_id=u.id, title=notif.title, message=notif.message,
+            type="info", notification_type="announcement", priority="medium"
+        ))
+    db.session.commit()
+    return jsonify({"success": True, "message": f"Announcement re-broadcast to {len(users)} users"})
 
 
 @missing_bp.route("/api/admin/campaigns/<int:cid>/suspend", methods=["POST"])
@@ -1656,3 +1874,62 @@ def admin_send_email_to_user(current_user, uid):
     log_admin_action(current_user.id, f"Sent email to user {user.email}: {subject}", target_id=user.id)
     db.session.commit()
     return jsonify({"success": True, "message": f"Email sent to {user.email}"})
+
+
+# ============================================================
+# ADMIN SECURITY — Blocked IPs GET list (used by api.js admin.security.getBlockedIPs)
+# ============================================================
+
+@missing_bp.route("/api/admin/security/blocked-ips", methods=["GET"])
+@admin_required
+def admin_get_blocked_ips(current_user):
+    """List all globally blocked IPs (admin view, no user_id filter)."""
+    from api.models.security import BlockedIP
+    blocked = BlockedIP.query.order_by(BlockedIP.blocked_at.desc()).limit(200).all()
+    return jsonify({
+        "success": True,
+        "blocked_ips": [{
+            "id": b.id,
+            "ip": b.ip_address,
+            "reason": b.reason or "No reason",
+            "blocked_at": b.blocked_at.isoformat() if b.blocked_at else None,
+            "user_id": b.user_id,
+        } for b in blocked]
+    })
+
+
+@missing_bp.route("/api/admin/security/blocked-ips", methods=["POST"])
+@admin_required
+def admin_add_blocked_ip_list(current_user):
+    """Admin: block an IP globally."""
+    data = request.get_json() or {}
+    ip = data.get("ip") or data.get("ip_address")
+    reason = data.get("reason", "Blocked by admin")
+    if not ip:
+        return jsonify({"success": False, "error": "IP address required"}), 400
+    from api.models.security import BlockedIP
+    existing = BlockedIP.query.filter_by(ip_address=ip).first()
+    if existing:
+        return jsonify({"success": False, "error": "IP already blocked"}), 400
+    db.session.add(BlockedIP(ip_address=ip, reason=reason, user_id=current_user.id,
+                             blocked_at=datetime.utcnow()))
+    log_admin_action(current_user.id, f"Blocked IP: {ip}")
+    db.session.commit()
+    return jsonify({"success": True, "message": f"IP {ip} blocked"})
+
+
+@missing_bp.route("/api/admin/security/blocked-ips/<path:ip>", methods=["DELETE"])
+@admin_required
+def admin_remove_blocked_ip(current_user, ip):
+    """Admin: unblock an IP."""
+    from api.models.security import BlockedIP
+    blocked = BlockedIP.query.filter_by(ip_address=ip).first()
+    if not blocked:
+        return jsonify({"success": False, "error": "IP not in block list"}), 404
+    db.session.delete(blocked)
+    log_admin_action(current_user.id, f"Unblocked IP: {ip}")
+    db.session.commit()
+    return jsonify({"success": True, "message": f"IP {ip} unblocked"})
+
+
+# NOTE: /api/analytics/link-decay/<link_id> is defined in email_intelligence.py — no duplicate needed here.

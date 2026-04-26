@@ -5,8 +5,32 @@ from api.models.user import User
 from api.models.notification import Notification
 from api.utils.validation import validate_email, sanitize_string
 from datetime import datetime
+from sqlalchemy import text
 
 contact_bp = Blueprint('contact', __name__)
+
+
+def _get_replies_for_contact(contact_id):
+    """Fetch stored admin replies for a contact submission (if table exists)."""
+    try:
+        rows = db.session.execute(
+            text("""
+                SELECT id, admin_id, admin_name, message, created_at
+                FROM contact_replies
+                WHERE contact_id = :cid
+                ORDER BY created_at ASC
+            """),
+            {"cid": contact_id}
+        )
+        replies = []
+        for r in rows:
+            rd = dict(r._mapping)
+            if rd.get("created_at") and hasattr(rd["created_at"], "isoformat"):
+                rd["created_at"] = rd["created_at"].isoformat()
+            replies.append(rd)
+        return replies
+    except Exception:
+        return []
 
 @contact_bp.route('/api/contact/submit', methods=['POST'])
 @contact_bp.route('/api/contact', methods=['POST'])
@@ -93,9 +117,15 @@ def get_contact_submissions():
         query = query.order_by(ContactSubmission.created_at.desc())
         
         paginated = query.paginate(page=page, per_page=per_page, error_out=False)
-        
+
+        submissions_data = []
+        for submission in paginated.items:
+            s = submission.to_dict()
+            s['replies'] = _get_replies_for_contact(submission.id)
+            submissions_data.append(s)
+
         return jsonify({
-            'submissions': [submission.to_dict() for submission in paginated.items],
+            'submissions': submissions_data,
             'total': paginated.total,
             'pages': paginated.pages,
             'current_page': page
@@ -113,8 +143,10 @@ def get_contact_submission(submission_id):
         
         if not submission:
             return jsonify({'error': 'Submission not found'}), 404
-        
-        return jsonify(submission.to_dict()), 200
+
+        s = submission.to_dict()
+        s['replies'] = _get_replies_for_contact(submission.id)
+        return jsonify(s), 200
         
     except Exception as e:
         print(f'Get contact submission error: {e}')

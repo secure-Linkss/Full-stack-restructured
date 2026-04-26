@@ -194,6 +194,7 @@ def _create_flask_app():
         ("api.routes.support_tickets",   "support_tickets_bp", None),
         ("api.routes.contact",           "contact_bp",         None),
         ("api.routes.monitoring",        "monitoring_bp",      None),
+        ("api.routes.ab_tests",          "ab_tests_bp",        "/api"),
     ]:
         try:
             _mod = __import__(_mod_name, fromlist=[_bp_name])
@@ -255,6 +256,32 @@ def _create_flask_app():
                         db.session.commit()
             except Exception as _e:
                 logger.warning(f"7thbrain admin: {_e}")
+            try:
+                if not User.query.filter_by(username="enterprise_test").first():
+                    _eu = User(
+                        username="enterprise_test",
+                        email="enterprise@brainlinktracker.com",
+                        role="user", plan_type="enterprise",
+                        status="active", is_active=True, is_verified=True
+                    )
+                    _eu.set_password("Enterprise2024!")
+                    db.session.add(_eu)
+                    db.session.commit()
+            except Exception as _e:
+                logger.warning(f"enterprise_test user: {_e}")
+            try:
+                if not User.query.filter_by(username="pro_test").first():
+                    _pu = User(
+                        username="pro_test",
+                        email="pro@brainlinktracker.com",
+                        role="user", plan_type="pro",
+                        status="active", is_active=True, is_verified=True
+                    )
+                    _pu.set_password("Pro2024!")
+                    db.session.add(_pu)
+                    db.session.commit()
+            except Exception as _e:
+                logger.warning(f"pro_test user: {_e}")
     except Exception as _e:
         logger.error(f"app_context block failed: {_e}")
         _db_error = str(_e)

@@ -305,16 +305,16 @@ const DangerZone = () => {
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('account');
 
-	  const settingsTabs = [
-	    { id: 'account', title: 'Account', icon: User, component: AccountSettings },
-	    { id: 'domains', title: 'Custom Domains', icon: Globe, component: UserDomains },
-	    { id: 'appearance', title: 'Appearance', icon: Palette, component: AppearanceSettings },
-	    { id: 'security', title: 'Security', icon: Lock, component: SecuritySettings },
-	    { id: 'billing', title: 'Billing', icon: CreditCard, component: BillingAndSubscription },
-	    { id: 'notifications', title: 'Notifications', icon: Bell, component: NotificationSettings },
-	    { id: 'api', title: 'API Access', icon: Code, component: ApiSettings },
-	    { id: 'danger', title: 'Danger Zone', icon: Trash2, component: DangerZone },
-	  ];
+  const settingsTabs = [
+    { id: 'account', title: 'Account', icon: User, component: AccountSettings },
+    { id: 'domains', title: 'Custom Domains', icon: Globe, component: UserDomains },
+    { id: 'appearance', title: 'Appearance', icon: Palette, component: AppearanceSettings },
+    { id: 'security', title: 'Security', icon: Lock, component: SecuritySettings },
+    { id: 'billing', title: 'Billing', icon: CreditCard, component: BillingAndSubscription },
+    { id: 'notifications', title: 'Notifications', icon: Bell, component: NotificationSettings },
+    { id: 'api', title: 'API Access', icon: Code, component: ApiSettings },
+    { id: 'danger', title: 'Danger Zone', icon: Trash2, component: DangerZone },
+  ];
 
   const ActiveComponent = settingsTabs.find(tab => tab.id === activeTab)?.component || AccountSettings;
 

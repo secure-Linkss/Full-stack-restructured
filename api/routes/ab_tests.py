@@ -1,25 +1,11 @@
-from flask import g, Blueprint, request, jsonify, session
+from flask import g, Blueprint, request, jsonify
 from api.models.ab_test import ABTest, ABTestVariant
 from api.models.link import Link
 from api.models.user import User
 from api.database import db
-from functools import wraps
+from api.middleware.auth_decorators import login_required
 import random
 ab_tests_bp = Blueprint('ab_tests', __name__)
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-            user = User.verify_token(token)
-            if user:
-                session['user_id'] = user.id
-                return f(*args, **kwargs)
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
 @ab_tests_bp.route('/ab-tests', methods=['GET'])
 @login_required
 def get_ab_tests():

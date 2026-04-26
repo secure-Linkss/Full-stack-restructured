@@ -3,7 +3,7 @@ Support Ticket System with Full Workflow
 Handles ticket creation, replies, assignments, and status management
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from functools import wraps
 from api.database import db
 from api.models.user import User
@@ -11,6 +11,7 @@ from api.models.notification import Notification
 from api.models.audit_log import AuditLog
 from datetime import datetime
 from sqlalchemy import text
+from api.middleware.auth_decorators import login_required as _global_login_required
 
 support_tickets_bp = Blueprint("support_tickets", __name__)
 
@@ -25,7 +26,7 @@ def get_current_user():
     return None
 
 def login_required(f):
-    """Decorator to require authentication"""
+    """Decorator to require authentication — sets current_user as first arg"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = get_current_user()
@@ -130,12 +131,20 @@ def get_ticket_details(current_user, ticket_id):
         if current_user.role not in ["admin", "main_admin"] and ticket["user_id"] != current_user.id:
             return jsonify({"error": "Access denied"}), 403
 
-        # Get replies
+        # Get all messages/replies for this ticket
         replies_query = text("""
             SELECT
-                stc.*,
+                stc.id,
+                stc.ticket_id,
+                stc.user_id,
+                stc.message AS content,
+                stc.message,
+                stc.is_internal,
+                stc.created_at,
                 u.username,
-                u.role
+                u.email AS sender_email,
+                u.role AS sender_role,
+                CASE WHEN u.role IN ('admin', 'main_admin') THEN true ELSE false END AS is_admin_reply
             FROM support_ticket_comments stc
             JOIN users u ON stc.user_id = u.id
             WHERE stc.ticket_id = :ticket_id
@@ -143,9 +152,21 @@ def get_ticket_details(current_user, ticket_id):
         """)
 
         replies_result = db.session.execute(replies_query, {"ticket_id": ticket_id})
-        replies = [dict(row._mapping) for row in replies_result]
+        messages = []
+        for row in replies_result:
+            msg = dict(row._mapping)
+            # Ensure created_at is serializable
+            if msg.get("created_at") and hasattr(msg["created_at"], "isoformat"):
+                msg["created_at"] = msg["created_at"].isoformat()
+            messages.append(msg)
 
-        ticket["replies"] = replies
+        # Serialize ticket datetimes
+        for dt_field in ("created_at", "updated_at", "resolved_at"):
+            if ticket.get(dt_field) and hasattr(ticket[dt_field], "isoformat"):
+                ticket[dt_field] = ticket[dt_field].isoformat()
+
+        ticket["messages"] = messages
+        ticket["replies"] = messages  # backward compat
 
         return jsonify({"ticket": ticket}), 200
 
@@ -160,8 +181,13 @@ def create_ticket(current_user):
     try:
         data = request.get_json()
 
-        if not all(k in data for k in ["subject", "description"]):
-            return jsonify({"error": "Subject and description required"}), 400
+        # Accept both "description" and "message" field names from the frontend
+        description = data.get("description") or data.get("message", "")
+
+        if not data.get("subject") or not description:
+            return jsonify({"error": "Subject and message required"}), 400
+
+        now = datetime.utcnow()
 
         # Insert ticket
         insert_query = text("""
@@ -175,15 +201,30 @@ def create_ticket(current_user):
         result = db.session.execute(insert_query, {
             "user_id": current_user.id,
             "subject": data["subject"],
-            "description": data["description"],
+            "description": description,
             "category": data.get("category", "general"),
             "priority": data.get("priority", "medium"),
             "status": "open",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": now,
+            "updated_at": now
         })
 
         ticket_id = result.fetchone()[0]
+
+        # Insert the opening message as first comment so thread is populated
+        comment_query = text("""
+            INSERT INTO support_ticket_comments
+            (ticket_id, user_id, message, is_internal, created_at)
+            VALUES
+            (:ticket_id, :user_id, :message, false, :created_at)
+        """)
+        db.session.execute(comment_query, {
+            "ticket_id": ticket_id,
+            "user_id": current_user.id,
+            "message": description,
+            "created_at": now
+        })
+
         db.session.commit()
 
         # Notify admins

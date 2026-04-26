@@ -18,7 +18,6 @@ import AdminSecurity from './admin/AdminSecurity';
 import AdminDomains from './admin/AdminDomains';
 import AdminTickets from './admin/AdminTickets';
 import AdminContacts from './admin/AdminContacts';
-import Footer from './Footer';
 import { MessageSquare } from 'lucide-react';
 
 const AdminPanel = ({ user }) => {
@@ -139,7 +138,6 @@ const AdminPanel = ({ user }) => {
           <ActiveComponent isOwner={isOwner} userRole={user?.role} />
         </div>
       </div>
-      <Footer isPublic={false} />
     </div>
   );
 };

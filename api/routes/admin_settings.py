@@ -4,21 +4,16 @@ from api.database import db
 from api.models.user import User
 from api.models.audit_log import AuditLog
 from api.models.domain import Domain
+from api.middleware.auth_decorators import login_required as _jwt_login_required
 
 admin_settings_bp = Blueprint('admin_settings', __name__)
 
 def login_required(f):
-    """Decorator to require authentication"""
+    """Decorator to require authentication — uses canonical JWT-based auth."""
     @wraps(f)
+    @_jwt_login_required
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        user = User.query.get(g.user.id)
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
-        return f(user, *args, **kwargs)
+        return f(g.user, *args, **kwargs)
     return decorated_function
 
 def log_admin_action(actor_id, action, target_id=None, target_type=None):
