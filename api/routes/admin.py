@@ -11,6 +11,7 @@ from api.models.payment import Payment
 from api.models.notification import Notification
 from api.middleware.auth_decorators import login_required, admin_required, main_admin_required
 from datetime import datetime, timedelta
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
