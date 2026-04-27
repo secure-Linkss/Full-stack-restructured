@@ -341,13 +341,11 @@ const AdminLinks = () => {
       cell: (row) => (
         <button
           onClick={() => setExpandedLinkId(prev => prev === row.id ? null : row.id)}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#3b82f6] transition-colors"
-          title="Expand analytics"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#3b82f6] transition-colors whitespace-nowrap"
         >
           {expandedLinkId === row.id
             ? <><ChevronUp className="w-4 h-4" /> Hide</>
-            : <><ChevronDown className="w-4 h-4" /> Analytics</>
-          }
+            : <><ChevronDown className="w-4 h-4" /> Analytics</>}
         </button>
       ),
     },
@@ -386,8 +384,8 @@ const AdminLinks = () => {
           </CardTitle>
           <CardDescription>Monitor and manipulate all tenant endpoints. Click a row to expand analytics.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pt-6 bg-background p-0">
-          <div className="px-6 pt-6">
+        <CardContent className="space-y-4 bg-background p-0">
+          <div className="px-4 sm:px-6 pt-4 sm:pt-6">
             <FilterBar
               searchPlaceholder="Analyze short URLs, owners, or target destinations..."
               onSearch={setSearchQuery}
@@ -432,8 +430,8 @@ const AdminLinks = () => {
                 actions={(row) => (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 border-[#1e2d47] hover:bg-[#1e2d47]/50 text-xs shadow-sm">
-                        Trigger Action
+                      <Button size="sm" className="btn-primary h-7 text-xs px-2.5">
+                        Actions
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-52 bg-[#141d2e] border-[#1e2d47] shadow-xl">

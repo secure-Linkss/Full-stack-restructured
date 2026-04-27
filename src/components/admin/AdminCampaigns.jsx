@@ -317,12 +317,11 @@ const AdminCampaigns = () => {
       cell: (row) => (
         <button
           onClick={() => setExpandedCampaignId(prev => prev === row.id ? null : row.id)}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#3b82f6] transition-colors"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#3b82f6] transition-colors whitespace-nowrap"
         >
           {expandedCampaignId === row.id
             ? <><ChevronUp className="w-4 h-4" /> Collapse</>
-            : <><ChevronDown className="w-4 h-4" /> Details</>
-          }
+            : <><ChevronDown className="w-4 h-4" /> Details</>}
         </button>
       ),
     },
@@ -359,8 +358,8 @@ const AdminCampaigns = () => {
           </CardTitle>
           <CardDescription>Monitor all tenant tracking arrays. Click a row to expand campaign details.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pt-6 bg-background p-0">
-          <div className="px-6 pt-6">
+        <CardContent className="space-y-4 bg-background p-0">
+          <div className="px-4 sm:px-6 pt-4 sm:pt-6">
             <FilterBar
               searchPlaceholder="Analyze hash arrays or tenant identity..."
               onSearch={setSearchQuery}
@@ -403,8 +402,8 @@ const AdminCampaigns = () => {
               actions={(row) => (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 border-[#1e2d47] hover:bg-[#1e2d47]/50 text-xs shadow-sm">
-                      Command Node
+                    <Button size="sm" className="btn-primary h-7 text-xs px-2.5">
+                      Actions
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-52 bg-[#141d2e] border-[#1e2d47] shadow-xl">

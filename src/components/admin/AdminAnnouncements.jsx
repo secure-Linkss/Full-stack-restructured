@@ -191,17 +191,21 @@ const AdminAnnouncements = () => {
       </div>
 
       <Card className="border-[#1e2d47]">
-        <CardHeader className="bg-[#141d2e] rounded-t-lg border-b border-[#1e2d47] flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg flex items-center">
-              <Megaphone className="h-5 w-5 mr-2 text-[#3b82f6]" />
-              Global Announcements
-            </CardTitle>
-            <CardDescription className="mt-1">Broadcast messages to all user dashboards simultaneously.</CardDescription>
+        <CardHeader className="bg-[#141d2e] rounded-t-lg border-b border-[#1e2d47]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg flex items-center">
+                <Megaphone className="h-5 w-5 mr-2 text-[#3b82f6]" />
+                Global Announcements
+              </CardTitle>
+              <CardDescription className="mt-1">Broadcast messages to all user dashboards simultaneously.</CardDescription>
+            </div>
+            <Button onClick={() => openModal()} className="btn-primary shadow-lg shadow-[#3b82f6]/20 shrink-0 text-sm">
+              <Plus className="h-4 w-4 mr-1.5" />
+              <span className="hidden sm:inline">New Announcement</span>
+              <span className="sm:hidden">New</span>
+            </Button>
           </div>
-          <Button onClick={() => openModal()} className="btn-primary shadow-lg shadow-[#3b82f6]/20">
-            <Plus className="h-4 w-4 mr-2" /> New Announcement
-          </Button>
         </CardHeader>
         <CardContent className="pt-6 bg-background min-h-[400px]">
           {loading ? (
