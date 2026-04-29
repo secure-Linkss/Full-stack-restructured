@@ -87,7 +87,7 @@ const SecuritySettings = () => {
               required
             />
           </div>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" className="btn-primary" disabled={saving}>
             {saving ? 'Saving...' : 'Change Password'}
           </Button>
         </form>

@@ -87,7 +87,7 @@ const EditUserModal = ({ isOpen, onClose, onSuccess, user }) => {
           </div>
           <div className="flex space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1 border-[#1e2d47]">Cancel</Button>
-            <Button type="submit" disabled={loading} className="flex-1 bg-[#3b82f6] hover:bg-[#2563eb]">
+            <Button type="submit" disabled={loading} className="flex-1 btn-primary">
               {loading ? 'Committing...' : 'Commit Changes'}
             </Button>
           </div>

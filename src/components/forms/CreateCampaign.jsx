@@ -33,19 +33,15 @@ const CreateCampaignForm = ({ onClose, onCampaignCreated }) => {
       };
 
       // Assuming the API service has a campaigns.create method
-      const response = await api.campaigns.create(payload); 
-      
-      if (response.success) {
+      const response = await api.campaigns.create(payload);
+
+      if (response && (response.success || response.campaign || response.id || response.message)) {
         toast.success(`Campaign "${formData.campaignName}" created successfully!`);
-        // Reset form and close modal
-        setFormData({
-          campaignName: '',
-          description: '',
-        });
+        setFormData({ campaignName: '', description: '' });
         onCampaignCreated();
         onClose();
       } else {
-        toast.error(response.error || 'Failed to create campaign.');
+        toast.error(response?.error || 'Failed to create campaign.');
       }
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -84,7 +80,7 @@ const CreateCampaignForm = ({ onClose, onCampaignCreated }) => {
 
 	      <DialogFooter className="pt-4">
 	        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
-	        <Button type="submit" disabled={loading}>
+	        <Button type="submit" className="btn-primary" disabled={loading}>
 	          {loading ? 'Creating...' : 'Create Campaign'}
 	        </Button>
 	      </DialogFooter>

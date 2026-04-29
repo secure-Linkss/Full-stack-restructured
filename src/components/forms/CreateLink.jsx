@@ -511,7 +511,7 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
 
 	      <DialogFooter className="pt-4">
 	        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
-	        <Button type="submit" disabled={loading}>
+	        <Button type="submit" className="btn-primary" disabled={loading}>
 	          {loading ? 'Saving...' : editingLink ? 'Update Configuration' : `Create ${type === 'tracking' ? 'Tracking' : 'Short'} Link`}
 	        </Button>
 	      </DialogFooter>

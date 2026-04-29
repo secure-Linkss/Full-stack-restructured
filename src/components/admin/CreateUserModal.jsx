@@ -201,7 +201,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
             <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
+            <Button type="submit" disabled={loading} className="flex-1 btn-primary">
               {loading ? 'Creating...' : 'Create User'}
             </Button>
           </div>

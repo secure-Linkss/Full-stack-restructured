@@ -91,7 +91,7 @@ const AccountSettings = () => {
               required
             />
           </div>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" className="btn-primary" disabled={saving}>
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </form>

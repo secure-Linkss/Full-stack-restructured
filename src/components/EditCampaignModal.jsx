@@ -57,7 +57,7 @@ const EditCampaignModal = ({ isOpen, onClose, onSuccess, campaign }) => {
           </div>
           <div className="flex space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={loading} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button type="submit" disabled={loading} className="flex-1 btn-primary">
               {loading ? 'Patching Matrix...' : 'Save Configuration'}
             </Button>
           </div>

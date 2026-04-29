@@ -617,6 +617,16 @@ const api = {
     }),
   },
 
+  // ==================== USER SETTINGS (appearance, billing) APIs ====================
+  userSettings: {
+    getAppearance: () => fetchWithAuth(`${API_BASE_URL}/user/settings/appearance`),
+    updateAppearance: (data) => fetchWithAuth(`${API_BASE_URL}/user/settings/appearance`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+    getBilling: () => fetchWithAuth(`${API_BASE_URL}/user/settings/billing`),
+  },
+
   // ==================== SETTINGS APIs ====================
   settings: {
     get: () => fetchWithAuth(`${API_BASE_URL}/settings`),
