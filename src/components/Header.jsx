@@ -66,10 +66,10 @@ const Header = ({ user, logout, pageTitle, setIsMobileOpen }) => {
         
         {/* Quick Action Button */}
         <div className="hidden md:block">
-           <button className="btn-primary text-sm shadow-sm">
+           <RouterLink to="/campaigns" className="btn-primary text-sm shadow-sm inline-flex items-center px-3 py-2 rounded-lg">
              <LayoutDashboard className="w-4 h-4 mr-1.5" />
-             Create Campaign
-           </button>
+             Campaigns
+           </RouterLink>
         </div>
 
         {/* Notifications */}
