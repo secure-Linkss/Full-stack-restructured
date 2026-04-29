@@ -111,5 +111,8 @@ cd Full-stack-restructured
 npm run build           # rebuild dist/
 git add api/ src/ dist/
 git commit -m "your message"
-git push origin master  # Vercel auto-deploys
+git push origin master  # triggers Vercel Preview build
+vercel --prod --yes     # REQUIRED: promotes to Production URL (brain-link-tracker-v2.vercel.app)
 ```
+
+> NOTE (discovered 2026-04-29): git push alone only creates Preview builds. Production URL requires `vercel --prod --yes` explicitly.
