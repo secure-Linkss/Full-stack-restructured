@@ -22,97 +22,108 @@ campaigns_bp = Blueprint('campaigns', __name__)
 @campaigns_bp.route('/api/campaigns', methods=['GET'])
 @login_required
 def get_campaigns():
-    """Get all campaigns for current user, including aggregated stats"""
+    """Get all campaigns for current user, including aggregated stats."""
     user_id = g.user.id
-    
+
     try:
-        # Get all unique campaign names associated with the user's links
-        campaign_names = db.session.query(Link.campaign_name).filter(
+        # Pull from Campaign model (created via POST /api/campaigns)
+        db_campaigns = Campaign.query.filter_by(owner_id=user_id).all()
+        seen_names = set()
+        campaigns_data = []
+
+        for c in db_campaigns:
+            seen_names.add(c.name)
+            links = Link.query.filter(
+                Link.user_id == user_id,
+                (Link.campaign_id == c.id) | (Link.campaign_name == c.name)
+            ).all()
+            total_clicks = sum(l.total_clicks or 0 for l in links)
+            real_visitors = sum(l.real_visitors or 0 for l in links)
+            captured_emails = sum(getattr(l, 'captured_emails', 0) or 0 for l in links)
+            conversion_rate = round((captured_emails / total_clicks * 100) if total_clicks > 0 else 0, 2)
+            campaigns_data.append({
+                'id': c.id,
+                'name': c.name,
+                'description': c.description,
+                'status': c.status or 'active',
+                'created_at': c.created_at.isoformat() if c.created_at else None,
+                'link_count': len(links),
+                'total_clicks': total_clicks,
+                'real_visitors': real_visitors,
+                'captured_emails': captured_emails,
+                'conversion_rate': conversion_rate,
+            })
+
+        # Also include legacy link-based campaigns not in Campaign table
+        link_campaign_names = db.session.query(Link.campaign_name).filter(
             Link.user_id == user_id,
             Link.campaign_name.isnot(None),
-            Link.campaign_name != ''
+            Link.campaign_name != '',
         ).distinct().all()
-        
-        campaigns_data = []
-        for (campaign_name,) in campaign_names:
-            # Get links belonging to this campaign
+
+        for (campaign_name,) in link_campaign_names:
+            if campaign_name in seen_names:
+                continue
             campaign_links = Link.query.filter_by(user_id=user_id, campaign_name=campaign_name).all()
-            link_ids = [link.id for link in campaign_links]
-            
-            total_clicks = 0
-            real_visitors = 0
+            total_clicks = sum(l.total_clicks or 0 for l in campaign_links)
+            real_visitors = sum(l.real_visitors or 0 for l in campaign_links)
             captured_emails = 0
-            
-            if link_ids:
-                # Aggregate stats for all links in the campaign
-                campaign_events = TrackingEvent.query.filter(TrackingEvent.link_id.in_(link_ids)).all()
-                total_clicks = len(campaign_events)
-                real_visitors = len(set(event.ip_address for event in campaign_events if not event.is_bot))
-                captured_emails = len([e for e in campaign_events if e.captured_email])
-            
-            conversion_rate = (captured_emails / total_clicks * 100) if total_clicks > 0 else 0
-            
+            conversion_rate = round((captured_emails / total_clicks * 100) if total_clicks > 0 else 0, 2)
             campaigns_data.append({
                 'id': campaign_name,
                 'name': campaign_name,
+                'description': None,
+                'status': 'active',
+                'created_at': None,
                 'link_count': len(campaign_links),
                 'total_clicks': total_clicks,
                 'real_visitors': real_visitors,
                 'captured_emails': captured_emails,
-                'conversion_rate': round(conversion_rate, 2),
-                'status': 'active' # Assuming campaign is active if it has links
+                'conversion_rate': conversion_rate,
             })
-        
+
         return jsonify(campaigns_data), 200
 
     except Exception as e:
-        print(f"Error fetching campaigns: {e}")
+        logger.error(f"Error fetching campaigns: {e}")
         return jsonify({'error': str(e)}), 500
 
 @campaigns_bp.route('/api/campaigns', methods=['POST'])
 @login_required
 def create_campaign():
-    """Create new campaign (by associating a name with a new or existing link) or update existing"""
+    """Create a new campaign using the Campaign model."""
     user_id = g.user.id
-    data = request.get_json()
+    data = request.get_json() or {}
 
-    name = data.get('name', '').strip()
-    link_id = data.get('link_id', type=int) # Optional: associate with an existing link
+    name = (data.get('name') or '').strip()
+    description = (data.get('description') or '').strip()
 
     if not name:
         return jsonify({'error': 'Campaign name required'}), 400
 
     try:
-        # Check if a campaign with this name already exists for the user
-        existing_campaign_link = Link.query.filter_by(user_id=user_id, campaign_name=name).first()
-        if existing_campaign_link:
-            return jsonify({'error': 'Campaign with this name already exists'}), 400
+        existing = Campaign.query.filter_by(name=name, owner_id=user_id).first()
+        if existing:
+            return jsonify({'error': 'A campaign with this name already exists'}), 400
 
-        if link_id:
-            # Associate an existing link with this new campaign name
-            link = Link.query.filter_by(id=link_id, user_id=user_id).first()
-            if not link:
-                return jsonify({'error': 'Link not found or does not belong to user'}), 404
-            link.campaign_name = name
-            db.session.commit()
-            return jsonify({'message': f'Link {link.short_code} associated with new campaign {name}', 'campaign': {'name': name, 'link_count': 1}}), 201
-        else:
-            # Create a placeholder link to represent the campaign, or just create the campaign entry if a Campaign model exists
-            # For now, we'll create a dummy link to establish the campaign name
-            new_link = Link(
-                user_id=user_id,
-                target_url="https://example.com/placeholder", # Placeholder URL
-                campaign_name=name,
-                status='inactive', # Mark as inactive placeholder
-                short_code=Link.generate_short_code() # Generate a short code for the placeholder
-            )
-            db.session.add(new_link)
-            db.session.commit()
-            return jsonify({'message': f'Campaign {name} created with a placeholder link', 'campaign': {'name': name, 'link_count': 0}}), 201
+        campaign = Campaign(
+            name=name,
+            description=description or None,
+            owner_id=user_id,
+            status='active',
+        )
+        db.session.add(campaign)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Campaign "{name}" created successfully',
+            'campaign': campaign.to_dict(),
+        }), 201
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating campaign: {e}")
+        logger.error(f"Error creating campaign: {e}")
         return jsonify({'error': str(e)}), 500
 
 @campaigns_bp.route('/api/campaigns/<string:campaign_name>', methods=['GET'])
