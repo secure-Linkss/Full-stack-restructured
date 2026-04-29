@@ -92,16 +92,16 @@ def get_campaigns():
 @login_required
 def create_campaign():
     """Create a new campaign using the Campaign model."""
-    user_id = g.user.id
-    data = request.get_json() or {}
-
-    name = (data.get('name') or '').strip()
-    description = (data.get('description') or '').strip()
-
-    if not name:
-        return jsonify({'error': 'Campaign name required'}), 400
-
     try:
+        user_id = g.user.id
+        data = request.get_json() or {}
+
+        name = (data.get('name') or '').strip()
+        description = (data.get('description') or '').strip()
+
+        if not name:
+            return jsonify({'error': 'Campaign name required'}), 400
+
         existing = Campaign.query.filter_by(name=name, owner_id=user_id).first()
         if existing:
             return jsonify({'error': 'A campaign with this name already exists'}), 400
@@ -122,9 +122,12 @@ def create_campaign():
         }), 201
 
     except Exception as e:
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         logger.error(f"Error creating campaign: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
 
 @campaigns_bp.route('/api/campaigns/<string:campaign_name>', methods=['GET'])
 @login_required
