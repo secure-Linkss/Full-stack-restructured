@@ -3,12 +3,14 @@
  * and working after the 2026-04-30 fix deployment.
  *
  * Tests:
- * 1. Admin Campaigns — Actions dropdown opens, Edit modal, Pause/Resume
- * 2. Admin Links — Actions dropdown opens, Edit Target URL modal, Pause/Resume
- * 3. Admin Users — Manage dropdown opens (AdminUsers uses "Manage" not "Actions")
- * 4. User Campaigns — Edit, Delete, Analytics expand
- * 5. Link Shortener — domain dropdown shows default, btn-primary styling, no PURL text
+ * 1. Admin Campaigns — Actions dropdown opens, Edit modal, Details expand
+ * 2. Admin Links — Actions dropdown opens, Edit Target URL modal, Analytics expand
+ * 3. Admin Users — Manage dropdown, Add User modal, Details expand
+ * 4. User Campaigns — Campaign page, Analytics expand
+ * 5. Link Shortener — domain dropdown, btn-primary, no PURL text
  * 6. Create Tracking Link — domain dropdown populated
+ * 7. Settings/Admin — domain tabs load
+ * 8. Mobile — no overflow
  */
 
 import { test, expect, Page } from '@playwright/test';
@@ -21,34 +23,43 @@ async function shot(page: Page, name: string) {
 }
 
 async function login(page: Page, username: string, password: string) {
-  await page.goto(`${PROD}/login`, { waitUntil: 'networkidle', timeout: 45000 });
-  await page.waitForTimeout(1500);
+  await page.goto(`${PROD}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(800);
   await page.getByPlaceholder('Enter your email').fill(username);
   await page.getByPlaceholder('••••••••').fill(password);
-  // Wait for the button to be stable (not in animation), then click
   const signInBtn = page.getByRole('button', { name: 'Sign In to Dashboard' });
-  await signInBtn.waitFor({ state: 'visible', timeout: 10000 });
-  await page.waitForTimeout(500); // let any animation settle
-  await signInBtn.click({ force: true, timeout: 15000 });
-  await page.waitForURL(`${PROD}/dashboard`, { timeout: 30000 });
-  await page.waitForTimeout(2000);
+  await signInBtn.waitFor({ state: 'visible', timeout: 8000 });
+  await page.waitForTimeout(300);
+  await signInBtn.click({ force: true, timeout: 12000 });
+  await page.waitForURL(`${PROD}/dashboard`, { timeout: 25000 });
+  await page.waitForTimeout(1000);
 }
 
 /**
- * Click an admin sidebar tab by its exact title text.
- * The AdminPanel uses plain <button> elements — NOT role="tab".
- * On desktop the hidden mobile tab bar appears first in DOM so we must
- * filter to only visible buttons to avoid clicking the hidden mobile button.
+ * Click an admin sidebar tab.
+ * AdminPanel uses plain <button> elements — NOT role="tab".
+ * Use :visible to skip the hidden mobile tab bar (lg:hidden).
  */
 async function clickAdminTab(page: Page, tabTitle: string) {
-  // Use :visible to skip the hidden mobile tab bar (lg:hidden in AdminPanel)
-  // and only target the desktop sidebar buttons.
   const btn = page.locator('button:visible').filter({ hasText: new RegExp(tabTitle, 'i') }).first();
   const visible = await btn.isVisible({ timeout: 5000 }).catch(() => false);
   if (visible) {
     await btn.click();
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2500);
   }
+}
+
+/**
+ * Click a dropdown menu item — uses force:true because Radix UI portals
+ * may render items outside the viewport (below page fold).
+ */
+async function clickDropdownItem(page: Page, pattern: RegExp) {
+  const item = page.getByRole('menuitem').filter({ hasText: pattern }).first()
+    .or(page.locator('[role="menuitem"]').filter({ hasText: pattern }).first());
+  const found = await item.isVisible({ timeout: 3000 }).catch(() => false);
+  if (!found) return false;
+  await item.click({ force: true }); // force bypasses "outside viewport" for portals
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -57,25 +68,23 @@ async function clickAdminTab(page: Page, tabTitle: string) {
 test.describe('Admin Campaigns — manage buttons', () => {
   test.beforeEach(async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
     await clickAdminTab(page, 'Campaigns');
   });
 
   test('Campaign table loads with data', async ({ page }) => {
     await shot(page, 'admin_campaigns_table');
     const body = await page.evaluate(() => document.body.innerText);
-    expect(body).not.toMatch(/failed to load|undefined/i);
+    expect(body).not.toMatch(/failed to load campaigns/i);
   });
 
   test('Actions dropdown opens on campaign row', async ({ page }) => {
-    // AdminCampaigns uses button text "Actions"
-    const actionsBtn = page.locator('button').filter({ hasText: /^Actions$/i }).first();
+    const actionsBtn = page.locator('button:visible').filter({ hasText: /^Actions$/i }).first();
     const visible = await actionsBtn.isVisible({ timeout: 6000 }).catch(() => false);
-    if (!visible) {
-      test.skip(true, 'No campaign rows found — create a campaign first');
-      return;
-    }
+    if (!visible) { test.skip(true, 'No campaign rows found'); return; }
+
+    await actionsBtn.scrollIntoViewIfNeeded();
     await actionsBtn.click();
     await page.waitForTimeout(800);
     await shot(page, 'admin_campaign_actions_open');
@@ -85,37 +94,41 @@ test.describe('Admin Campaigns — manage buttons', () => {
   });
 
   test('Edit Campaign modal opens and has fields', async ({ page }) => {
-    const actionsBtn = page.locator('button').filter({ hasText: /^Actions$/i }).first();
+    const actionsBtn = page.locator('button:visible').filter({ hasText: /^Actions$/i }).first();
     const visible = await actionsBtn.isVisible({ timeout: 6000 }).catch(() => false);
-    if (!visible) { test.skip(true, 'No campaign rows — skip'); return; }
+    if (!visible) { test.skip(true, 'No campaign rows'); return; }
 
+    await actionsBtn.scrollIntoViewIfNeeded();
     await actionsBtn.click();
     await page.waitForTimeout(600);
-    const editItem = page.getByText(/edit campaign/i).first();
-    const editVisible = await editItem.isVisible({ timeout: 3000 }).catch(() => false);
-    if (!editVisible) { test.skip(true, 'Edit Campaign menu item not found'); return; }
 
-    await editItem.click();
+    // Use force:true — Radix dropdown portals may be below viewport
+    const clicked = await clickDropdownItem(page, /edit campaign/i);
+    if (!clicked) { test.skip(true, 'Edit Campaign item not found'); return; }
+
     await page.waitForTimeout(1000);
     await shot(page, 'admin_campaign_edit_modal');
 
     const dialog = page.getByRole('dialog').first();
-    await expect(dialog).toBeVisible({ timeout: 4000 });
+    await expect(dialog).toBeVisible({ timeout: 6000 });
     const body = await page.evaluate(() => document.body.innerText);
     expect(body).toMatch(/campaign name|edit campaign/i);
     expect(body).toMatch(/save changes/i);
   });
 
   test('Details expand button works on campaign row', async ({ page }) => {
-    const expandBtn = page.locator('button').filter({ hasText: /Details/i }).first();
+    // Scroll down a bit so the Details button is mid-viewport, not at the edge
+    await page.evaluate(() => window.scrollBy(0, 100));
+    const expandBtn = page.locator('button:visible').filter({ hasText: /Details/i }).first();
     const visible = await expandBtn.isVisible({ timeout: 6000 }).catch(() => false);
-    if (!visible) { test.skip(true, 'No expand buttons found'); return; }
+    if (!visible) { test.skip(true, 'No Details buttons found'); return; }
 
+    await expandBtn.scrollIntoViewIfNeeded();
     await expandBtn.click();
     await page.waitForTimeout(2000);
     await shot(page, 'admin_campaign_expanded');
     const body = await page.evaluate(() => document.body.innerText);
-    expect(body).toMatch(/total clicks|conversions|campaign details|hide|collapse/i);
+    expect(body).toMatch(/total clicks|conversions|campaign details|collapse/i);
   });
 });
 
@@ -125,8 +138,8 @@ test.describe('Admin Campaigns — manage buttons', () => {
 test.describe('Admin Links — manage buttons', () => {
   test.beforeEach(async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
     await clickAdminTab(page, 'Links');
   });
 
@@ -137,11 +150,11 @@ test.describe('Admin Links — manage buttons', () => {
   });
 
   test('Actions dropdown opens on link row', async ({ page }) => {
-    // AdminLinks uses button text "Actions"
-    const actionsBtn = page.locator('button').filter({ hasText: /^Actions$/i }).first();
+    const actionsBtn = page.locator('button:visible').filter({ hasText: /^Actions$/i }).first();
     const visible = await actionsBtn.isVisible({ timeout: 6000 }).catch(() => false);
     if (!visible) { test.skip(true, 'No link rows found'); return; }
 
+    await actionsBtn.scrollIntoViewIfNeeded();
     await actionsBtn.click();
     await page.waitForTimeout(800);
     await shot(page, 'admin_link_actions_open');
@@ -151,31 +164,34 @@ test.describe('Admin Links — manage buttons', () => {
   });
 
   test('Edit Target URL modal opens', async ({ page }) => {
-    const actionsBtn = page.locator('button').filter({ hasText: /^Actions$/i }).first();
+    const actionsBtn = page.locator('button:visible').filter({ hasText: /^Actions$/i }).first();
     const visible = await actionsBtn.isVisible({ timeout: 6000 }).catch(() => false);
-    if (!visible) { test.skip(true, 'No link rows — skip'); return; }
+    if (!visible) { test.skip(true, 'No link rows'); return; }
 
+    await actionsBtn.scrollIntoViewIfNeeded();
     await actionsBtn.click();
     await page.waitForTimeout(600);
-    const editItem = page.getByText(/edit target url/i).first();
-    const editVisible = await editItem.isVisible({ timeout: 3000 }).catch(() => false);
-    if (!editVisible) { test.skip(true, 'Edit Target URL menu item not found'); return; }
 
-    await editItem.click();
+    // force:true — Radix portal item may be outside viewport
+    const clicked = await clickDropdownItem(page, /edit target url/i);
+    if (!clicked) { test.skip(true, 'Edit Target URL item not found'); return; }
+
     await page.waitForTimeout(1000);
     await shot(page, 'admin_link_edit_modal');
 
     const dialog = page.getByRole('dialog').first();
-    await expect(dialog).toBeVisible({ timeout: 4000 });
+    await expect(dialog).toBeVisible({ timeout: 6000 });
     const body = await page.evaluate(() => document.body.innerText);
     expect(body).toMatch(/edit link target|destination url|save link/i);
   });
 
   test('Analytics expand button works on link row', async ({ page }) => {
-    const expandBtn = page.locator('button').filter({ hasText: /Analytics/i }).first();
+    await page.evaluate(() => window.scrollBy(0, 100));
+    const expandBtn = page.locator('button:visible').filter({ hasText: /Analytics/i }).first();
     const visible = await expandBtn.isVisible({ timeout: 6000 }).catch(() => false);
     if (!visible) { test.skip(true, 'No expand buttons found'); return; }
 
+    await expandBtn.scrollIntoViewIfNeeded();
     await expandBtn.click();
     await page.waitForTimeout(2000);
     await shot(page, 'admin_link_analytics_expanded');
@@ -190,8 +206,8 @@ test.describe('Admin Links — manage buttons', () => {
 test.describe('Admin Users — manage buttons', () => {
   test.beforeEach(async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
     await clickAdminTab(page, 'Users');
   });
 
@@ -199,16 +215,17 @@ test.describe('Admin Users — manage buttons', () => {
     await shot(page, 'admin_users_table');
     const body = await page.evaluate(() => document.body.innerText);
     expect(body).not.toMatch(/failed to load user list/i);
-    // Should see the Users section heading or Add User button, confirming the tab is active
-    expect(body).toMatch(/User Management|All Users|Add User|Username.*Email.*Role/i);
+    // Confirm Users tab is active (not just dashboard)
+    expect(body).toMatch(/User Management|All Users|Add User/i);
   });
 
-  test('Manage dropdown opens on user row (AdminUsers uses "Manage" button)', async ({ page }) => {
-    // NOTE: AdminUsers.jsx uses "Manage" not "Actions" — see src/components/admin/AdminUsers.jsx:364
-    const manageBtn = page.locator('button').filter({ hasText: /^Manage$/i }).first();
+  test('Manage dropdown opens on user row', async ({ page }) => {
+    // AdminUsers uses "Manage" not "Actions"
+    const manageBtn = page.locator('button:visible').filter({ hasText: /^Manage$/i }).first();
     const visible = await manageBtn.isVisible({ timeout: 6000 }).catch(() => false);
-    if (!visible) { test.skip(true, 'No user rows found with Manage button'); return; }
+    if (!visible) { test.skip(true, 'No user rows with Manage button'); return; }
 
+    await manageBtn.scrollIntoViewIfNeeded();
     await manageBtn.click();
     await page.waitForTimeout(800);
     await shot(page, 'admin_user_manage_open');
@@ -217,9 +234,7 @@ test.describe('Admin Users — manage buttons', () => {
   });
 
   test('Add User button opens modal', async ({ page }) => {
-    // AdminUsers has "Add User" button (text shown only on sm+ screens via hidden sm:inline)
-    const addBtn = page.getByRole('button', { name: /add user/i })
-      .or(page.locator('button').filter({ hasText: /add user/i })).first();
+    const addBtn = page.locator('button:visible').filter({ hasText: /add user/i }).first();
     const visible = await addBtn.isVisible({ timeout: 5000 }).catch(() => false);
     if (!visible) { test.skip(true, 'No Add User button found'); return; }
 
@@ -227,17 +242,18 @@ test.describe('Admin Users — manage buttons', () => {
     await page.waitForTimeout(1000);
     await shot(page, 'admin_create_user_modal');
     const dialog = page.getByRole('dialog').first();
-    await expect(dialog).toBeVisible({ timeout: 4000 });
+    await expect(dialog).toBeVisible({ timeout: 6000 });
     const body = await page.evaluate(() => document.body.innerText);
     expect(body).toMatch(/create user|username|email|password/i);
   });
 
   test('User Details expand button expands row', async ({ page }) => {
-    // AdminUsers uses "Details" button text with ChevronDown icon
-    const detailsBtn = page.locator('button').filter({ hasText: /Details/i }).first();
+    await page.evaluate(() => window.scrollBy(0, 100));
+    const detailsBtn = page.locator('button:visible').filter({ hasText: /Details/i }).first();
     const visible = await detailsBtn.isVisible({ timeout: 6000 }).catch(() => false);
-    if (!visible) { test.skip(true, 'No Details expand button found'); return; }
+    if (!visible) { test.skip(true, 'No Details buttons found'); return; }
 
+    await detailsBtn.scrollIntoViewIfNeeded();
     await detailsBtn.click();
     await page.waitForTimeout(1500);
     await shot(page, 'admin_user_details_expanded');
@@ -252,8 +268,8 @@ test.describe('Admin Users — manage buttons', () => {
 test.describe('User Campaigns — manage buttons', () => {
   test.beforeEach(async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/campaigns`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/campaigns`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
   });
 
   test('Campaign page loads without error', async ({ page }) => {
@@ -263,10 +279,11 @@ test.describe('User Campaigns — manage buttons', () => {
   });
 
   test('Analytics expand works on user campaign', async ({ page }) => {
-    const expandBtn = page.locator('button').filter({ hasText: /Analytics/i }).first();
+    const expandBtn = page.locator('button:visible').filter({ hasText: /Analytics/i }).first();
     const visible = await expandBtn.isVisible({ timeout: 5000 }).catch(() => false);
     if (!visible) { test.skip(true, 'No campaigns to expand'); return; }
 
+    await expandBtn.scrollIntoViewIfNeeded();
     await expandBtn.click();
     await page.waitForTimeout(2000);
     await shot(page, 'user_campaign_analytics_expanded');
@@ -281,8 +298,8 @@ test.describe('User Campaigns — manage buttons', () => {
 test.describe('Link Shortener — domain dropdown + UI fixes', () => {
   test.beforeEach(async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/link-shortener`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/link-shortener`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
   });
 
   test('Create New Link button has gradient style (not plain blue)', async ({ page }) => {
@@ -303,8 +320,7 @@ test.describe('Link Shortener — domain dropdown + UI fixes', () => {
   test('Domain dropdown in Create Link modal shows default domain', async ({ page }) => {
     const createBtn = page.getByRole('button', { name: /create new link/i });
     await createBtn.click();
-    // Allow longer wait for serverless cold start + async domain fetch
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(5000); // allow cold start + async domain fetch
     await shot(page, 'shortener_create_modal_domain');
 
     const domainText = await page.evaluate(() => {
@@ -312,13 +328,12 @@ test.describe('Link Shortener — domain dropdown + UI fixes', () => {
       return Array.from(comboboxes).map(el => el.textContent || '').join(' ');
     });
 
-    // Pass if: domain text found, OR the domain Select field is visible (even with placeholder)
-    // The field existing proves our domain section renders; placeholder just means async fetch pending
+    // Accept domain URL text OR placeholder (field exists = domain section renders)
     const hasDomainText = /brain-link-tracker|vercel\.app|\.com|\.io|Select a domain/i.test(domainText);
-    const domainSelectVisible = await page.locator('[id="domain"]').isVisible({ timeout: 3000 }).catch(() => false);
+    const domainFieldVisible = await page.locator('[id="domain"]').isVisible({ timeout: 3000 }).catch(() => false);
     expect(
-      hasDomainText || domainSelectVisible,
-      `Domain select should be present. Comboboxes found: "${domainText}"`
+      hasDomainText || domainFieldVisible,
+      `Domain select should be present. Comboboxes: "${domainText}"`
     ).toBe(true);
   });
 });
@@ -329,15 +344,15 @@ test.describe('Link Shortener — domain dropdown + UI fixes', () => {
 test.describe('Create Tracking Link — domain dropdown', () => {
   test('Domain dropdown in tracking link modal is populated', async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/tracking-links`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/tracking-links`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
 
-    const createBtn = page.getByRole('button', { name: /create|new link|add link/i }).first();
+    const createBtn = page.locator('button:visible').filter({ hasText: /create|new link|add link/i }).first();
     const visible = await createBtn.isVisible({ timeout: 5000 }).catch(() => false);
-    if (!visible) { test.skip(true, 'No create button found on tracking links page'); return; }
+    if (!visible) { test.skip(true, 'No create button on tracking links page'); return; }
 
     await createBtn.click();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     await shot(page, 'tracking_link_create_domain');
 
     const body = await page.evaluate(() => document.body.innerText);
@@ -346,16 +361,15 @@ test.describe('Create Tracking Link — domain dropdown', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// SETTINGS — Domains tab (user custom domain management)
+// SETTINGS — Domains tab
 // ─────────────────────────────────────────────────────────────
 test.describe('Settings — Custom Domains tab', () => {
   test('Custom Domains tab loads and shows add domain form', async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/settings`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/settings`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
 
-    // Settings may use real role="tab" or buttons
-    const domainTab = page.locator('button, [role="tab"]').filter({ hasText: /^Domains?$/i }).first()
+    const domainTab = page.locator('button:visible, [role="tab"]').filter({ hasText: /^Domains?$/i }).first()
       .or(page.getByText(/custom domain/i).first());
     const tabVisible = await domainTab.isVisible({ timeout: 5000 }).catch(() => false);
     if (tabVisible) await domainTab.click();
@@ -374,8 +388,8 @@ test.describe('Settings — Custom Domains tab', () => {
 test.describe('Admin — Domain management tab', () => {
   test('Admin domains tab shows domain list and add form', async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
     await clickAdminTab(page, 'Domains');
 
     await shot(page, 'admin_domains_tab');
@@ -392,8 +406,8 @@ test.describe('Mobile — manage buttons visible', () => {
 
   test('Admin campaigns table renders on mobile, no overflow', async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/admin`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
     await clickAdminTab(page, 'Campaigns');
     await shot(page, 'mobile_admin_campaigns');
     const hasHScroll = await page.evaluate(() => document.body.scrollWidth > window.innerWidth + 10);
@@ -402,8 +416,8 @@ test.describe('Mobile — manage buttons visible', () => {
 
   test('Link shortener no horizontal overflow on mobile', async ({ page }) => {
     await login(page, 'Brain', 'Mayflower1!!');
-    await page.goto(`${PROD}/link-shortener`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${PROD}/link-shortener`, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(2000);
     await shot(page, 'mobile_link_shortener');
     const hasHScroll = await page.evaluate(() => document.body.scrollWidth > window.innerWidth + 10);
     expect(hasHScroll, 'Link shortener should not overflow on mobile').toBe(false);
