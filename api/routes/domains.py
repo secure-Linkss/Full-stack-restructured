@@ -21,23 +21,38 @@ domains_bp = Blueprint("domains_routes", __name__)
 @domains_bp.route("/api/domains", methods=["GET"])
 @login_required
 def get_user_domains():
-    """Get available domains for the user"""
+    """Get available domains for the user — includes system, admin-created, and user's own"""
     try:
+        from sqlalchemy import or_
         user_id = g.user.id
 
-        # Get global active domains (created by admin or system, meant for everyone)
-        global_domains = Domain.query.filter_by(is_active=True, created_by=None).all()
+        # Admin user IDs — their domains are shared globally with all users
+        admin_user_ids = [
+            u.id for u in User.query.filter(User.role.in_(['admin', 'main_admin'])).all()
+        ]
 
-        # Get user's custom domains
+        # Global domains: NULL owner OR created by any admin
+        global_domains = Domain.query.filter(
+            Domain.is_active == True,
+            or_(Domain.created_by == None, Domain.created_by.in_(admin_user_ids))
+        ).all()
+
+        # User's own custom domains (active or pending verification)
         user_domains = Domain.query.filter_by(created_by=user_id).all()
-        
-        domains_list = [d.to_dict() for d in global_domains + user_domains]
-        
+
+        # Merge, deduplicated by id
+        seen = set()
+        all_domains = []
+        for d in global_domains + user_domains:
+            if d.id not in seen:
+                seen.add(d.id)
+                all_domains.append(d)
+
         return jsonify({
             "success": True,
-            "domains": domains_list
+            "domains": [d.to_dict() for d in all_domains]
         }), 200
-        
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

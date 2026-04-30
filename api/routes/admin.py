@@ -640,14 +640,17 @@ def wipe_system_data(current_user):
 @admin_required
 def get_campaigns(current_user):
     """Get all campaigns"""
-    campaigns = Campaign.query.all()
-    result = []
-    for campaign in campaigns:
-        camp_dict = campaign.to_dict()
-        owner = User.query.get(campaign.owner_id)
-        camp_dict['owner'] = owner.username if owner else "Unknown"
-        result.append(camp_dict)
-    return jsonify(result)
+    try:
+        campaigns = Campaign.query.all()
+        result = []
+        for campaign in campaigns:
+            camp_dict = campaign.to_dict()
+            owner = db.session.get(User, campaign.owner_id)
+            camp_dict['owner'] = owner.username if owner else "Unknown"
+            result.append(camp_dict)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "campaigns": []}), 500
 
 @admin_bp.route("/api/admin/campaigns/<int:campaign_id>", methods=["GET"])
 @admin_required
