@@ -61,9 +61,11 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
         }
       } catch (error) {
         console.error('Error fetching domains:', error);
-        // Silently fall back to default domain — don't show error to user
         const defaultDomain = { id: 0, domain: 'brain-link-tracker-v2.vercel.app', name: 'brain-link-tracker-v2.vercel.app' };
         setDomains([defaultDomain]);
+        if (!editingLink) {
+          setFormData(prev => ({ ...prev, domain: 'brain-link-tracker-v2.vercel.app' }));
+        }
       }
     };
     fetchDomains();
