@@ -453,6 +453,29 @@ def admin_resume_link(current_user, link_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/links/<int:link_id>", methods=["PUT", "PATCH"])
+@admin_required
+def admin_update_link(current_user, link_id):
+    """Admin: update any link's target URL or fields"""
+    try:
+        link = Link.query.get(link_id)
+        if not link:
+            return jsonify({"success": False, "error": "Link not found"}), 404
+        data = request.get_json() or {}
+        if "original_url" in data:
+            link.target_url = data["original_url"].strip()
+        if "status" in data:
+            link.status = data["status"]
+        if "campaign_name" in data:
+            link.campaign_name = data["campaign_name"]
+        db.session.commit()
+        log_admin_action(current_user.id, f"Updated link #{link_id}", link_id, "link")
+        return jsonify({"success": True, "message": "Link updated", "link": link.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/security/blocked-ips", methods=["GET"])
 @admin_required
 def admin_get_blocked_ips(current_user):

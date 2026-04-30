@@ -51,16 +51,19 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
     const fetchDomains = async () => {
       try {
         const response = await api.domains.getAll();
-        if (response.success && response.domains.length > 0) {
-          setDomains(response.domains);
-          // Only set default domain when NOT editing
-          if (!editingLink) {
-            setFormData(prev => ({ ...prev, domain: response.domains[0].name }));
-          }
+        const domainList = response?.domains || (Array.isArray(response) ? response : []);
+        const defaultDomain = { id: 0, domain: 'brain-link-tracker-v2.vercel.app', name: 'brain-link-tracker-v2.vercel.app', is_active: true, is_verified: true };
+        const allDomains = domainList.length > 0 ? domainList : [defaultDomain];
+        setDomains(allDomains);
+        if (!editingLink) {
+          const firstDomain = allDomains[0];
+          setFormData(prev => ({ ...prev, domain: firstDomain.name || firstDomain.domain || '' }));
         }
       } catch (error) {
         console.error('Error fetching domains:', error);
-        toast.error('Failed to load domains.');
+        // Silently fall back to default domain — don't show error to user
+        const defaultDomain = { id: 0, domain: 'brain-link-tracker-v2.vercel.app', name: 'brain-link-tracker-v2.vercel.app' };
+        setDomains([defaultDomain]);
       }
     };
     fetchDomains();
@@ -219,20 +222,16 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
 		          <SelectTrigger id="domain" className="font-mono text-sm bg-black/20 border-border">
 		            <SelectValue placeholder="Select a domain" />
 		          </SelectTrigger>
-		          <SelectContent>
-		            {domains.filter(d => d.type === 'custom' || d.is_custom).length > 0 && (
-		              <optgroup label="Your Custom Domains" className="text-xs font-semibold text-[#3b82f6] px-2 py-1.5 uppercase tracking-wider">
-		                {domains.filter(d => d.type === 'custom' || d.is_custom).map(d => (
-		                  <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
-		                ))}
-		              </optgroup>
-		            )}
-		            <optgroup label="Global Routing Core" className="text-xs font-semibold text-muted-foreground px-2 py-1.5 uppercase tracking-wider mt-2">
-		               {domains.filter(d => d.type !== 'custom' && !d.is_custom).map(d => (
-		                 <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
-		               ))}
-		            </optgroup>
-		          </SelectContent>
+		                    <SelectContent>
+            {domains.map(d => {
+              const domainName = d.domain || d.name || '';
+              return (
+                <SelectItem key={d.id || domainName} value={domainName}>
+                  {domainName}{d.is_default ? ' (default)' : ''}
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
 		        </Select>
 		      </div>
 

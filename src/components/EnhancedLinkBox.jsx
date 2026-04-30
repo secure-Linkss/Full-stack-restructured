@@ -6,7 +6,7 @@ import { Copy, RefreshCw, Edit, ExternalLink, Link as LinkIcon, Mail, Image, Mou
 import { toast } from 'sonner';
 import api from '../services/api';
 
-const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onDelete, onLinkUpdate }) => {
+const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onDelete, onLinkUpdate, isShortener = false }) => {
   // ... (keep logic same)
   const [isEditing, setIsEditing] = useState(false);
   const [landingPageUrl, setLandingPageUrl] = useState(link.targetUrl);
@@ -135,16 +135,16 @@ const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onDelete, onLinkUpdate })
           'Tracking URL'
         )}
 
-        {/* Pixel URL */}
-        {renderLinkSection(
+        {/* Pixel URL — hidden for shortener links */}
+        {!isShortener && renderLinkSection(
           'PIXEL URL',
           pixelUrl,
           <Image className="h-4 w-4 text-slate-500" />,
           'Pixel URL'
         )}
 
-        {/* Email Code */}
-        {renderLinkSection(
+        {/* Email Code — hidden for shortener links */}
+        {!isShortener && renderLinkSection(
           'EMAIL CODE',
           emailCode,
           <Mail className="h-4 w-4 text-slate-500" />,

@@ -174,7 +174,7 @@ const LinkShortener = () => {
         title="Link Shortener"
         description="Create, manage, and track your shortened links"
         actions={
-          <Button onClick={handleCreateNewLink} className="bg-primary hover:bg-primary/90">
+          <Button onClick={handleCreateNewLink} className="btn-primary">
             <Plus className="h-4 w-4 mr-2" />
             Create New Link
           </Button>
@@ -188,22 +188,22 @@ const LinkShortener = () => {
 	        ))}
 	      </div>
 	
-	      {/* Enhanced Link Box Section */}
-	      {selectedLink && (
-	        <EnhancedLinkBox 
-	          link={{
-	            ...selectedLink,
-	            trackingUrl: selectedLink.shortUrl, // Use shortUrl as the main tracking URL
-	            pixelUrl: 'N/A (Shortener does not support pixel)', // Placeholder for shortener
-	            emailCode: 'N/A (Shortener does not support email code)', // Placeholder for shortener
-	            campaignName: selectedLink.shortUrl,
-	            targetUrl: selectedLink.targetUrl,
-	          }} 
-	          onRegenerate={(link) => handleAction('Regenerate', link)}
-	          onEdit={() => toast.info('Edit button clicked on EnhancedLinkBox')}
-	          onLinkUpdate={handleLinkUpdate}
-	        />
-	      )}
+	            {/* Enhanced Link Box Section */}
+      {selectedLink && (
+        <EnhancedLinkBox
+          link={{
+            ...selectedLink,
+            trackingUrl: selectedLink.shortUrl,
+            campaignName: selectedLink.shortUrl,
+            targetUrl: selectedLink.targetUrl,
+          }}
+          isShortener={true}
+          onRegenerate={(link) => handleAction('Regenerate', link)}
+          onEdit={() => handleAction('Edit', selectedLink)}
+          onDelete={(link) => handleAction('Delete', link)}
+          onLinkUpdate={handleLinkUpdate}
+        />
+      )}
 
       <FilterBar
         searchPlaceholder="Search links by short URL or target URL..."

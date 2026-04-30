@@ -704,8 +704,17 @@ const api = {
   // ==================== ADMIN - CAMPAIGNS APIs ====================
   adminCampaigns: {
     getAll: () => fetchWithAuth(`${API_BASE_URL}/admin/campaigns`),
-    suspend: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}/suspend`, {
-      method: 'POST',
+    update: (id, data) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+    suspend: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'paused' }),
+    }),
+    resume: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'active' }),
     }),
     delete: (id) => fetchWithAuth(`${API_BASE_URL}/admin/campaigns/${id}`, {
       method: 'DELETE',

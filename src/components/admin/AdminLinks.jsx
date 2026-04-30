@@ -3,9 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import {
   Link as LinkIcon, RefreshCw, Filter, Trash2, Edit, BarChart3, Copy,
   PowerOff, Activity, Users, MonitorSmartphone, ChevronDown, ChevronUp,
-  Globe, Laptop, Smartphone, Tablet, X, TrendingUp, ShieldAlert
+  Globe, Laptop, Smartphone, Tablet, X, TrendingUp, ShieldAlert, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
@@ -207,12 +210,67 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
   );
 };
 
+const EditLinkModal = ({ link, onClose, onSaved }) => {
+  const [targetUrl, setTargetUrl] = useState(link.targetUrl || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!targetUrl.trim()) return toast.error('Target URL is required.');
+    setSaving(true);
+    try {
+      await api.adminLinks.update(link.id, { original_url: targetUrl.trim() });
+      toast.success('Link target updated successfully.');
+      onSaved();
+      onClose();
+    } catch (e) {
+      toast.error(`Failed to update: ${e.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="bg-[#141d2e] border-[#1e2d47] max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-foreground flex items-center gap-2">
+            <Edit className="w-4 h-4 text-[#3b82f6]" /> Edit Link Target
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-widest">Short URL</Label>
+            <p className="text-sm font-mono text-[#3b82f6] bg-[#0d1525] px-3 py-2 rounded-md border border-[#1e2d47]">{link.shortUrl}</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-widest">Destination URL</Label>
+            <Input
+              value={targetUrl}
+              onChange={e => setTargetUrl(e.target.value)}
+              className="bg-[#0d1525] border-[#1e2d47] font-mono text-sm"
+              placeholder="https://destination.com/page"
+            />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} className="border-[#1e2d47]">Cancel</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="btn-primary">
+            {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Edit className="w-3.5 h-3.5 mr-1.5" />}
+            Save Link
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const AdminLinks = () => {
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [expandedLinkId, setExpandedLinkId] = useState(null);
+  const [editingLink, setEditingLink] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -258,6 +316,8 @@ const AdminLinks = () => {
         fetchData();
       } else if (action === 'View Analytics') {
         setExpandedLinkId(prev => prev === link.id ? null : link.id);
+      } else if (action === 'Edit Link') {
+        setEditingLink(link);
       } else {
         toast.info(`${action} for: ${link.shortUrl}`);
       }
@@ -353,6 +413,13 @@ const AdminLinks = () => {
 
   return (
     <div className="space-y-6 animate-fade-in w-full pb-10">
+      {editingLink && (
+        <EditLinkModal
+          link={editingLink}
+          onClose={() => setEditingLink(null)}
+          onSaved={fetchData}
+        />
+      )}
       {/* Metric Telemetry Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
@@ -443,11 +510,17 @@ const AdminLinks = () => {
                         <BarChart3 className="w-3.5 h-3.5 mr-2" /> Inspect Analytics
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-border" />
-                      <DropdownMenuItem onClick={() => handleAction('Pause Link', row)} className="text-xs cursor-pointer focus:bg-[#f59e0b]/10 focus:text-[#f59e0b]">
-                        <PowerOff className="w-3.5 h-3.5 mr-2" /> Halt Link Routing
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAction('Edit Link', row)} className="text-xs cursor-pointer focus:bg-white/5">
-                        <Edit className="w-3.5 h-3.5 mr-2" /> Modify Link Target
+                      {row.status !== 'paused' ? (
+                        <DropdownMenuItem onClick={() => handleAction('Pause Link', row)} className="text-xs cursor-pointer focus:bg-[#f59e0b]/10 focus:text-[#f59e0b]">
+                          <PowerOff className="w-3.5 h-3.5 mr-2" /> Pause Link
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleAction('Resume Link', row)} className="text-xs cursor-pointer focus:bg-[#10b981]/10 focus:text-[#10b981]">
+                          <Play className="w-3.5 h-3.5 mr-2" /> Resume Link
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => handleAction('Edit Link', row)} className="text-xs cursor-pointer focus:bg-[#3b82f6]/10 focus:text-[#3b82f6]">
+                        <Edit className="w-3.5 h-3.5 mr-2" /> Edit Target URL
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-border" />
                       <DropdownMenuItem onClick={() => handleAction('Delete Link', row)} className="text-xs cursor-pointer text-[#ef4444] focus:bg-[#ef4444]/10 focus:text-[#ef4444]">

@@ -3,11 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import {
   FolderKanban, RefreshCw, Filter, Trash2, Edit, BarChart3, Activity,
   Users, Link as LinkIcon, PowerOff, Target, FileText, ChevronDown, ChevronUp,
-  X, TrendingUp, CheckCircle2, PauseCircle, Clock
+  X, TrendingUp, CheckCircle2, PauseCircle, Clock, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
@@ -185,17 +189,68 @@ const CampaignDetailsDrawer = ({ campaign, onClose }) => {
   );
 };
 
+const EditCampaignModal = ({ campaign, onClose, onSaved }) => {
+  const [name, setName] = useState(campaign.name || '');
+  const [description, setDescription] = useState(campaign.description || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) return toast.error('Campaign name is required.');
+    setSaving(true);
+    try {
+      await api.adminCampaigns.update(campaign.id, { name: name.trim(), description: description.trim() });
+      toast.success(`Campaign "${name}" updated.`);
+      onSaved();
+      onClose();
+    } catch (e) {
+      toast.error(`Failed to update: ${e.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="bg-[#141d2e] border-[#1e2d47] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-foreground flex items-center gap-2">
+            <Edit className="w-4 h-4 text-[#3b82f6]" /> Edit Campaign
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-widest">Campaign Name</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} className="bg-[#0d1525] border-[#1e2d47]" placeholder="Campaign name" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground uppercase tracking-widest">Description</Label>
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} className="bg-[#0d1525] border-[#1e2d47] resize-none" rows={3} placeholder="Optional description" />
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} className="border-[#1e2d47]">Cancel</Button>
+          <Button size="sm" onClick={handleSave} disabled={saving} className="btn-primary">
+            {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Edit className="w-3.5 h-3.5 mr-1.5" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const AdminCampaigns = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [expandedCampaignId, setExpandedCampaignId] = useState(null);
+  const [editingCampaign, setEditingCampaign] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const raw = await api.admin.campaigns.getAll().catch(() => []);
+      const raw = await api.adminCampaigns.getAll().catch(() => []);
       const campaignsData = Array.isArray(raw) ? raw : (raw.campaigns || []);
       setCampaigns(campaignsData.map(c => ({
         ...c,
@@ -216,21 +271,28 @@ const AdminCampaigns = () => {
     try {
       if (action === 'Delete Campaign') {
         if (window.confirm(`FORCE DELETE: Are you sure you want to eradicate the campaign [${campaign.name}] routing array?`)) {
-          await api.admin.campaigns.delete(campaign.id);
+          await api.adminCampaigns.delete(campaign.id);
           toast.success('Campaign vector purged globally.');
+          if (expandedCampaignId === campaign.id) setExpandedCampaignId(null);
           fetchData();
         }
       } else if (action === 'Pause Campaign') {
         await api.adminCampaigns.suspend(campaign.id);
         toast.success(`Campaign [${campaign.name}] halted.`);
         fetchData();
+      } else if (action === 'Resume Campaign') {
+        await api.adminCampaigns.resume(campaign.id);
+        toast.success(`Campaign [${campaign.name}] resumed.`);
+        fetchData();
+      } else if (action === 'Edit Campaign') {
+        setEditingCampaign(campaign);
       } else if (action === 'View Details') {
         setExpandedCampaignId(prev => prev === campaign.id ? null : campaign.id);
       } else {
         toast.info(`${action} routine activated for: ${campaign.name}`);
       }
-    } catch {
-      toast.error('Action failed: Network Error');
+    } catch (e) {
+      toast.error(`Action failed: ${e.message}`);
     }
   };
 
@@ -329,6 +391,13 @@ const AdminCampaigns = () => {
 
   return (
     <div className="space-y-6 animate-fade-in w-full pb-10">
+      {editingCampaign && (
+        <EditCampaignModal
+          campaign={editingCampaign}
+          onClose={() => setEditingCampaign(null)}
+          onSaved={fetchData}
+        />
+      )}
       {/* Metric Telemetry Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
@@ -416,11 +485,17 @@ const AdminCampaigns = () => {
                       <FileText className="w-3.5 h-3.5 mr-2" /> Generate Report
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-border" />
-                    <DropdownMenuItem onClick={() => handleAction('Pause Campaign', row)} className="text-xs cursor-pointer focus:bg-[#f59e0b]/10 focus:text-[#f59e0b]">
-                      <PowerOff className="w-3.5 h-3.5 mr-2" /> Halt Execution
-                    </DropdownMenuItem>
+                    {row.status !== 'paused' ? (
+                      <DropdownMenuItem onClick={() => handleAction('Pause Campaign', row)} className="text-xs cursor-pointer focus:bg-[#f59e0b]/10 focus:text-[#f59e0b]">
+                        <PowerOff className="w-3.5 h-3.5 mr-2" /> Pause Campaign
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => handleAction('Resume Campaign', row)} className="text-xs cursor-pointer focus:bg-[#10b981]/10 focus:text-[#10b981]">
+                        <Play className="w-3.5 h-3.5 mr-2" /> Resume Campaign
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleAction('Edit Campaign', row)} className="text-xs cursor-pointer focus:bg-white/5">
-                      <Edit className="w-3.5 h-3.5 mr-2" /> Intercept & Modify
+                      <Edit className="w-3.5 h-3.5 mr-2" /> Edit Campaign
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-border" />
                     <DropdownMenuItem onClick={() => handleAction('Delete Campaign', row)} className="text-xs cursor-pointer text-[#ef4444] focus:bg-[#ef4444]/10 focus:text-[#ef4444]">
