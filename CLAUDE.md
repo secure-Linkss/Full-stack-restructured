@@ -105,6 +105,14 @@ See `/Users/rasheedsalau/Obsidian/02-Projects/Brain-Link-Tracker/Bug-Tracker.md`
 - BUG-038: settings.py routes at wrong path `/user` instead of `/api/settings`
 - BUG-001: api.js fallback was `http://localhost:5000/api` — must be `/api`
 
+### Session 5 (2026-04-30) — Key Patterns
+- **AdminPanel tabs are plain `<button>` elements, NOT `role="tab"`** — use `button:visible` selector
+- **AdminUsers uses "Manage" dropdown, not "Actions"** — AdminCampaigns/AdminLinks use "Actions"
+- **Admin PATCH campaigns**: use `/api/admin/campaigns/<id>` with `{status:'paused'}` — `/suspend` route does NOT exist
+- **Admin link update**: `PUT/PATCH /api/admin/links/<id>` was missing — now added
+- **Domain fetch fallback**: catch block must call `setFormData(domain: ...)` not just `setDomains()`
+- **Domain visibility**: `GET /api/domains` now includes admin-created domains (not just NULL-owner)
+
 ## Deployment
 ```bash
 cd Full-stack-restructured
