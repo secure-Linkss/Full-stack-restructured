@@ -2,12 +2,42 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Palette, Upload, CheckCircle, Eye } from 'lucide-react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner';
 import api from '../services/api';
+import { themes } from '../hooks/useTheme';
 
 const STORAGE_KEY = 'brain_appearance';
+
+/**
+ * Apply a theme by setting CSS custom properties on :root.
+ * Replaces the old class-only approach (theme-light had no CSS definitions).
+ * Supports: dark, light, purple, emerald, system (auto-detects OS preference).
+ */
+const applyTheme = (theme) => {
+  const root = document.documentElement;
+
+  // Remove all theme classes
+  Object.values(themes).forEach(t => root.classList.remove(t.class));
+
+  // Resolve "system" to actual preference
+  let resolved = theme;
+  if (theme === 'system') {
+    resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  const themeConfig = themes[resolved] || themes.dark;
+  root.classList.add(themeConfig.class);
+
+  // Set every CSS custom property so components pick up the new palette
+  Object.entries(themeConfig.colors).forEach(([key, value]) => {
+    const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+    root.style.setProperty(cssVar, value);
+  });
+
+  // Persist choice
+  localStorage.setItem('brain-link-tracker-theme', theme);
+};
 
 const applyBackground = (color, url) => {
   if (url) {
@@ -15,7 +45,7 @@ const applyBackground = (color, url) => {
     document.body.style.backgroundSize = 'cover';
     document.body.style.backgroundPosition = 'center';
     document.body.style.backgroundColor = '';
-  } else if (color && color !== '#000000') {
+  } else if (color) {
     document.body.style.backgroundImage = '';
     document.body.style.backgroundColor = color;
   } else {
@@ -24,12 +54,13 @@ const applyBackground = (color, url) => {
   }
 };
 
-const applyTheme = (theme) => {
-  const root = document.documentElement;
-  root.classList.remove('theme-light', 'theme-dark');
-  if (theme === 'light') root.classList.add('theme-light');
-  else root.classList.add('theme-dark');
-};
+const THEME_OPTIONS = [
+  { value: 'dark',    label: 'Dark',    swatch: '#0f172a' },
+  { value: 'light',   label: 'Light',   swatch: '#ffffff' },
+  { value: 'purple',  label: 'Purple',  swatch: '#1a0b2e' },
+  { value: 'emerald', label: 'Emerald', swatch: '#064e3b' },
+  { value: 'system',  label: 'System',  swatch: null },
+];
 
 const AppearanceSettings = () => {
   const [settings, setSettings] = useState(() => {
@@ -37,7 +68,7 @@ const AppearanceSettings = () => {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) return JSON.parse(saved);
     } catch {}
-    return { theme: 'dark', background_url: '', background_color: '#000000' };
+    return { theme: 'dark', background_url: '', background_color: '' };
   });
   const [preview, setPreview] = useState(settings);
   const [loading, setLoading] = useState(true);
@@ -47,18 +78,28 @@ const AppearanceSettings = () => {
     fetchSettings();
   }, []);
 
+  // Re-apply visual state whenever preview changes (instant preview)
+  useEffect(() => {
+    applyTheme(preview.theme);
+    applyBackground(preview.background_color, preview.background_url);
+  }, [preview.theme]);
+
   const fetchSettings = async () => {
     try {
       const response = await api.userSettings.getAppearance();
       const loaded = {
         theme: response.theme || 'dark',
         background_url: response.background_url || '',
-        background_color: response.background_color || '#000000',
+        background_color: response.background_color || '',
       };
       setSettings(loaded);
       setPreview(loaded);
+      applyTheme(loaded.theme);
+      applyBackground(loaded.background_color, loaded.background_url);
     } catch {
-      // Fallback to localStorage already set in initial state
+      // Fallback: apply whatever is in localStorage
+      applyTheme(settings.theme);
+      applyBackground(settings.background_color, settings.background_url);
     } finally {
       setLoading(false);
     }
@@ -66,7 +107,7 @@ const AppearanceSettings = () => {
 
   const handleThemeChange = (newTheme) => {
     setPreview(prev => ({ ...prev, theme: newTheme }));
-    applyTheme(newTheme);
+    // applyTheme is called by the useEffect above
   };
 
   const handleColorChange = (e) => {
@@ -95,8 +136,8 @@ const AppearanceSettings = () => {
       if (!response.ok) throw new Error('Upload failed');
       const data = await response.json();
       const url = data.url || data.background_url || '';
-      setPreview(prev => ({ ...prev, background_url: url, background_color: '#000000' }));
-      applyBackground('#000000', url);
+      setPreview(prev => ({ ...prev, background_url: url, background_color: '' }));
+      applyBackground('', url);
       toast.success('Background image uploaded!');
     } catch {
       toast.error('Failed to upload background image.');
@@ -111,8 +152,6 @@ const AppearanceSettings = () => {
       await api.userSettings.updateAppearance(preview);
       setSettings(preview);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(preview));
-      applyTheme(preview.theme);
-      applyBackground(preview.background_color, preview.background_url);
       toast.success('Appearance settings saved!');
     } catch {
       toast.error('Failed to save appearance settings.');
@@ -151,55 +190,63 @@ const AppearanceSettings = () => {
       <CardContent className="space-y-6">
 
         {/* Theme Selection */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Label className="text-sm font-medium">Theme</Label>
-          <div className="flex gap-3">
-            {[
-              { value: 'dark', label: 'Dark' },
-              { value: 'light', label: 'Light' },
-              { value: 'system', label: 'System' },
-            ].map(({ value, label }) => (
+          <div className="flex flex-wrap gap-2">
+            {THEME_OPTIONS.map(({ value, label, swatch }) => (
               <button
                 key={value}
                 onClick={() => handleThemeChange(value)}
                 disabled={saving}
-                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
                   preview.theme === value
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-background text-foreground border-border hover:bg-accent'
+                    : 'bg-background text-foreground border-border hover:bg-accent/20'
                 }`}
               >
+                {swatch && (
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
+                    style={{ backgroundColor: swatch }}
+                  />
+                )}
                 {label}
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">Changes preview instantly.</p>
+          <p className="text-xs text-muted-foreground">Changes preview instantly. Click Save to persist.</p>
         </div>
 
         {/* Background Color */}
         <div className="space-y-3 pt-4 border-t border-border">
           <Label className="text-sm font-medium">Background Color</Label>
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <input
-                type="color"
-                value={preview.background_color || '#000000'}
-                onChange={handleColorChange}
-                className="h-10 w-10 rounded-lg cursor-pointer border border-border"
-                disabled={saving}
-              />
-            </div>
+            <input
+              type="color"
+              value={preview.background_color || '#0b0f1a'}
+              onChange={handleColorChange}
+              className="h-10 w-10 rounded-lg cursor-pointer border border-border"
+              disabled={saving}
+            />
             <div className="flex flex-col gap-1">
-              <span className="text-sm text-foreground font-mono">{preview.background_color}</span>
+              <span className="text-sm text-foreground font-mono">{preview.background_color || 'Default'}</span>
               <span className="text-xs text-muted-foreground">Click the swatch to pick a color</span>
             </div>
             {/* Live preview swatch */}
             <div
-              className="h-10 w-24 rounded-lg border border-border flex items-center justify-center text-xs text-white/70 shrink-0"
-              style={{ backgroundColor: preview.background_color || '#000000' }}
+              className="h-10 w-24 rounded-lg border border-border flex items-center justify-center text-xs shrink-0"
+              style={{ backgroundColor: preview.background_color || '#0b0f1a', color: '#ffffffaa' }}
             >
               <Eye className="h-3.5 w-3.5 mr-1" />Preview
             </div>
+            {preview.background_color && (
+              <button
+                onClick={() => { setPreview(p => ({ ...p, background_color: '' })); applyBackground('', preview.background_url); }}
+                className="text-xs text-muted-foreground hover:text-destructive underline"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -233,7 +280,6 @@ const AppearanceSettings = () => {
             )}
           </div>
 
-          {/* Image preview */}
           {preview.background_url && (
             <div
               className="h-24 w-full rounded-lg border border-border bg-cover bg-center"

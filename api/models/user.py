@@ -87,6 +87,8 @@ class User(db.Model):
     timezone = db.Column(db.String(50), default='UTC')
     language = db.Column(db.String(10), default='en')
     theme = db.Column(db.String(20), default='dark')
+    background_color = db.Column(db.String(20), nullable=True)
+    background_url = db.Column(db.String(500), nullable=True)
 
     # Password reset
     reset_token = db.Column(db.String(255), nullable=True)

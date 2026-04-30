@@ -12,8 +12,8 @@ def get_appearance_settings():
     try:
         settings = {
             'theme': current_user.theme or 'dark',
-            'background_url': getattr(current_user, 'background_url', '') or '',
-            'background_color': getattr(current_user, 'background_color', '#000000') or '#000000',
+            'background_url': current_user.background_url or '',
+            'background_color': current_user.background_color or '',
         }
         return jsonify(settings), 200
     except Exception as e:
@@ -28,10 +28,10 @@ def update_appearance_settings():
         data = request.get_json() or {}
         if 'theme' in data:
             current_user.theme = data['theme']
-        if 'background_url' in data and hasattr(current_user, 'background_url'):
-            current_user.background_url = data['background_url']
-        if 'background_color' in data and hasattr(current_user, 'background_color'):
-            current_user.background_color = data['background_color']
+        if 'background_url' in data:
+            current_user.background_url = data['background_url'] or None
+        if 'background_color' in data:
+            current_user.background_color = data['background_color'] or None
         db.session.commit()
         return jsonify({'message': 'Appearance settings updated successfully', 'success': True}), 200
     except Exception as e:

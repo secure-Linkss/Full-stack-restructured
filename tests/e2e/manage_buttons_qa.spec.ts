@@ -50,16 +50,38 @@ async function clickAdminTab(page: Page, tabTitle: string) {
 }
 
 /**
- * Click a dropdown menu item — uses force:true because Radix UI portals
- * may render items outside the viewport (below page fold).
+ * Click a dropdown menu item via JavaScript dispatch.
+ * Radix UI portals render at document.body and may position items outside the
+ * viewport (negative or >720px y-coords). Playwright's force:true skips CSS
+ * actionability checks but still requires viewport coordinates for CDP mouse
+ * events — which fail for off-screen elements. Native JS .click() has no
+ * such restriction and correctly triggers React's synthetic event handler.
  */
 async function clickDropdownItem(page: Page, pattern: RegExp) {
-  const item = page.getByRole('menuitem').filter({ hasText: pattern }).first()
-    .or(page.locator('[role="menuitem"]').filter({ hasText: pattern }).first());
-  const found = await item.isVisible({ timeout: 3000 }).catch(() => false);
-  if (!found) return false;
-  await item.click({ force: true }); // force bypasses "outside viewport" for portals
-  return true;
+  // Wait up to 3s for any matching menuitem to appear in the DOM
+  try {
+    await page.waitForFunction(
+      (ps) => {
+        const regex = new RegExp(ps, 'i');
+        return Array.from(document.querySelectorAll('[role="menuitem"]'))
+          .some(el => regex.test(el.textContent || ''));
+      },
+      pattern.source,
+      { timeout: 3000 }
+    );
+  } catch {
+    return false; // item never appeared
+  }
+
+  // Dispatch via JS — bypasses viewport coordinate restrictions
+  return await page.evaluate((ps) => {
+    const regex = new RegExp(ps, 'i');
+    const item = Array.from(document.querySelectorAll('[role="menuitem"]'))
+      .find(el => regex.test(el.textContent || '')) as HTMLElement | undefined;
+    if (!item) return false;
+    item.click();
+    return true;
+  }, pattern.source);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -94,15 +116,17 @@ test.describe('Admin Campaigns — manage buttons', () => {
   });
 
   test('Edit Campaign modal opens and has fields', async ({ page }) => {
+    // Scroll to top so the row is near the top — dropdown renders downward, stays in viewport
+    await page.evaluate(() => window.scrollTo(0, 0));
     const actionsBtn = page.locator('button:visible').filter({ hasText: /^Actions$/i }).first();
     const visible = await actionsBtn.isVisible({ timeout: 6000 }).catch(() => false);
     if (!visible) { test.skip(true, 'No campaign rows'); return; }
 
     await actionsBtn.scrollIntoViewIfNeeded();
     await actionsBtn.click();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(800);
 
-    // Use force:true — Radix dropdown portals may be below viewport
+    // JS click — Radix portals render at body root, potentially below viewport
     const clicked = await clickDropdownItem(page, /edit campaign/i);
     if (!clicked) { test.skip(true, 'Edit Campaign item not found'); return; }
 
@@ -164,15 +188,17 @@ test.describe('Admin Links — manage buttons', () => {
   });
 
   test('Edit Target URL modal opens', async ({ page }) => {
+    // Scroll to top so the row is near the top — dropdown renders within viewport
+    await page.evaluate(() => window.scrollTo(0, 0));
     const actionsBtn = page.locator('button:visible').filter({ hasText: /^Actions$/i }).first();
     const visible = await actionsBtn.isVisible({ timeout: 6000 }).catch(() => false);
     if (!visible) { test.skip(true, 'No link rows'); return; }
 
     await actionsBtn.scrollIntoViewIfNeeded();
     await actionsBtn.click();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(800);
 
-    // force:true — Radix portal item may be outside viewport
+    // JS click — Radix portals render at body root, potentially below viewport
     const clicked = await clickDropdownItem(page, /edit target url/i);
     if (!clicked) { test.skip(true, 'Edit Target URL item not found'); return; }
 

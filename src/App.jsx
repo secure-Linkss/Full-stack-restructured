@@ -1,5 +1,20 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { themes } from './hooks/useTheme';
+
+// Apply saved theme immediately on load (before first render) to prevent flash
+const _savedTheme = localStorage.getItem('brain-link-tracker-theme') || 'dark';
+const _resolvedTheme = _savedTheme === 'system'
+  ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  : _savedTheme;
+const _themeConfig = themes[_resolvedTheme] || themes.dark;
+Object.values(themes).forEach(t => document.documentElement.classList.remove(t.class));
+document.documentElement.classList.add(_themeConfig.class);
+Object.entries(_themeConfig.colors).forEach(([key, value]) => {
+  document.documentElement.style.setProperty(
+    `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`, value
+  );
+});
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import Analytics from './components/Analytics';
