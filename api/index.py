@@ -284,6 +284,26 @@ def _create_flask_app():
                     db.session.commit()
             except Exception as _e:
                 logger.warning(f"pro_test user: {_e}")
+            # Seed system domains (vercel tracking domain + Short.io domain)
+            try:
+                _system_domains = [
+                    {"domain": "brain-link-tracker-v2.vercel.app", "domain_type": "vercel",  "description": "Default Vercel tracking domain"},
+                    {"domain": "secure-links.short.gy",            "domain_type": "shortio", "description": "Short.io link shortener domain"},
+                ]
+                for _sd in _system_domains:
+                    if not Domain.query.filter_by(domain=_sd["domain"]).first():
+                        db.session.add(Domain(
+                            domain=_sd["domain"],
+                            domain_type=_sd["domain_type"],
+                            description=_sd["description"],
+                            is_active=True,
+                            is_verified=True,
+                            created_by=None,
+                        ))
+                db.session.commit()
+                logger.info("System domains seeded")
+            except Exception as _e:
+                logger.warning(f"System domain seeding: {_e}")
             # Reset account lockouts for all test accounts on every startup
             # so QA test runs don't permanently lock test credentials.
             try:

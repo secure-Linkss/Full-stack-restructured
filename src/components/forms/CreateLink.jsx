@@ -46,30 +46,44 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
     expireAfterClicks: '',
   });
 
-  // Fetch domains once on mount
+  // Fetch and filter domains on mount
   useEffect(() => {
     const fetchDomains = async () => {
+      // Fallback domains per type if the API fails or returns nothing relevant
+      const vercelFallback = { id: 0, domain: 'brain-link-tracker-v2.vercel.app', domain_type: 'vercel', is_active: true, is_verified: true };
+      const shortioFallback = { id: 0, domain: 'secure-links.short.gy', domain_type: 'shortio', is_active: true, is_verified: true };
+
       try {
         const response = await api.domains.getAll();
         const domainList = response?.domains || (Array.isArray(response) ? response : []);
-        const defaultDomain = { id: 0, domain: 'brain-link-tracker-v2.vercel.app', name: 'brain-link-tracker-v2.vercel.app', is_active: true, is_verified: true };
-        const allDomains = domainList.length > 0 ? domainList : [defaultDomain];
-        setDomains(allDomains);
+
+        // Filter by domain_type based on the form's purpose
+        let filtered;
+        if (type === 'shortener') {
+          filtered = domainList.filter(d => d.domain_type === 'shortio');
+          if (filtered.length === 0) filtered = [shortioFallback];
+        } else {
+          // tracking — vercel + custom
+          filtered = domainList.filter(d => d.domain_type === 'vercel' || d.domain_type === 'custom');
+          if (filtered.length === 0) filtered = [vercelFallback];
+        }
+
+        setDomains(filtered);
         if (!editingLink) {
-          const firstDomain = allDomains[0];
-          setFormData(prev => ({ ...prev, domain: firstDomain.name || firstDomain.domain || '' }));
+          const first = filtered[0];
+          setFormData(prev => ({ ...prev, domain: first.domain || '' }));
         }
       } catch (error) {
         console.error('Error fetching domains:', error);
-        const defaultDomain = { id: 0, domain: 'brain-link-tracker-v2.vercel.app', name: 'brain-link-tracker-v2.vercel.app' };
-        setDomains([defaultDomain]);
+        const fallback = type === 'shortener' ? shortioFallback : vercelFallback;
+        setDomains([fallback]);
         if (!editingLink) {
-          setFormData(prev => ({ ...prev, domain: 'brain-link-tracker-v2.vercel.app' }));
+          setFormData(prev => ({ ...prev, domain: fallback.domain }));
         }
       }
     };
     fetchDomains();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [type]); // re-filter if type changes
 
   // Populate form when editingLink changes (edit mode)
   useEffect(() => {

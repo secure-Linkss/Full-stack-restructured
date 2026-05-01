@@ -41,7 +41,9 @@ def get_users(current_user):
 
     query = User.query
     if current_user.role != "main_admin":
-        query = query.filter_by(role="member")
+        # Admin sees all accounts except main_admin — destructive actions are
+        # restricted at the UI level, not by hiding the user list entirely
+        query = query.filter(User.role != "main_admin")
     if status_filter:
         query = query.filter_by(status=status_filter)
     if role_filter:

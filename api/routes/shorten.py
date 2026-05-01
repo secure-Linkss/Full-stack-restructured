@@ -24,11 +24,13 @@ def get_shortened_links():
         base_url = request.host_url.rstrip('/')
         result = []
         for lnk in links:
+            # Use stored Short.io URL if available, otherwise fall back to our tracker URL
+            shortened_url = lnk.short_url or f"{base_url}/t/{lnk.short_code}"
             result.append({
                 "id": lnk.id,
                 "original_url": lnk.target_url or lnk.original_url or "",
                 "short_code": lnk.short_code,
-                "shortened_url": f"{base_url}/t/{lnk.short_code}",
+                "shortened_url": shortened_url,
                 "click_count": lnk.total_clicks or 0,
                 "status": lnk.status or "active",
                 "created_at": lnk.created_at.isoformat() if lnk.created_at else None,
@@ -63,11 +65,15 @@ def shorten_url():
         while Link.query.filter_by(short_code=short_code).first():
             short_code = generate_short_code()
         
+        # Our tracker URL — Short.io will redirect here so the quantum chain fires
+        vercel_base = request.host_url.rstrip('/')
+        tracker_url = f"{vercel_base}/t/{short_code}"
+
         shortened_url = None
         # Try to use Short.io API if available
         shortio_api_key = os.environ.get("SHORTIO_API_KEY")
-        shortio_domain = os.environ.get("SHORTIO_DOMAIN")
-        
+        shortio_domain = os.environ.get("SHORTIO_DOMAIN", "secure-links.short.gy")
+
         if shortio_api_key and shortio_domain:
             try:
                 shortio_response = requests.post(
@@ -77,33 +83,32 @@ def shorten_url():
                         "Content-Type": "application/json"
                     },
                     json={
-                        "originalURL": original_url,
+                        "originalURL": tracker_url,  # points to our tracker, not raw target
                         "domain": shortio_domain,
                         "path": short_code
                     },
                     timeout=10
                 )
-                
-                if shortio_response.status_code == 200:
+
+                if shortio_response.status_code in (200, 201):
                     shortio_data = shortio_response.json()
-                    shortened_url = shortio_data.get("shortURL", f"https://{shortio_domain}/{short_code}")
+                    shortened_url = shortio_data.get("shortURL") or f"https://{shortio_domain}/{short_code}"
                 else:
-                    # Fallback to local shortening if Short.io fails
-                    shortened_url = f"{request.host_url.rstrip('/')}/t/{short_code}"
+                    print(f"Short.io error {shortio_response.status_code}: {shortio_response.text}")
+                    shortened_url = tracker_url
 
             except Exception as e:
                 print(f"Short.io API error: {e}")
-                # Fallback to local shortening
-                shortened_url = f"{request.host_url.rstrip('/')}/t/{short_code}"
+                shortened_url = tracker_url
         else:
-            # Local shortening
-            shortened_url = f"{request.host_url.rstrip('/')}/t/{short_code}"
-        
+            shortened_url = tracker_url
+
         # Create link record in database
         link = Link(
             user_id=user_id,
             target_url=original_url,
             short_code=short_code,
+            short_url=shortened_url,  # store the Short.io URL (or fallback)
             campaign_name=campaign_name,
             status="active"
         )
