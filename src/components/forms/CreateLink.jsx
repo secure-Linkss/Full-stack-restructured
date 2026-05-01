@@ -200,7 +200,17 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
           expirationPeriod: 'never',
           expireAfterClicks: '',
         }));
-        onLinkCreated(response.link || response.data || payload);
+        // Build a normalized link object for GeneratedLinkCardModal to display correctly
+        const shortenedUrl = response.shortenedUrl || response.shortened_url || response.short_url || response.tracking_url;
+        const createdLink = response.link || response.data || {
+          ...payload,
+          id: response.id,
+          trackingUrl: shortenedUrl || payload.target_url,
+          tracking_url: shortenedUrl || payload.target_url,
+          short_url: shortenedUrl,
+          campaign_name: payload.campaign_name,
+        };
+        onLinkCreated(createdLink);
         onClose();
       } else {
         toast.error(response.error || 'Failed to create link.');
@@ -234,7 +244,8 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
 		           <span>Select Domain *</span>
 		           <span className="text-[10px] text-muted-foreground/50">Routing Hostname</span>
 		        </Label>
-		        <Select value={formData.domain} onValueChange={(value) => handleSelectChange('domain', value)}>
+		        {/* key forces Radix to remount Select when options load, so the default value displays */}
+        <Select key={domains.map(d => d.domain || d.name).join(',')} value={formData.domain} onValueChange={(value) => handleSelectChange('domain', value)}>
 		          <SelectTrigger id="domain" className="font-mono text-sm bg-black/20 border-border">
 		            <SelectValue placeholder="Select a domain" />
 		          </SelectTrigger>
