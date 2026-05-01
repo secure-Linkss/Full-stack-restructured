@@ -11,7 +11,8 @@ BRIDGE_HTML = """<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>Redirecting...</title>
+<title>Redirecting</title>
+<meta http-equiv="refresh" content="0; url={dest_escaped}">
 <script>
 (function() {
   var uid = {uid_json};
@@ -19,21 +20,17 @@ BRIDGE_HTML = """<!DOCTYPE html>
   if (uid) {
     try {
       var base = window.location.origin;
-      navigator.sendBeacon(base + '/api/track/page-view', JSON.stringify({{ uid: uid }}));
-    } catch(e) {{}}
+      var payload = new Blob([JSON.stringify({ uid: uid })], { type: 'application/json' });
+      navigator.sendBeacon(base + '/api/track/page-view', payload);
+    } catch(e) {}
   }
   if (dest) {
     window.location.replace(dest);
   }
 })();
 </script>
-<noscript>
-  <meta http-equiv="refresh" content="0; url={dest_escaped}">
-</noscript>
 </head>
-<body style="background:#000;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-<p>Redirecting...</p>
-</body>
+<body></body>
 </html>"""
 
 

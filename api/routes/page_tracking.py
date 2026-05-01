@@ -21,7 +21,8 @@ def track_page_view():
     Returns 200 even if event not found — beacon calls should never fail visibly.
     """
     try:
-        data = request.get_json(silent=True) or {}
+        # force=True: parse body regardless of Content-Type (sendBeacon may send text/plain)
+        data = request.get_json(silent=True, force=True) or {}
         uid = data.get("uid")
 
         if not uid:
