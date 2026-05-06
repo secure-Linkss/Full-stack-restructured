@@ -223,8 +223,8 @@ test('Create forms are scrollable on mobile (375x812)', async ({ browser }) => {
 
   await login(page, 'Brain', 'Mayflower1!!');
 
-  // Test Tracking Links create modal
-  await openCreateLinkModal(page, '/tracking-links', 'Create Link Target');
+  // On mobile TrackingLinks button shows "Create" (sm:hidden shortens the label)
+  await openCreateLinkModal(page, '/tracking-links', 'Create');
   const dialog = await getModalLocator(page);
   const dialogVisible = await dialog.isVisible().catch(() => false);
   expect(dialogVisible, 'Tracking Links create modal should be visible on mobile').toBe(true);
