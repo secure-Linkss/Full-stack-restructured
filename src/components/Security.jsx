@@ -12,7 +12,7 @@ import { Button } from './ui/button';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
-import { Badge } from './ui/Badge';
+import { Badge } from './ui/badge';
 
 // --- Main Security Component ---
 

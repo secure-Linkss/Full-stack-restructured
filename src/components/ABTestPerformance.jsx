@@ -4,7 +4,7 @@ import { TestTube, TrendingUp, CheckCircle, XCircle, Loader } from 'lucide-react
 import { toast } from 'sonner';
 import api from '../services/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from './ui/Badge';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 
 
