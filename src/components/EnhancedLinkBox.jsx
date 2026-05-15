@@ -92,28 +92,31 @@ const EnhancedLinkBox = ({ link, onRegenerate, onEdit, onDelete, onLinkUpdate, i
 
   return (
     <Card className="bg-slate-800 border-slate-700">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center space-x-2">
-          <CardTitle className="text-lg font-bold text-white">{link.campaignName}</CardTitle>
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${link.status === 'active' ? 'bg-green-500/20 text-green-400' :
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 space-y-0 pb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <CardTitle className="text-lg font-bold text-white truncate">{link.campaignName}</CardTitle>
+          <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${link.status === 'active' ? 'bg-green-500/20 text-green-400' :
             link.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
               'bg-red-500/20 text-red-400'
             }`}>
             {link.status || 'active'}
           </span>
         </div>
-        <div className="flex space-x-2">
-          <Button size="sm" variant="outline" className="h-9 w-9 p-0" onClick={testLink} title="Test Link">
-            <ExternalLink className="h-4 w-4" />
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={testLink} title="Test Link">
+            <ExternalLink className="h-3.5 w-3.5" />
           </Button>
-          <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => onRegenerate(link)}>
-            <RefreshCw className="h-4 w-4 mr-1" /> Regenerate
+          <Button size="sm" className="h-8 bg-orange-500 hover:bg-orange-600 text-white text-xs px-2.5" onClick={() => onRegenerate(link)}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            <span className="hidden sm:inline">Regenerate</span>
           </Button>
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleEditToggle}>
-            <Edit className="h-4 w-4 mr-1" /> Edit
+          <Button size="sm" className="h-8 bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5" onClick={handleEditToggle}>
+            <Edit className="h-3.5 w-3.5 mr-1" />
+            <span className="hidden sm:inline">Edit</span>
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => onDelete(link)}>
-            <Trash2 className="h-4 w-4 mr-1" /> Delete
+          <Button size="sm" variant="destructive" className="h-8 text-xs px-2.5" onClick={() => onDelete(link)}>
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            <span className="hidden sm:inline">Delete</span>
           </Button>
         </div>
       </CardHeader>

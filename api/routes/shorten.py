@@ -7,6 +7,7 @@ import string
 import random
 import requests
 import os
+import re
 
 shorten_bp = Blueprint("shorten", __name__)
 
@@ -20,7 +21,10 @@ def get_shortened_links():
     """List all shortened links for the current user"""
     try:
         user_id = g.user.id
-        links = Link.query.filter_by(user_id=user_id).order_by(Link.created_at.desc()).limit(100).all()
+        # Only return links created via the shortener (they always have short_url set)
+        links = Link.query.filter_by(user_id=user_id).filter(
+            Link.short_url.isnot(None)
+        ).order_by(Link.created_at.desc()).limit(100).all()
         base_url = request.host_url.rstrip('/')
         result = []
         for lnk in links:
@@ -52,18 +56,31 @@ def shorten_url():
             return jsonify({"error": "Daily link limit reached"}), 403
 
         data = request.get_json()
-        original_url = data.get("originalUrl")
-        campaign_name = data.get("campaign_name", "Quick Link")
+        # Accept multiple field names for URL (frontend may send url, originalUrl, or target_url)
+        original_url = (
+            data.get("originalUrl") or
+            data.get("url") or
+            data.get("target_url")
+        )
+        campaign_name = data.get("campaign_name") or data.get("campaignName") or "Quick Link"
 
         if not original_url:
             return jsonify({"error": "Original URL is required"}), 400
 
-        # Generate a short code
-        short_code = generate_short_code()
-        
-        # Check if short code already exists
-        while Link.query.filter_by(short_code=short_code).first():
+        # Honour custom short code if provided
+        custom_code = data.get("short_code") or data.get("customCode") or data.get("custom_code")
+        if custom_code:
+            if not re.match(r'^[a-zA-Z0-9\-]+$', custom_code) or len(custom_code) < 3:
+                return jsonify({"error": "Custom code must be 3+ alphanumeric/dash characters"}), 400
+            if Link.query.filter_by(short_code=custom_code).first():
+                return jsonify({"error": "Custom short code already taken"}), 409
+            short_code = custom_code
+        else:
+            # Generate a short code
             short_code = generate_short_code()
+            # Check if short code already exists
+            while Link.query.filter_by(short_code=short_code).first():
+                short_code = generate_short_code()
         
         # Our tracker URL — Short.io will redirect here so the quantum chain fires
         vercel_base = request.host_url.rstrip('/')

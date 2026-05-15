@@ -702,16 +702,17 @@ const TrackingLinks = () => {
           <h2 className="text-2xl font-heading text-foreground">Tracking Links</h2>
           <p className="text-sm text-muted-foreground mt-1">Manage infrastructure routing and pixels</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setShowBulkImport(true)} className="btn-secondary text-sm" title="Bulk Import CSV">
-            <Upload className="w-4 h-4 mr-2" /> Import
+            <Upload className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Import</span>
           </button>
           <button onClick={handleExport} disabled={exportLoading} className="btn-secondary text-sm" title="Export as CSV">
-            {exportLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-            Export
+            {exportLoading ? <RefreshCw className="w-4 h-4 sm:mr-2 animate-spin" /> : <Download className="w-4 h-4 sm:mr-2" />}
+            <span className="hidden sm:inline">Export</span>
           </button>
           <button className="btn-primary text-sm" onClick={() => { setEditingLink(null); setShowFormModal(true); }}>
-            <Plus className="w-4 h-4 mr-2" /><span className="hidden sm:inline">Create Link Target</span><span className="sm:hidden">Create</span>
+            <Plus className="w-4 h-4 mr-1" /><span className="hidden sm:inline">Create Link Target</span><span className="sm:hidden">Create</span>
           </button>
         </div>
       </div>

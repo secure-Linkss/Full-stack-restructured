@@ -185,8 +185,31 @@ def sanitize_link_data(data):
         if flag in data:
             sanitized[flag] = bool(data[flag])
 
-    if 'geo_targeting_type' in data:
-        sanitized['geo_targeting_type'] = sanitize_string(data['geo_targeting_type'], max_length=20)
+    # Accept geo_targeting_mode (frontend name) as alias for geo_targeting_type (DB name)
+    geo_type = data.get('geo_targeting_type') or data.get('geo_targeting_mode')
+    if geo_type:
+        sanitized['geo_targeting_type'] = sanitize_string(str(geo_type), max_length=20)
+
+    # Geo country/region lists — pass through as lists
+    for list_field in ('allowed_countries', 'blocked_countries',
+                       'allowed_regions', 'blocked_regions',
+                       'allowed_cities', 'blocked_cities'):
+        if list_field in data:
+            val = data[list_field]
+            if isinstance(val, list):
+                sanitized[list_field] = [str(c).strip().upper() for c in val if c]
+            elif isinstance(val, str) and val:
+                sanitized[list_field] = [c.strip().upper() for c in val.split(',') if c.strip()]
+            else:
+                sanitized[list_field] = []
+
+    # Preview URL
+    if 'preview_url' in data:
+        sanitized['preview_template_url'] = sanitize_url(data['preview_url']) or None
+
+    # Channel type
+    if 'channel_type' in data:
+        sanitized['channel_type'] = sanitize_string(data['channel_type'], max_length=20)
 
     return sanitized, None
 

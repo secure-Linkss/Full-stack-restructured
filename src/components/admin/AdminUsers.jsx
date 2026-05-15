@@ -395,7 +395,7 @@ const AdminUsers = ({ isOwner = false, userRole = 'admin' }) => {
                             <UserX className="w-3.5 h-3.5 mr-2" /> Demote to Member
                           </DropdownMenuItem>
                         )}
-                        {(isOwner || row.role === 'member') && (
+                        {row.role !== 'main_admin' && (isOwner || ['member', 'user'].includes(row.role)) && (
                           <DropdownMenuItem onClick={() => handleAction('Delete User', row)} className="text-xs cursor-pointer text-[#ef4444] focus:bg-red-500/10">
                             <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete User
                           </DropdownMenuItem>

@@ -2,7 +2,7 @@ import json
 import string
 import random
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, session, g
 from api.database import db
 from api.models.link import Link
@@ -10,7 +10,7 @@ from api.models.user import User
 from api.models.campaign import Campaign
 from api.models.tracking_event import TrackingEvent
 from api.middleware.auth_decorators import login_required
-from api.utils.validation import sanitize_link_data, sanitize_url
+from api.utils.validation import sanitize_link_data, sanitize_url, validate_custom_slug
 
 logger = logging.getLogger(__name__)
 links_bp = Blueprint("links", __name__)
@@ -97,13 +97,30 @@ def create_link():
             existing = Link.query.filter_by(custom_slug=custom_slug).first()
             if existing:
                 return jsonify({"error": "Custom slug already in use"}), 400
-        # Parse expiration date
+        # Convert expiration_period (form value) to expires_at datetime
         expires_at = None
-        if data.get("expires_at"):
+        expiration_period = data.get("expiration_period", "never")
+        _period_map = {
+            '1hr': timedelta(hours=1),
+            '5hrs': timedelta(hours=5),
+            '24hrs': timedelta(hours=24),
+            'weekly': timedelta(weeks=1),
+            'monthly': timedelta(days=30),
+        }
+        if expiration_period and expiration_period != 'never' and expiration_period in _period_map:
+            expires_at = datetime.utcnow() + _period_map[expiration_period]
+        elif data.get("expires_at"):
             try:
                 expires_at = datetime.fromisoformat(data.get("expires_at").replace('Z', '+00:00'))
-            except:
+            except Exception:
                 return jsonify({"error": "Invalid expiration date format"}), 400
+
+        # Map expire_after_clicks → click_limit in sanitized_data
+        if not sanitized_data.get('click_limit') and data.get('expire_after_clicks'):
+            try:
+                sanitized_data['click_limit'] = int(data['expire_after_clicks'])
+            except (ValueError, TypeError):
+                pass
         # Auto-create campaign if needed
         if campaign_name and campaign_name != "Untitled Campaign":
             existing_campaign = Campaign.query.filter_by(
@@ -156,6 +173,9 @@ def create_link():
             og_image_url=sanitized_data.get("og_image_url"),
             routing_rules=json.dumps(sanitized_data["routing_rules"]) if sanitized_data.get("routing_rules") is not None else None,
         )
+        # Fields not in constructor — set directly
+        link.domain = data.get('domain', '')
+        link.channel_type = sanitized_data.get('channel_type') or data.get('channel_type') or 'general'
         db.session.add(link)
         user.increment_link_usage()
         db.session.commit()

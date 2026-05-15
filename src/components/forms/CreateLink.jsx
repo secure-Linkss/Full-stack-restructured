@@ -15,7 +15,8 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
   const [loading, setLoading] = useState(false);
   const [domains, setDomains] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Auto-expand advanced section for shortener so checkboxes are always visible
+  const [showAdvanced, setShowAdvanced] = useState(type === 'shortener');
   const [formData, setFormData] = useState({
     targetUrl: '',
     previewUrl: '',
@@ -381,15 +382,20 @@ const CreateLinkForm = ({ onClose, onLinkCreated, type = 'tracking', editingLink
         </div>
 
 		      {/* Advanced Settings Toggle */}
-		      <Button
+		      <button
 		        type="button"
-		        variant="ghost"
-		        className="w-full justify-start text-blue-500 hover:text-blue-400"
+		        className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium"
 		        onClick={() => setShowAdvanced(!showAdvanced)}
 		      >
-		        {showAdvanced ? <ChevronUp className="w-4 h-4 mr-2" /> : <ChevronDown className="w-4 h-4 mr-2" />}
-		        {showAdvanced ? 'Hide Advanced Settings' : 'Show Advanced Settings'}
-		      </Button>
+		        <span className="flex items-center gap-2">
+		          <Shield className="w-4 h-4" />
+		          Advanced Features & Security
+		          <span className="text-[10px] uppercase tracking-widest text-blue-500/60 font-mono">
+		            Bot Blocking · Geo · Zero-Knowledge · Capture
+		          </span>
+		        </span>
+		        {showAdvanced ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
+		      </button>
 
 		      {showAdvanced && (
 		        <div className="space-y-6 pt-2 border-t border-border mt-4">
