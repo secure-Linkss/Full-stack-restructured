@@ -10,7 +10,7 @@ from api.models.user import User
 from api.models.campaign import Campaign
 from api.models.tracking_event import TrackingEvent
 from api.middleware.auth_decorators import login_required
-from api.utils.validation import sanitize_link_data, sanitize_url, validate_custom_slug
+from api.utils.validation import sanitize_link_data, sanitize_url
 
 logger = logging.getLogger(__name__)
 links_bp = Blueprint("links", __name__)
