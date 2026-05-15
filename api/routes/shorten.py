@@ -125,10 +125,10 @@ def shorten_url():
             user_id=user_id,
             target_url=original_url,
             short_code=short_code,
-            short_url=shortened_url,  # store the Short.io URL (or fallback)
             campaign_name=campaign_name,
             status="active"
         )
+        link.short_url = shortened_url  # set after init — not in __init__ signature
 
         db.session.add(link)
         user.increment_link_usage()
