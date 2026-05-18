@@ -4,16 +4,26 @@ import { cn } from "../../lib/utils"
 
 function Card({
   className,
+  style,
   ...props
 }) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "text-card-foreground flex flex-col gap-6 rounded-xl py-6",
         className
       )}
-      {...props} />
+      style={{
+        background: 'rgba(8,15,35,0.72)',
+        backdropFilter: 'blur(20px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 1px 0 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.45)',
+        ...style,
+      }}
+      {...props}
+    />
   );
 }
 
@@ -39,7 +49,7 @@ function CardTitle({
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("leading-none font-semibold text-white/90", className)}
       {...props} />
   );
 }
@@ -51,7 +61,7 @@ function CardDescription({
   return (
     <div
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-white/35 text-sm", className)}
       {...props} />
   );
 }
