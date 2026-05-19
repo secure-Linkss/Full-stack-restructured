@@ -381,9 +381,11 @@ const Campaigns = () => {
         </CardHeader>
         <CardContent className="p-0 sm:p-0">
           {loading ? (
-            <div className="text-center text-muted-foreground p-10 flex flex-col items-center">
-              <RefreshCw className="w-7 h-7 animate-spin text-primary opacity-50 mb-3" />
-              Loading campaigns...
+            <div className="flex items-center justify-center py-16">
+              <div className="relative w-9 h-9">
+                <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+              </div>
             </div>
           ) : (
             <DataTable
@@ -414,7 +416,7 @@ const Campaigns = () => {
       </Card>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[500px] bg-card border-border overflow-y-auto max-h-[90vh]">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[500px] overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="text-foreground">Create New Campaign</DialogTitle>
           </DialogHeader>

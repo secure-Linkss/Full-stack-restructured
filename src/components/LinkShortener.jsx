@@ -247,7 +247,12 @@ const LinkShortener = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center text-muted-foreground p-10">Loading Shortened Links...</div>
+            <div className="flex items-center justify-center py-16">
+              <div className="relative w-9 h-9">
+                <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+              </div>
+            </div>
           ) : (
 		            <DataTable
 		              columns={columns}
@@ -271,7 +276,7 @@ const LinkShortener = () => {
 
       {/* Create New Link Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-	        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[600px] bg-card border-border overflow-y-auto max-h-[90vh]">
+	        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[600px] overflow-y-auto max-h-[90vh]">
 	          <DialogHeader>
 		            <DialogTitle className="text-foreground">Create New Short Link</DialogTitle>
           </DialogHeader>

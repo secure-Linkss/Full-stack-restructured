@@ -139,7 +139,7 @@ const PendingUsersTable = () => {
           />
 
           {loading ? (
-            <div className="text-center text-muted-foreground p-10">Loading Pending Users...</div>
+            <div className="flex items-center justify-center py-16"><div className="relative w-9 h-9"><div className="absolute inset-0 rounded-full border-2 border-blue-500/20" /><div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" /></div></div>
           ) : filteredUsers.length === 0 ? (
             <div className="text-center text-muted-foreground p-10">
               <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />

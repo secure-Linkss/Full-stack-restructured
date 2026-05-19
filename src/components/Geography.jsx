@@ -173,7 +173,12 @@ const Geography = () => {
       />
 
       {loading ? (
-        <div className="text-center text-muted-foreground p-10">Loading Geography Data...</div>
+        <div className="flex items-center justify-center py-20">
+          <div className="relative w-9 h-9">
+            <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+          </div>
+        </div>
       ) : (
         <>
           {/* Metric Cards */}
