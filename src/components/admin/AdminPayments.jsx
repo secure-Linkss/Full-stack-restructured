@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import DataTable from '@/components/ui/DataTable';
 import api from '../../services/api';
 
@@ -19,9 +18,11 @@ const ConfBadge = ({ confs, required }) => {
     <div className="min-w-[110px]">
       <div className="flex justify-between text-[10px] mb-1">
         <span style={{ color }} className="font-mono font-bold">{confs}/{required}</span>
-        <span className="text-muted-foreground">{pct}%</span>
+        <span style={{ color: 'rgba(255,255,255,0.4)' }}>{pct}%</span>
       </div>
-      <Progress value={pct} className="h-1.5" style={{ '--progress-color': color }} />
+      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
     </div>
   );
 };
@@ -34,7 +35,7 @@ const StatusPill = ({ status }) => {
     rejected:  'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/30',
   };
   return (
-    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${map[status] || 'bg-secondary text-muted-foreground border-border'}`}>
+    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest border ${map[status] || 'bg-white/5 text-white/40 border-white/10'}`}>
       {status}
     </span>
   );
@@ -149,7 +150,7 @@ const TxDetail = ({ payment, requiredConfs, onConfirm, onReject, onRecheck, proc
             >
               Confirm Rejection
             </button>
-            <button onClick={() => setShowRejectBox(false)} className="px-3 py-1.5 text-xs rounded bg-secondary text-muted-foreground">
+            <button onClick={() => setShowRejectBox(false)} className="px-3 py-1.5 text-xs rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
               Cancel
             </button>
           </div>
@@ -466,7 +467,7 @@ const AdminPayments = ({ isOwner = false }) => {
                     <CheckCircle className="w-3 h-3" /> Approve
                   </button>
                   <button onClick={() => setExpandedTx(expandedTx === p.id ? null : p.id)}
-                    className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs rounded bg-secondary text-muted-foreground hover:text-foreground border border-border transition-all">
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs rounded transition-all" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <Eye className="w-3 h-3" /> Details
                   </button>
                 </div>

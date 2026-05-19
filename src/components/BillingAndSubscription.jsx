@@ -8,7 +8,6 @@ import {
   Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Progress } from '@/components/ui/progress';
 import api from '../services/api';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -37,7 +36,9 @@ const ConfBar = ({ confs, required }) => {
         <span style={{ color }} className="font-mono font-bold">{confs}/{required} confs</span>
         <span style={{ color: 'rgba(255,255,255,0.4)' }}>{pct}%</span>
       </div>
-      <Progress value={pct} className="h-1" />
+      <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
     </div>
   );
 };

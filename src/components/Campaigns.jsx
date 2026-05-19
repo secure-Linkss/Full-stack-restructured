@@ -87,7 +87,7 @@ const CampaignAnalyticsDrawer = ({ campaign, onClose }) => {
     const days = 7;
     return Array.from({ length: days }, (_, i) => ({
       date: new Date(Date.now() - (days - i - 1) * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      clicks: Math.round((totalClicks / days) * (0.4 + Math.random() * 1.2)),
+      clicks: Math.round(totalClicks / days),
     }));
   })();
 

@@ -89,7 +89,7 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
     const total = analytics?.total_clicks || 0;
     return Array.from({ length: days }, (_, i) => ({
       date: new Date(Date.now() - (days - i - 1) * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      clicks: Math.round((total / days) * (0.5 + Math.random())),
+      clicks: Math.round(total / days),
     }));
   })();
 

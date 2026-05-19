@@ -12,7 +12,6 @@ import { Button } from './ui/button';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
-import { Badge } from './ui/badge';
 
 // --- Main Security Component ---
 
@@ -124,32 +123,30 @@ const Security = () => {
 
 	const getSeverityBadge = (severity) => {
 		const severityConfig = {
-			high: { color: 'bg-red-600', text: 'High' },
-			medium: { color: 'bg-yellow-600', text: 'Medium' },
-			low: { color: 'bg-green-600', text: 'Low' }
+			high:    { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444', border: 'rgba(239,68,68,0.3)',  text: 'High' },
+			medium:  { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)', text: 'Medium' },
+			low:     { bg: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.3)', text: 'Low' },
 		}
-
-		const config = severityConfig[severity] || severityConfig.low
+		const cfg = severityConfig[severity] || severityConfig.low
 		return (
-			<Badge className={`${config.color} text-white`}>
-				{config.text}
-			</Badge>
+			<span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+				{cfg.text}
+			</span>
 		)
 	}
 
 	const getActionBadge = (action) => {
 		const actionConfig = {
-			blocked: { color: 'bg-red-600', text: 'Blocked' },
-			throttled: { color: 'bg-yellow-600', text: 'Throttled' },
-			flagged: { color: 'bg-orange-600', text: 'Flagged' },
-			allowed: { color: 'bg-green-600', text: 'Allowed' }
+			blocked:   { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444', border: 'rgba(239,68,68,0.3)',  text: 'Blocked' },
+			throttled: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.3)', text: 'Throttled' },
+			flagged:   { bg: 'rgba(249,115,22,0.12)', color: '#f97316', border: 'rgba(249,115,22,0.3)', text: 'Flagged' },
+			allowed:   { bg: 'rgba(16,185,129,0.12)', color: '#10b981', border: 'rgba(16,185,129,0.3)', text: 'Allowed' },
 		}
-
-		const config = actionConfig[action] || actionConfig.allowed
+		const cfg = actionConfig[action] || actionConfig.allowed
 		return (
-			<Badge className={`${config.color} text-white`}>
-				{config.text}
-			</Badge>
+			<span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+				{cfg.text}
+			</span>
 		)
 	}
 

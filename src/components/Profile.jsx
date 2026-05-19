@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   User, Mail, Phone, Shield, CreditCard, Calendar,
-  CheckCircle, Loader, Upload, Edit, Lock, AlertTriangle, Link, BarChart3, Camera
+  CheckCircle, Upload, Edit, Lock, AlertTriangle, Link, BarChart3, Camera
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Input } from './ui/input';
@@ -215,7 +215,7 @@ const Profile = () => {
               disabled={saving}
               className="w-full btn-primary mb-5 flex items-center justify-center gap-2"
             >
-              {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {saving ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Upload className="w-4 h-4" />}
               Upload Avatar
             </motion.button>
           )}
@@ -303,7 +303,7 @@ const Profile = () => {
                   ))}
                   <div className="pt-2">
                     <button onClick={handleUpdateProfile} disabled={saving} className="btn-primary flex items-center gap-2">
-                      {saving ? <Loader className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      {saving ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                       Save Changes
                     </button>
                   </div>
@@ -336,7 +336,7 @@ const Profile = () => {
                   ))}
                   <div className="pt-2">
                     <button onClick={handleChangePassword} disabled={saving} className="btn-primary flex items-center gap-2">
-                      {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                      {saving ? <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Lock className="w-4 h-4" />}
                       Change Password
                     </button>
                   </div>
