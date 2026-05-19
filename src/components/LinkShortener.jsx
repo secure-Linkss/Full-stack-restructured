@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Link, Plus, RefreshCw, Filter, Copy, BarChart3, Trash2, Edit } from 'lucide-react';
+import { Link, Plus, RefreshCw, Copy, BarChart3, Trash2, Edit } from 'lucide-react';
 import EnhancedLinkBox from './EnhancedLinkBox';
 import PageHeader from './ui/PageHeader';
 import FilterBar from './ui/FilterBar';
@@ -230,14 +230,8 @@ const LinkShortener = () => {
           { value: 'expired', label: 'Expired' },
         ]}
         onFilterChange={setFilter}
-        dateRangeOptions={[]} // Not typically needed for this view
+        dateRangeOptions={[]}
         onDateRangeChange={() => {}}
-        extraButtons={[
-          <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-        ]}
       />
 
       <Card>

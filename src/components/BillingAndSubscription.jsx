@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, DollarSign, Calendar, FileText, Bitcoin, Hash,
   CheckCircle, Copy, RefreshCw, Wallet, ExternalLink, XCircle,
@@ -10,6 +11,22 @@ import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import api from '../services/api';
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const glassCard = {
+  background: 'rgba(8,15,35,0.72)',
+  backdropFilter: 'blur(20px) saturate(160%)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  borderRadius: 14,
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.07, duration: 0.35, ease: [0.4, 0, 0.2, 1] },
+  }),
+};
+
 // ─── Confirmation progress mini-bar ──────────────────────────────────────────
 const ConfBar = ({ confs, required }) => {
   const pct  = Math.min(100, Math.round((confs / required) * 100));
@@ -18,7 +35,7 @@ const ConfBar = ({ confs, required }) => {
     <div className="mt-1.5">
       <div className="flex justify-between text-[10px] mb-1">
         <span style={{ color }} className="font-mono font-bold">{confs}/{required} confs</span>
-        <span className="text-muted-foreground">{pct}%</span>
+        <span style={{ color: 'rgba(255,255,255,0.4)' }}>{pct}%</span>
       </div>
       <Progress value={pct} className="h-1" />
     </div>
@@ -28,12 +45,16 @@ const ConfBar = ({ confs, required }) => {
 // ─── Status pill ──────────────────────────────────────────────────────────────
 const Pill = ({ status }) => {
   const map = {
-    pending:   'bg-[#f59e0b]/10 text-[#f59e0b]',
-    confirmed: 'bg-[#10b981]/10 text-[#10b981]',
-    rejected:  'bg-[#ef4444]/10 text-[#ef4444]',
+    pending:   { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' },
+    confirmed: { bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
+    rejected:  { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444' },
   };
+  const style = map[status] || { bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' };
   return (
-    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest ${map[status] || 'bg-secondary text-muted-foreground'}`}>
+    <span
+      className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest"
+      style={{ background: style.bg, color: style.color }}
+    >
       {status}
     </span>
   );
@@ -42,74 +63,112 @@ const Pill = ({ status }) => {
 // ─── Explorer link ────────────────────────────────────────────────────────────
 function explorerUrl(currency, hash) {
   if (!hash) return null;
-  const m = { BTC: `https://www.blockchain.com/explorer/transactions/btc/${hash}`, ETH: `https://etherscan.io/tx/${hash}`, USDT: `https://etherscan.io/tx/${hash}`, BNB: `https://bscscan.com/tx/${hash}` };
+  const m = {
+    BTC:  `https://www.blockchain.com/explorer/transactions/btc/${hash}`,
+    ETH:  `https://etherscan.io/tx/${hash}`,
+    USDT: `https://etherscan.io/tx/${hash}`,
+    BNB:  `https://bscscan.com/tx/${hash}`,
+  };
   return m[(currency || '').toUpperCase()] || null;
 }
 
 // ─── Single crypto TX row ─────────────────────────────────────────────────────
-const CryptoTxRow = ({ tx, requiredConfs, onPoll }) => {
+const CryptoTxRow = ({ tx, requiredConfs, onPoll, index }) => {
   const [expanded, setExpanded] = useState(false);
   const url = explorerUrl(tx.currency, tx.transaction_hash);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <motion.div
+      variants={cardVariants}
+      custom={index}
+      initial="hidden"
+      animate="visible"
+      whileHover={{ scale: 1.005, transition: { duration: 0.15 } }}
+      style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, overflow: 'hidden' }}
+    >
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer transition-colors"
+        style={{ background: 'rgba(255,255,255,0.01)' }}
         onClick={() => setExpanded(!expanded)}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.01)'}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-[rgba(16,185,129,0.1)] flex items-center justify-center shrink-0">
-            <Bitcoin className="w-3.5 h-3.5 text-[#10b981]" />
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(16,185,129,0.12)' }}
+          >
+            <Bitcoin className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-mono text-foreground truncate max-w-[180px]">{tx.transaction_hash}</p>
-            <p className="text-[10px] text-muted-foreground">{tx.currency} · {tx.plan_type} · {new Date(tx.created_at).toLocaleDateString()}</p>
+            <p className="text-xs font-mono text-white truncate max-w-[180px]">{tx.transaction_hash}</p>
+            <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {tx.currency} · {tx.plan_type} · {new Date(tx.created_at).toLocaleDateString()}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className="text-sm font-bold text-[#10b981]">${Number(tx.amount_usd || 0).toFixed(2)}</span>
+          <span className="text-sm font-bold text-emerald-400">${Number(tx.amount_usd || 0).toFixed(2)}</span>
           <Pill status={tx.status} />
-          {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          {expanded
+            ? <ChevronUp className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            : <ChevronDown className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          }
         </div>
       </div>
 
-      {expanded && (
-        <div className="px-4 pb-4 border-t border-border space-y-3 bg-[rgba(255,255,255,0.01)]">
-          <ConfBar confs={tx.blockchain_confirmations || 0} required={requiredConfs} />
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)' }}
+            className="px-4 pb-4 space-y-3 overflow-hidden"
+          >
+            <ConfBar confs={tx.blockchain_confirmations || 0} required={requiredConfs} />
 
-          <div className="flex gap-3 flex-wrap text-xs">
-            {url && (
-              <a href={url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[#3b82f6] hover:underline">
-                <ExternalLink className="w-3 h-3" /> View on Explorer
-              </a>
-            )}
-            <button onClick={() => { navigator.clipboard.writeText(tx.transaction_hash); toast.success('TX hash copied'); }}
-              className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
-              <Copy className="w-3 h-3" /> Copy TX Hash
-            </button>
-            {tx.status === 'pending' && (
-              <button onClick={() => onPoll(tx.id)} className="flex items-center gap-1 text-[#10b981] hover:underline">
-                <RefreshCw className="w-3 h-3" /> Refresh confirmations
+            <div className="flex gap-3 flex-wrap text-xs pt-1">
+              {url && (
+                <a href={url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-blue-400 hover:underline">
+                  <ExternalLink className="w-3 h-3" /> View on Explorer
+                </a>
+              )}
+              <button
+                onClick={() => { navigator.clipboard.writeText(tx.transaction_hash); toast.success('TX hash copied'); }}
+                className="flex items-center gap-1 hover:text-white transition-colors"
+                style={{ color: 'rgba(255,255,255,0.5)' }}
+              >
+                <Copy className="w-3 h-3" /> Copy TX Hash
               </button>
+              {tx.status === 'pending' && (
+                <button onClick={() => onPoll(tx.id)} className="flex items-center gap-1 text-emerald-400 hover:underline">
+                  <RefreshCw className="w-3 h-3" /> Refresh confirmations
+                </button>
+              )}
+            </div>
+
+            {tx.status === 'rejected' && tx.rejection_reason && (
+              <div
+                className="text-xs p-2 rounded"
+                style={{ color: '#ef4444', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}
+              >
+                <span className="font-semibold">Rejection Reason: </span>{tx.rejection_reason}
+              </div>
             )}
-          </div>
 
-          {tx.status === 'rejected' && tx.rejection_reason && (
-            <div className="text-xs text-[#ef4444] bg-[#ef4444]/5 border border-[#ef4444]/20 rounded p-2">
-              <span className="font-semibold">Rejection Reason: </span>{tx.rejection_reason}
-            </div>
-          )}
-
-          {tx.status === 'pending' && (
-            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-[#f59e0b]" />
-              Awaiting {requiredConfs - (tx.blockchain_confirmations || 0)} more confirmation{requiredConfs - (tx.blockchain_confirmations || 0) !== 1 ? 's' : ''}. Page auto-updates every 30s.
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+            {tx.status === 'pending' && (
+              <div className="text-[11px] flex items-center gap-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <Clock className="w-3 h-3 text-amber-400" />
+                Awaiting {requiredConfs - (tx.blockchain_confirmations || 0)} more confirmation{requiredConfs - (tx.blockchain_confirmations || 0) !== 1 ? 's' : ''}. Page auto-updates every 30s.
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -117,13 +176,13 @@ const CryptoTxRow = ({ tx, requiredConfs, onPoll }) => {
 // ─── Main Component ───────────────────────────────────────────────────────────
 const BillingAndSubscription = () => {
   const navigate = useNavigate();
-  const [billingInfo, setBillingInfo]         = useState(null);
-  const [loading, setLoading]                 = useState(true);
-  const [adminWallets, setAdminWallets]       = useState([]);
-  const [myPayments, setMyPayments]           = useState([]);
-  const [requiredConfs, setRequiredConfs]     = useState(30);
-  const [pollingId, setPollingId]             = useState(null);
-  const [stripeLoading, setStripeLoading]     = useState(false);
+  const [billingInfo, setBillingInfo]     = useState(null);
+  const [loading, setLoading]             = useState(true);
+  const [adminWallets, setAdminWallets]   = useState([]);
+  const [myPayments, setMyPayments]       = useState([]);
+  const [requiredConfs, setRequiredConfs] = useState(30);
+  const [pollingId, setPollingId]         = useState(null);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -168,7 +227,6 @@ const BillingAndSubscription = () => {
 
   useEffect(() => {
     fetchAll();
-    // Auto-refresh pending confirmations every 30s
     const interval = setInterval(() => {
       const hasPending = myPayments.some(p => p.status === 'pending');
       if (hasPending) fetchAll();
@@ -176,12 +234,10 @@ const BillingAndSubscription = () => {
     return () => clearInterval(interval);
   }, [fetchAll, myPayments]);
 
-  // Manual poll for a single transaction
   const pollTx = async (txId) => {
     setPollingId(txId);
     try {
       const res = await api.payments.getCryptoStatus(txId);
-
       if (res.success) {
         setMyPayments(prev => prev.map(p =>
           p.id === txId
@@ -206,7 +262,6 @@ const BillingAndSubscription = () => {
     setStripeLoading(true);
     try {
       const res = await api.payments.createStripeCheckout(billingInfo?.plan || 'pro', 'monthly');
-
       if (res.url || res.checkout_url || res.session_url) {
         window.location.href = res.url || res.checkout_url || res.session_url;
       } else {
@@ -222,9 +277,12 @@ const BillingAndSubscription = () => {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="w-10 h-10 border-4 border-[#3b82f6]/20 border-t-[#3b82f6] rounded-full animate-spin mb-4" />
-          <p className="text-sm text-muted-foreground">Loading billing details...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-9 h-9">
+            <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+          </div>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Loading billing details...</p>
         </div>
       </div>
     );
@@ -237,115 +295,223 @@ const BillingAndSubscription = () => {
   ) || confirmedPayments.length > 0;
 
   return (
-    <div className="space-y-6 animate-fade-in w-full pb-10">
+    <div className="space-y-5 w-full pb-10">
 
-      {/* ── Subscription status ─────────────────────────────────────────── */}
-      <div className="enterprise-card p-6">
-        <h3 className="text-sm font-heading font-semibold text-foreground flex items-center mb-5 border-b border-border pb-4">
-          <CreditCard className="w-4 h-4 mr-2" /> Subscription Status
-        </h3>
+      {/* ── Subscription Status ───────────────────────────────────────────── */}
+      <motion.div
+        style={glassCard}
+        className="p-6"
+        variants={cardVariants}
+        custom={0}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="flex items-center gap-2.5 mb-5 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <CreditCard className="w-4 h-4 text-blue-400" />
+          <p className="text-sm font-semibold text-white">Subscription Status</p>
+        </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[rgba(255,255,255,0.01)] border border-border p-5 rounded-lg">
+        <div
+          className="flex flex-col md:flex-row justify-between items-start md:items-center p-5 rounded-xl gap-4"
+          style={{
+            background: planActive ? 'rgba(16,185,129,0.04)' : 'rgba(245,158,11,0.04)',
+            border: planActive ? '1px solid rgba(16,185,129,0.15)' : '1px solid rgba(245,158,11,0.15)',
+            boxShadow: planActive
+              ? '0 0 0 2px rgba(16,185,129,0.06), 0 0 20px rgba(16,185,129,0.04)'
+              : '0 0 0 2px rgba(245,158,11,0.06), 0 0 20px rgba(245,158,11,0.04)',
+          }}
+        >
           <div>
-            <p className="text-sm font-semibold text-foreground mb-1">
-              Current Plan: <span className="text-[#3b82f6] capitalize">{billingInfo?.plan}</span>
+            <p className="text-sm font-semibold text-white mb-1">
+              Current Plan:{' '}
+              <span
+                className="capitalize font-bold"
+                style={{
+                  color: '#3b82f6',
+                  boxShadow: '0 0 0 2px rgba(59,130,246,0.3), 0 0 20px rgba(59,130,246,0.1)',
+                  padding: '1px 8px',
+                  borderRadius: 6,
+                  background: 'rgba(59,130,246,0.1)',
+                  display: 'inline-block',
+                }}
+              >
+                {billingInfo?.plan}
+              </span>
             </p>
             {billingInfo?.expiry && (
-              <p className="text-xs text-muted-foreground flex items-center">
-                <Calendar className="w-3.5 h-3.5 mr-1" />
-                {new Date(billingInfo.expiry) > new Date() ? 'Expires' : 'Expired'}:
-                {' '}{new Date(billingInfo.expiry).toLocaleDateString()}
+              <p className="text-xs flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <Calendar className="w-3.5 h-3.5" />
+                {new Date(billingInfo.expiry) > new Date() ? 'Expires' : 'Expired'}:{' '}
+                {new Date(billingInfo.expiry).toLocaleDateString()}
               </p>
             )}
             {pendingPayments.length > 0 && (
-              <p className="text-xs text-[#f59e0b] flex items-center mt-1">
-                <Clock className="w-3 h-3 mr-1" /> {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} pending confirmation
+              <p className="text-xs text-amber-400 flex items-center gap-1 mt-1">
+                <Clock className="w-3 h-3" />
+                {pendingPayments.length} payment{pendingPayments.length > 1 ? 's' : ''} pending confirmation
               </p>
             )}
           </div>
-          <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-widest mt-4 md:mt-0 ${planActive ? 'bg-[#10b981]/10 text-[#10b981]' : 'bg-[#f59e0b]/10 text-[#f59e0b]'}`}>
+          <span
+            className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest shrink-0"
+            style={{
+              background: planActive ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+              color: planActive ? '#10b981' : '#f59e0b',
+            }}
+          >
             {planActive ? 'Active' : 'Inactive'}
           </span>
         </div>
-      </div>
+      </motion.div>
 
-      {/* ── Payment methods ─────────────────────────────────────────────── */}
-      <div className="enterprise-card p-6">
-        <h3 className="text-sm font-heading font-semibold text-foreground mb-5 border-b border-border pb-4">
-          Upgrade / Manage Subscription
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* ── Payment Methods ───────────────────────────────────────────────── */}
+      <motion.div
+        style={glassCard}
+        className="p-6"
+        variants={cardVariants}
+        custom={1}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="flex items-center gap-2.5 mb-5 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <Wallet className="w-4 h-4 text-blue-400" />
+          <p className="text-sm font-semibold text-white">Upgrade / Manage Subscription</p>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Stripe */}
-          <div className="enterprise-card p-5 border-[#3b82f6]/30 bg-gradient-to-br from-[rgba(59,130,246,0.05)] to-transparent group">
+          <motion.div
+            whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
+            style={{
+              background: 'rgba(59,130,246,0.05)',
+              border: '1px solid rgba(59,130,246,0.2)',
+              borderRadius: 12,
+              padding: '20px',
+            }}
+          >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="text-sm font-bold text-foreground">Credit / Debit Card</h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Instant activation via Stripe. Visa, Mastercard, AMEX.</p>
+                <h4 className="text-sm font-bold text-white">Credit / Debit Card</h4>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  Instant activation via Stripe. Visa, Mastercard, AMEX.
+                </p>
               </div>
-              <CreditCard className="w-6 h-6 text-[#3b82f6]" />
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(59,130,246,0.15)' }}
+              >
+                <CreditCard className="w-4 h-4 text-blue-400" />
+              </div>
             </div>
             <button
               onClick={handleStripeCheckout}
               disabled={stripeLoading}
-              className="btn-primary w-full text-xs py-2.5"
+              className="btn-primary w-full text-xs py-2.5 flex items-center justify-center gap-1.5"
             >
               {stripeLoading
-                ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                : <ExternalLink className="w-3.5 h-3.5 mr-1.5" />}
+                ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                : <ExternalLink className="w-3.5 h-3.5" />}
               {stripeLoading ? 'Loading…' : 'Checkout via Stripe'}
             </button>
-          </div>
+          </motion.div>
 
           {/* Crypto */}
-          <div className="enterprise-card p-5 border-[#10b981]/30 bg-gradient-to-br from-[rgba(16,185,129,0.05)] to-transparent">
+          <motion.div
+            whileHover={{ scale: 1.01, transition: { duration: 0.15 } }}
+            style={{
+              background: 'rgba(16,185,129,0.05)',
+              border: '1px solid rgba(16,185,129,0.2)',
+              borderRadius: 12,
+              padding: '20px',
+            }}
+          >
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h4 className="text-sm font-bold text-foreground flex items-center">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
                   Cryptocurrency
-                  <span className="ml-2 bg-[#10b981]/20 text-[#10b981] text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Decentralized</span>
+                  <span
+                    className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase"
+                    style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}
+                  >
+                    Decentralized
+                  </span>
                 </h4>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   {adminWallets.length > 0
                     ? `Pay via ${adminWallets.map(w => w.currency).join(', ')}. Requires ${requiredConfs} confirmations.`
                     : 'Crypto payments not yet configured. Contact admin.'}
                 </p>
               </div>
-              <Bitcoin className="w-6 h-6 text-[#10b981]" />
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(16,185,129,0.15)' }}
+              >
+                <Bitcoin className="w-4 h-4 text-emerald-400" />
+              </div>
             </div>
 
             {adminWallets.length > 0 ? (
               <button
                 onClick={() => navigate('/checkout?method=crypto')}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-lg bg-[#10b981]/10 hover:bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30 transition-all"
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-lg transition-all"
+                style={{
+                  background: 'rgba(16,185,129,0.1)',
+                  border: '1px solid rgba(16,185,129,0.3)',
+                  color: '#10b981',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,185,129,0.1)'}
               >
                 <Zap className="w-3.5 h-3.5" /> Open Crypto Payment Form
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <div className="text-center py-3 text-xs text-muted-foreground bg-background border border-border rounded-md">
+              <div
+                className="text-center py-3 text-xs rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}
+              >
                 <Wallet className="w-5 h-5 mx-auto mb-1 opacity-40" />
                 Not configured by admin
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* ── Crypto payment history ───────────────────────────────────────── */}
+      {/* ── Crypto Payment History ────────────────────────────────────────── */}
       {myPayments.length > 0 && (
-        <div className="enterprise-card p-6">
-          <div className="flex items-center justify-between mb-5 border-b border-border pb-4">
-            <h3 className="text-sm font-heading font-semibold text-foreground flex items-center">
-              <Hash className="w-4 h-4 mr-2 text-[#10b981]" /> Crypto Payment History
-            </h3>
-            <button onClick={fetchAll} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+        <motion.div
+          style={glassCard}
+          className="p-6"
+          variants={cardVariants}
+          custom={2}
+          initial="hidden"
+          animate="visible"
+        >
+          <div
+            className="flex items-center justify-between mb-5 pb-4"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="flex items-center gap-2.5">
+              <Hash className="w-4 h-4 text-emerald-400" />
+              <p className="text-sm font-semibold text-white">Crypto Payment History</p>
+            </div>
+            <button
+              onClick={fetchAll}
+              className="flex items-center gap-1.5 text-xs transition-colors"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'white'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+            >
               <RefreshCw className="w-3.5 h-3.5" /> Refresh
             </button>
           </div>
 
           {pendingPayments.length > 0 && (
-            <div className="mb-4 p-3 rounded-lg border border-[#f59e0b]/30 bg-[#f59e0b]/5 text-xs text-[#f59e0b] flex items-start gap-2">
+            <div
+              className="mb-4 p-3 rounded-lg flex items-start gap-2 text-xs"
+              style={{ border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.06)', color: '#f59e0b' }}
+            >
               <Clock className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold">{pendingPayments.length} pending payment{pendingPayments.length > 1 ? 's' : ''}</span>
@@ -356,30 +522,46 @@ const BillingAndSubscription = () => {
           )}
 
           <div className="space-y-2">
-            {myPayments.map(tx => (
+            {myPayments.map((tx, index) => (
               <CryptoTxRow
                 key={tx.id}
                 tx={tx}
                 requiredConfs={requiredConfs}
                 onPoll={pollingId === tx.id ? () => {} : pollTx}
+                index={index}
               />
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* ── Invoice history ──────────────────────────────────────────────── */}
-      <div className="enterprise-card p-6">
-        <h3 className="text-sm font-heading font-semibold text-foreground mb-4 border-b border-border pb-3 flex items-center">
-          <FileText className="w-4 h-4 mr-2 text-muted-foreground" /> Invoice History
-        </h3>
+      {/* ── Invoice History ───────────────────────────────────────────────── */}
+      <motion.div
+        style={glassCard}
+        className="p-6"
+        variants={cardVariants}
+        custom={3}
+        initial="hidden"
+        animate="visible"
+      >
+        <div
+          className="flex items-center gap-2.5 mb-4 pb-3"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <FileText className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <p className="text-sm font-semibold text-white">Invoice History</p>
+        </div>
+
         {(billingInfo?.invoices || []).length === 0 ? (
-          <div className="enterprise-card p-8 text-center">
-            <FileText className="w-8 h-8 mx-auto mb-3 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">No invoices yet.</p>
+          <div
+            className="p-8 text-center rounded-xl"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            <FileText className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>No invoices yet.</p>
           </div>
         ) : (
-          <div className="enterprise-card overflow-hidden">
+          <div className="overflow-hidden rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
             <table className="enterprise-table w-full">
               <thead>
                 <tr>
@@ -390,21 +572,30 @@ const BillingAndSubscription = () => {
                 </tr>
               </thead>
               <tbody>
-                {billingInfo.invoices.map(inv => (
-                  <tr key={inv.id}>
+                {billingInfo.invoices.map((inv, i) => (
+                  <motion.tr
+                    key={inv.id}
+                    variants={cardVariants}
+                    custom={i}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  >
                     <td className="py-3 font-mono text-xs">{inv.id}</td>
-                    <td className="py-3 text-xs text-muted-foreground">{new Date(inv.date).toLocaleDateString()}</td>
+                    <td className="py-3 text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      {new Date(inv.date).toLocaleDateString()}
+                    </td>
                     <td className="py-3 text-sm font-bold text-right">${(inv.amount || 0).toFixed(2)}</td>
                     <td className="py-3 text-center">
                       <Pill status={inv.status?.toLowerCase() === 'paid' ? 'confirmed' : 'pending'} />
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </motion.div>
 
     </div>
   );

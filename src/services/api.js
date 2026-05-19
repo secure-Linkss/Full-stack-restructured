@@ -678,7 +678,6 @@ const api = {
     }),
     resetPassword: (id) => fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/reset-password`, {
       method: 'POST',
-      body: JSON.stringify({ new_password: 'Password123!' }), // Default password for reset
     }),
     getPending: () => fetchWithAuth(`${API_BASE_URL}/admin/pending-users`),
     approvePending: (id) => fetchWithAuth(`${API_BASE_URL}/admin/pending-users/${id}/approve`, {

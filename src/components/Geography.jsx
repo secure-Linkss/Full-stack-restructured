@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Globe, MapPin, RefreshCw, Filter } from 'lucide-react';
+import { Globe, MapPin, RefreshCw } from 'lucide-react';
 import InteractiveMap from './ui/InteractiveMap';
 
 import PageHeader from './ui/PageHeader';
@@ -164,12 +164,6 @@ const Geography = () => {
         dateRangeOptions={['7d', '30d', '90d']}
         onDateRangeChange={handleDateRangeChange}
         selectedDateRange={dateRange}
-        extraButtons={[
-          <Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-        ]}
       />
 
       {loading ? (

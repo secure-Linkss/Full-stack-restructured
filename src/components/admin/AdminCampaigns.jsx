@@ -433,7 +433,16 @@ const AdminCampaigns = () => {
               searchPlaceholder="Analyze hash arrays or tenant identity..."
               onSearch={setSearchQuery}
               onRefresh={fetchData}
-              onExport={() => toast.info('Extracting Campaign Matrix to CSV...')}
+              onExport={() => {
+                if (!campaigns.length) { toast.error('No campaigns to export.'); return; }
+                const headers = ['Campaign', 'Status', 'Owner', 'Clicks', 'Leads', 'Created'];
+                const rows = campaigns.map(c => [c.name || '', c.status || '', c.owner || '', c.clicks || 0, c.leads || c.totalLeads || 0, c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '']);
+                const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `campaigns-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+                URL.revokeObjectURL(url); toast.success('Campaigns exported.');
+              }}
               filterOptions={[
                 { value: 'all', label: 'All Operations' },
                 { value: 'active', label: 'Live Operations' },

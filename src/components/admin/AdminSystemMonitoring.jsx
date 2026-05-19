@@ -1,9 +1,39 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Activity, Server, Zap, HardDrive, Wifi, RefreshCw, AlertCircle, CheckCircle, Database } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
 import api from '../../services/api';
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.35, ease: [0.4, 0, 0.2, 1] } })
+};
+
+const glassCard = {
+  background: 'rgba(8,15,35,0.72)',
+  backdropFilter: 'blur(20px) saturate(160%)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  borderRadius: 14,
+};
+
+const getStatusColor = (val, thresholdLow, thresholdHigh, reverse = false) => {
+  let isGood = val <= thresholdLow;
+  let isWarn = val > thresholdLow && val <= thresholdHigh;
+  if (reverse) {
+    isGood = val >= thresholdHigh;
+    isWarn = val < thresholdHigh && val >= thresholdLow;
+  }
+  if (isGood) return '#10b981';
+  if (isWarn) return '#f59e0b';
+  return '#ef4444';
+};
+
+const StatRow = ({ label, value, color }) => (
+  <div className="flex justify-between items-center py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <span className="text-xs text-white/50">{label}</span>
+    <span className="font-mono font-bold text-sm" style={{ color }}>{value}</span>
+  </div>
+);
 
 const AdminSystemMonitoring = () => {
   const [metrics, setMetrics] = useState({
@@ -39,7 +69,7 @@ const AdminSystemMonitoring = () => {
           peak_last_hour: conn?.peak_last_hour ?? 0,
         },
       });
-    } catch (err) {
+    } catch {
       toast.error('Telemetry Sync Failed. Node might be unreachable.');
     } finally {
       setLoading(false);
@@ -48,163 +78,188 @@ const AdminSystemMonitoring = () => {
 
   useEffect(() => {
     fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 30000); // Live poll every 30s
+    const interval = setInterval(fetchTelemetry, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const handleRestartNode = async (serviceName) => {
-    if (!window.confirm(`Are you extremely sure you securely want to reboot the [${serviceName}] layer? This will induce a temporary drop in traffic processing.`)) return;
+    if (!window.confirm(`Are you extremely sure you want to reboot the [${serviceName}] layer? This will induce a temporary drop in traffic processing.`)) return;
     try {
       await api.adminMonitoring.restartService(serviceName);
       toast.success(`${serviceName} initialization sequence started.`);
       fetchTelemetry();
-    } catch (err) {
+    } catch {
       toast.error(`Reboot sequence for ${serviceName} failed.`);
     }
   };
 
-  const getStatusColor = (val, thresholdLow, thresholdHigh, reverse = false) => {
-     let isGood = val <= thresholdLow;
-     let isWarn = val > thresholdLow && val <= thresholdHigh;
-     if (reverse) {
-        isGood = val >= thresholdHigh;
-        isWarn = val < thresholdHigh && val >= thresholdLow;
-     }
-
-     if (isGood) return 'text-[#10b981]';
-     if (isWarn) return 'text-[#f59e0b]';
-     return 'text-[#ef4444] animate-pulse';
-  };
+  const isHealthy = metrics.health.status === 'healthy';
+  const avgLatencyColor = getStatusColor(metrics.apiPerformance.avg_latency_ms, 100, 300);
+  const p99LatencyColor = getStatusColor(metrics.apiPerformance.p99_latency_ms, 300, 800);
+  const errorPctColor = getStatusColor(metrics.errorRates.error_percentage, 1, 5);
 
   return (
-    <div className="space-y-6 animate-fade-in w-full pb-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
+    <div className="space-y-6 w-full pb-10">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+      >
         <div>
-           <h3 className="text-2xl font-bold font-heading text-foreground items-center flex">
-              <Activity className="w-6 h-6 mr-3 text-[#3b82f6]" /> Quantum System Monitoring
-           </h3>
-           <p className="text-sm text-muted-foreground mt-1">APM observability, edge API performance metrics, and Kafka ingestion telemetry.</p>
+          <h3 className="text-2xl font-bold font-heading text-white flex items-center gap-3">
+            <Activity className="w-6 h-6 text-[#3b82f6]" /> Quantum System Monitoring
+          </h3>
+          <p className="text-sm text-white/40 mt-1">APM observability, edge API performance metrics, and Kafka ingestion telemetry.</p>
         </div>
-        <button onClick={fetchTelemetry} className="btn-secondary h-9 text-xs">
-          <RefreshCw className={`w-3.5 h-3.5 mr-2 ${loading ? 'animate-spin' : ''}`} /> Poll Cluster Telemetry
+        <button
+          onClick={fetchTelemetry}
+          className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl transition-colors text-white/60 hover:text-white"
+          style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Poll Cluster Telemetry
         </button>
-      </div>
+      </motion.div>
 
+      {/* Top metric cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-[#1e2d47] bg-secondary relative overflow-hidden">
-          <div className={`absolute top-0 left-0 w-full h-1 ${metrics.health.status === 'healthy' ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}></div>
-          <CardContent className="p-5 flex flex-col items-center justify-center text-center h-full pt-8">
-            {metrics.health.status === 'healthy' ? <CheckCircle className="w-10 h-10 text-[#10b981] mb-3" /> : <AlertCircle className="w-10 h-10 text-[#ef4444] mb-3 animate-pulse" />}
-            <h3 className="text-xl font-heading font-bold uppercase tracking-widest text-foreground">{metrics.health.status}</h3>
-            <p className="text-xs text-muted-foreground mt-1">Cluster Health Score: {metrics.health.score}/100</p>
-          </CardContent>
-        </Card>
+        {/* Cluster Health */}
+        <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible"
+          className="relative overflow-hidden p-5 flex flex-col items-center justify-center text-center"
+          style={{ ...glassCard, borderLeft: `3px solid ${isHealthy ? '#10b981' : '#ef4444'}`, minHeight: 140 }}
+        >
+          {isHealthy
+            ? <CheckCircle className="w-10 h-10 text-[#10b981] mb-3" />
+            : <AlertCircle className="w-10 h-10 text-[#ef4444] mb-3 animate-pulse" />
+          }
+          <h3 className="text-sm font-black uppercase tracking-widest text-white mb-1">{metrics.health.status}</h3>
+          <p className="text-[10px] text-white/35">Cluster Health: {metrics.health.score}/100</p>
+        </motion.div>
 
-        <Card className="border-[#1e2d47] bg-secondary p-5">
-           <div className="flex items-center text-xs text-muted-foreground font-semibold uppercase tracking-widest mb-4">
-              <Zap className="w-4 h-4 mr-2" /> API Latency Matrix
-           </div>
-           <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                 <span className="text-sm">Average (global)</span>
-                 <span className={`font-mono font-bold ${getStatusColor(metrics.apiPerformance.avg_latency_ms, 100, 300)}`}>
-                    {metrics.apiPerformance.avg_latency_ms} ms
-                 </span>
-              </div>
-              <div className="flex justify-between items-center border-t border-border/50 pt-4">
-                 <span className="text-sm">Edge Cases (p99)</span>
-                 <span className={`font-mono font-bold ${getStatusColor(metrics.apiPerformance.p99_latency_ms, 300, 800)}`}>
-                    {metrics.apiPerformance.p99_latency_ms} ms
-                 </span>
-              </div>
-           </div>
-        </Card>
+        {/* API Latency */}
+        <motion.div custom={1} variants={cardVariants} initial="hidden" animate="visible"
+          className="p-5" style={{ ...glassCard, borderLeft: '3px solid #3b82f6' }}
+        >
+          <div className="flex items-center gap-1.5 mb-4">
+            <Zap className="w-3.5 h-3.5 text-[#3b82f6]" />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40">API Latency Matrix</p>
+          </div>
+          <StatRow label="Average (global)" value={`${metrics.apiPerformance.avg_latency_ms} ms`} color={avgLatencyColor} />
+          <StatRow label="Edge Cases (p99)" value={`${metrics.apiPerformance.p99_latency_ms} ms`} color={p99LatencyColor} />
+          <div className="flex justify-between items-center pt-3">
+            <span className="text-xs text-white/50">Req/sec</span>
+            <span className="font-mono font-bold text-sm text-white">{metrics.apiPerformance.requests_per_sec?.toLocaleString()}</span>
+          </div>
+        </motion.div>
 
-        <Card className="border-[#1e2d47] bg-secondary p-5">
-           <div className="flex items-center text-xs text-muted-foreground font-semibold uppercase tracking-widest mb-4">
-              <AlertCircle className="w-4 h-4 mr-2" /> Edge Error Rates
-           </div>
-           <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                 <span className="text-sm">Failed Requests</span>
-                 <span className="font-mono font-bold text-[#ef4444]">{metrics.errorRates.total_errors}</span>
-              </div>
-              <div className="flex justify-between items-center border-t border-border/50 pt-4">
-                 <span className="text-sm">Failure Deviation</span>
-                 <span className={`font-mono font-bold ${getStatusColor(metrics.errorRates.error_percentage, 1, 5)}`}>
-                    {metrics.errorRates.error_percentage}%
-                 </span>
-              </div>
-           </div>
-        </Card>
+        {/* Error Rates */}
+        <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible"
+          className="p-5" style={{ ...glassCard, borderLeft: '3px solid #ef4444' }}
+        >
+          <div className="flex items-center gap-1.5 mb-4">
+            <AlertCircle className="w-3.5 h-3.5 text-[#ef4444]" />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Edge Error Rates</p>
+          </div>
+          <StatRow label="Failed Requests" value={metrics.errorRates.total_errors} color="#ef4444" />
+          <StatRow label="Failure Deviation" value={`${metrics.errorRates.error_percentage}%`} color={errorPctColor} />
+        </motion.div>
 
-        <Card className="border-[#1e2d47] bg-secondary p-5">
-           <div className="flex items-center text-xs text-muted-foreground font-semibold uppercase tracking-widest mb-4">
-              <Wifi className="w-4 h-4 mr-2" /> Websocket Nodes
-           </div>
-           <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                 <span className="text-sm">Live Concurrent Connections</span>
-                 <span className="font-mono font-bold text-[#3b82f6]">{(metrics.connections?.active ?? 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center border-t border-border/50 pt-4">
-                 <span className="text-sm">Max Saturated Nodes</span>
-                 <span className="font-mono text-muted-foreground">{(metrics.connections?.peak_last_hour ?? 0).toLocaleString()}</span>
-              </div>
-           </div>
-        </Card>
+        {/* WebSocket Nodes */}
+        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible"
+          className="p-5" style={{ ...glassCard, borderLeft: '3px solid #10b981' }}
+        >
+          <div className="flex items-center gap-1.5 mb-4">
+            <Wifi className="w-3.5 h-3.5 text-[#10b981]" />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40">WebSocket Nodes</p>
+          </div>
+          <div className="mb-2">
+            <p className="text-[10px] text-white/35 mb-1">Live Concurrent</p>
+            <p className="text-2xl font-mono font-bold text-[#10b981]">{(metrics.connections?.active ?? 0).toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-white/35 mb-1">Peak (last hour)</p>
+            <p className="text-sm font-mono text-white/60">{(metrics.connections?.peak_last_hour ?? 0).toLocaleString()}</p>
+          </div>
+        </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-         {/* Live Ingestion Matrix */}
-         <Card className="border-[#1e2d47] bg-[#141d2e]">
-            <CardHeader className="border-b border-border pb-4">
-               <CardTitle className="text-base flex items-center">
-                  <Database className="w-4 h-4 mr-2 text-[#10b981]"/> Stream Ingestion Velocity
-               </CardTitle>
-               <CardDescription>Real-time stream processing and event mapping speeds.</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 pb-6">
-               <div className="flex items-center justify-between mb-8">
-                  <div>
-                     <h2 className="text-4xl font-mono font-bold text-[#10b981] mb-2">{(metrics.ingestion?.events_per_sec ?? 0).toLocaleString()}</h2>
-                     <p className="text-xs uppercase tracking-widest text-muted-foreground">Events Dispatched / Sec (EPS)</p>
-                  </div>
-                  <div className="h-24 w-24 rounded-full border-4 border-[#10b981] border-r-transparent animate-spin flex items-center justify-center relative">
-                     <div className="absolute inset-2 rounded-full border-4 border-[#f59e0b]/50 border-t-transparent animate-spin" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
-                  </div>
-               </div>
-               <div className="bg-[rgba(255,255,255,0.02)] border border-border p-4 rounded-lg flex justify-between items-center">
-                  <span className="text-sm font-semibold">Total Processed (Current Shard)</span>
-                  <span className="font-mono font-bold tracking-widest">{(metrics.ingestion?.total_processed ?? 0).toLocaleString()}</span>
-               </div>
-            </CardContent>
-         </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Stream Ingestion Velocity */}
+        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible" style={glassCard} className="overflow-hidden">
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-2">
+              <Database className="w-4 h-4 text-[#10b981]" />
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Stream Ingestion Velocity</h3>
+            </div>
+            <p className="text-[11px] text-white/35 mt-1">Real-time stream processing and event mapping speeds.</p>
+          </div>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-4xl font-mono font-bold text-[#10b981] mb-1">
+                  {(metrics.ingestion?.events_per_sec ?? 0).toLocaleString()}
+                </h2>
+                <p className="text-[10px] uppercase tracking-widest text-white/30">Events Dispatched / Sec (EPS)</p>
+              </div>
+              {/* Animated spinner graphic */}
+              <div className="relative w-20 h-20 shrink-0">
+                <div className="absolute inset-0 rounded-full border-4 border-[#10b981] border-r-transparent animate-spin" />
+                <div className="absolute inset-2 rounded-full border-4 border-[#f59e0b]/50 border-t-transparent animate-spin" style={{ animationDirection: 'reverse', animationDuration: '3s' }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-[#10b981]/50" />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <span className="text-xs text-white/50">Total Processed (Current Shard)</span>
+              <span className="font-mono font-bold text-white tracking-widest">
+                {(metrics.ingestion?.total_processed ?? 0).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </motion.div>
 
-         {/* Hardware Reallocation Menu */}
-         <Card className="border-[#ef4444]/30 bg-[rgba(239,68,68,0.02)]">
-            <CardHeader className="border-b border-[#ef4444]/20 pb-4">
-               <CardTitle className="text-base flex items-center text-[#ef4444]">
-                  <HardDrive className="w-4 h-4 mr-2 "/> Destructive Server Utilities
-               </CardTitle>
-               <CardDescription className="text-xs">Root-level controls for load balancing, pod rebooting, and emergency system dumps.</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-3">
-               <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" onClick={() => handleRestartNode('link-router-pod')} className="justify-start border-[#ef4444]/30 hover:bg-[#ef4444]/10 text-[#ef4444] transition-all">
-                     <RefreshCw className="w-4 h-4 mr-2" /> Reboot Router Matrix
-                  </Button>
-                  <Button variant="outline" onClick={() => handleRestartNode('kafka-ingestion')} className="justify-start border-[#f59e0b]/30 hover:bg-[#f59e0b]/10 text-[#f59e0b] transition-all">
-                     <RefreshCw className="w-4 h-4 mr-2" /> Purge Ingestion Queues
-                  </Button>
-               </div>
-               <div className="bg-black/50 p-4 border border-[#ef4444]/50 rounded text-[11px] font-mono text-[#ef4444]/70 mt-4 leading-relaxed">
-                  WARNING: Execution of root operations may pause tracking attribution payloads for up to 3000ms while redundancy nodes align. Ensure metrics represent critical failure before reboot initialization.
-               </div>
-            </CardContent>
-         </Card>
+        {/* Destructive Server Utilities */}
+        <motion.div custom={5} variants={cardVariants} initial="hidden" animate="visible" className="overflow-hidden"
+          style={{ background: 'rgba(20,5,5,0.85)', backdropFilter: 'blur(20px) saturate(160%)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 14 }}
+        >
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(239,68,68,0.12)' }}>
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-[#ef4444]" />
+              <h3 className="text-sm font-semibold text-[#ef4444] uppercase tracking-wider">Destructive Server Utilities</h3>
+            </div>
+            <p className="text-[11px] text-[#ef4444]/50 mt-1">Root-level controls for load balancing, pod rebooting, and emergency system dumps.</p>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => handleRestartNode('link-router-pod')}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-[#ef4444] transition-all hover:bg-[#ef4444]/10"
+                style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.25)' }}
+              >
+                <RefreshCw className="w-4 h-4 shrink-0" /> Reboot Router Matrix
+              </button>
+              <button
+                onClick={() => handleRestartNode('kafka-ingestion')}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-[#f59e0b] transition-all hover:bg-[#f59e0b]/10"
+                style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}
+              >
+                <RefreshCw className="w-4 h-4 shrink-0" /> Purge Ingestion Queues
+              </button>
+            </div>
+            <div className="p-4 rounded-xl text-[11px] font-mono leading-relaxed text-[#ef4444]/60" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <span className="text-[#ef4444] font-bold">WARNING: </span>
+              Execution of root operations may pause tracking attribution payloads for up to 3000ms while redundancy nodes align. Ensure metrics represent critical failure before reboot initialization.
+            </div>
+
+            {/* Live status */}
+            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${loading ? 'bg-[#f59e0b] animate-pulse' : 'bg-[#10b981]'}`} />
+              <span className="text-xs text-white/40">
+                {loading ? 'Polling cluster telemetry...' : `Last synced: ${new Date().toLocaleTimeString()} · Auto-refresh every 30s`}
+              </span>
+            </div>
+          </div>
+        </motion.div>
       </div>
-
     </div>
   );
 };

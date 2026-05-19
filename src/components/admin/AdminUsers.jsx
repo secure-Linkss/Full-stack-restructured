@@ -139,7 +139,7 @@ const AdminUsers = ({ isOwner = false, userRole = 'admin' }) => {
         }
       } else if (action === 'Reset Password') {
         await api.adminUsers.resetPassword(user.id);
-        toast.success(`Password reset for ${user.username}. New password: Password123!`);
+        toast.success(`Password reset for ${user.username}. A new password has been sent to their registered email.`);
       } else if (action === 'Suspend User') {
         await api.adminUsers.suspend(user.id, 'Suspended by administrator');
         toast.success(`User ${user.username} suspended.`);
@@ -319,7 +319,16 @@ const AdminUsers = ({ isOwner = false, userRole = 'admin' }) => {
                   searchPlaceholder="Search username or email..."
                   onSearch={setSearchQuery}
                   onRefresh={fetchData}
-                  onExport={() => toast.info('Exporting user list...')}
+                  onExport={() => {
+                    if (!filteredUsers.length) { toast.error('No users to export.'); return; }
+                    const headers = ['Username', 'Email', 'Role', 'Status', 'Plan', 'Links', 'Created'];
+                    const rows = filteredUsers.map(u => [u.username || '', u.email || '', u.role || '', u.status || 'active', u.plan_type || 'free', u.linkCount || 0, u.created_at ? new Date(u.created_at).toLocaleDateString() : '']);
+                    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+                    URL.revokeObjectURL(url); toast.success('User list exported.');
+                  }}
                   filterOptions={[
                     { value: 'all', label: 'All Roles' },
                     { value: 'main_admin', label: 'Main Admin' },

@@ -366,12 +366,6 @@ const Campaigns = () => {
         onFilterChange={setFilter}
         dateRangeOptions={[]}
         onDateRangeChange={() => {}}
-        extraButtons={[
-          <Button key="filter" variant="outline" size="sm" className="h-9 text-xs px-2.5" onClick={() => toast.info('Advanced filters')}>
-            <Filter className="h-3.5 w-3.5 sm:mr-1.5" />
-            <span className="hidden sm:inline">Filters</span>
-          </Button>
-        ]}
       />
 
       <Card>

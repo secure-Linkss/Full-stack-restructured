@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Link as LinkIcon, RefreshCw, Filter, Trash2, Edit, BarChart3, Copy,
@@ -21,10 +22,26 @@ import api from '../../services/api';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.07, duration: 0.35, ease: [0.4, 0, 0.2, 1] }
+  })
+};
+
+const glassStyle = {
+  background: 'rgba(8,15,35,0.72)',
+  backdropFilter: 'blur(20px) saturate(160%)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  borderRadius: 14,
+};
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#141d2e] border border-[#1e2d47] rounded-lg p-3 shadow-xl text-xs">
+      <div style={glassStyle} className="p-3 shadow-xl text-xs">
         <p className="text-muted-foreground mb-1 uppercase tracking-wide">{label}</p>
         {payload.map((p, i) => (
           <div key={i}>
@@ -67,7 +84,6 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
 
   const countries = analytics?.countries || [];
 
-  // Build a synthetic click-over-time chart from available data (mock daily distribution if not provided)
   const clickChart = analytics?.click_history || analytics?.clicks_over_time || (() => {
     const days = 7;
     const total = analytics?.total_clicks || 0;
@@ -78,7 +94,7 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
   })();
 
   return (
-    <div className="mt-0 border-t border-[#1e2d47] bg-[#0d1525] animate-fade-in">
+    <div className="mt-0 border-t border-[#1e2d47] animate-fade-in" style={{ background: 'rgba(8,15,35,0.85)' }}>
       <div className="p-5">
         <div className="flex items-center justify-between mb-4">
           <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -91,8 +107,11 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <RefreshCw className="w-6 h-6 animate-spin text-[#3b82f6] opacity-60" />
+          <div className="flex items-center justify-center py-20">
+            <div className="relative w-9 h-9">
+              <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+            </div>
           </div>
         ) : !analytics ? (
           <p className="text-sm text-muted-foreground text-center py-8">No analytics data available yet.</p>
@@ -106,7 +125,7 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
                 { label: 'Bots Blocked', value: analytics.bots_blocked || 0, color: '#ef4444', icon: ShieldAlert },
                 { label: 'Click Rate', value: `${analytics.click_rate || '—'}`, color: '#f59e0b', icon: TrendingUp },
               ].map((kpi, i) => (
-                <div key={i} className="rounded-lg border border-[#1e2d47] bg-[#141d2e] p-3">
+                <div key={i} style={{ ...glassStyle, borderLeft: `3px solid ${kpi.color}`, borderRadius: 10 }} className="p-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{kpi.label}</span>
                     <kpi.icon className="w-3.5 h-3.5" style={{ color: kpi.color }} />
@@ -120,9 +139,8 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
 
             {/* Charts row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Clicks over time */}
-              <div className="rounded-lg border border-[#1e2d47] bg-[#141d2e] p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Clicks Over Time</p>
+              <div style={{ ...glassStyle, borderRadius: 10 }} className="p-4">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Clicks Over Time</p>
                 <div className="h-[130px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={clickChart} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
@@ -136,20 +154,14 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
                       <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Area
-                        type="monotone" dataKey="clicks" name="Clicks"
-                        stroke="#3b82f6" strokeWidth={2}
-                        fill={`url(#grad-${link.id})`}
-                        isAnimationActive={true} animationDuration={600}
-                      />
+                      <Area type="monotone" dataKey="clicks" name="Clicks" stroke="#3b82f6" strokeWidth={2} fill={`url(#grad-${link.id})`} isAnimationActive animationDuration={600} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Geographic breakdown */}
-              <div className="rounded-lg border border-[#1e2d47] bg-[#141d2e] p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <div style={{ ...glassStyle, borderRadius: 10 }} className="p-4">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5" /> Top Countries
                 </p>
                 {countries.length > 0 ? (
@@ -175,8 +187,8 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
             </div>
 
             {/* Device breakdown */}
-            <div className="rounded-lg border border-[#1e2d47] bg-[#141d2e] p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Device Breakdown</p>
+            <div style={{ ...glassStyle, borderRadius: 10 }} className="p-4">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Device Breakdown</p>
               <div className="flex gap-6">
                 {devices.map((d, i) => {
                   const total = devices.reduce((s, x) => s + x.value, 0) || 1;
@@ -197,11 +209,9 @@ const LinkAnalyticsDrawer = ({ link, onClose }) => {
             </div>
 
             {/* Quantum redirect chain status */}
-            <div className="rounded-lg border border-[#1e2d47] bg-[#141d2e] p-3 flex items-center justify-between">
+            <div style={{ ...glassStyle, borderRadius: 10 }} className="p-3 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Quantum Redirect Chain</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-[#10b981]/10 text-[#10b981]">
-                Active
-              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded bg-[#10b981]/10 text-[#10b981]">Active</span>
             </div>
           </div>
         )}
@@ -239,11 +249,11 @@ const EditLinkModal = ({ link, onClose, onSaved }) => {
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground uppercase tracking-widest">Short URL</Label>
+            <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Short URL</Label>
             <p className="text-sm font-mono text-[#3b82f6] bg-[#0d1525] px-3 py-2 rounded-md border border-[#1e2d47]">{link.shortUrl}</p>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground uppercase tracking-widest">Destination URL</Label>
+            <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Destination URL</Label>
             <Input
               value={targetUrl}
               onChange={e => setTargetUrl(e.target.value)}
@@ -335,6 +345,13 @@ const AdminLinks = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const metricItems = [
+    { label: 'Total Nodes', value: links.length, color: '#3b82f6', icon: LinkIcon },
+    { label: 'Active Vectors', value: links.filter(u => u.status === 'active').length, color: '#10b981', icon: Activity },
+    { label: 'Dead Nodes', value: links.filter(u => u.status === 'expired').length, color: '#ef4444', icon: PowerOff },
+    { label: 'Total Traffic', value: links.reduce((acc, curr) => acc + (curr.clicks || 0), 0), color: '#f59e0b', icon: MonitorSmartphone },
+  ];
+
   const columns = [
     {
       header: 'Tracking Endpoint',
@@ -353,10 +370,10 @@ const AdminLinks = () => {
             </button>
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`text-[10px] font-mono tracking-widest px-2 py-0.5 rounded uppercase ${
-              row.status === 'active' ? 'bg-[#10b981]/10 text-[#10b981]' :
-              row.status === 'paused' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' :
-              'bg-[#ef4444]/10 text-[#ef4444]'
+            <span className={`text-[10px] font-mono tracking-widest px-2 py-0.5 rounded uppercase font-semibold ${
+              row.status === 'active' ? 'bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/25' :
+              row.status === 'paused' ? 'bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/25' :
+              'bg-[#ef4444]/15 text-[#ef4444] border border-[#ef4444]/25'
             }`}>{row.status}</span>
             <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{row.targetUrl}</span>
           </div>
@@ -420,27 +437,27 @@ const AdminLinks = () => {
           onSaved={fetchData}
         />
       )}
-      {/* Metric Telemetry Cards */}
+
+      {/* Metric Cards — glass with Framer Motion stagger */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Nodes', value: links.length, color: '#3b82f6', icon: LinkIcon },
-          { label: 'Active Vectors', value: links.filter(u => u.status === 'active').length, color: '#10b981', icon: Activity },
-          { label: 'Dead Nodes', value: links.filter(u => u.status === 'expired').length, color: '#ef4444', icon: PowerOff },
-          { label: 'Total Traffic', value: links.reduce((acc, curr) => acc + (curr.clicks || 0), 0), color: '#f59e0b', icon: MonitorSmartphone },
-        ].map((c, i) => (
-          <Card key={i} className="border-[#1e2d47] bg-[#141d2e] shadow-lg">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">{c.label}</p>
-                <h3 className="text-2xl font-heading font-bold" style={{ color: i === 2 ? c.color : undefined }}>
-                  {c.value?.toLocaleString()}
-                </h3>
-              </div>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${c.color}20` }}>
-                <c.icon className="w-5 h-5" style={{ color: c.color }} />
-              </div>
-            </CardContent>
-          </Card>
+        {metricItems.map((c, i) => (
+          <motion.div
+            key={i}
+            variants={cardVariants}
+            custom={i}
+            initial="hidden"
+            animate="visible"
+            style={{ ...glassStyle, borderLeft: `3px solid ${c.color}`, padding: '1.25rem' }}
+            className="flex items-center justify-between"
+          >
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">{c.label}</p>
+              <h3 className="text-2xl font-heading font-bold text-foreground">{c.value?.toLocaleString()}</h3>
+            </div>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${c.color}20` }}>
+              <c.icon className="w-5 h-5" style={{ color: c.color }} />
+            </div>
+          </motion.div>
         ))}
       </div>
 
@@ -457,7 +474,16 @@ const AdminLinks = () => {
               searchPlaceholder="Analyze short URLs, owners, or target destinations..."
               onSearch={setSearchQuery}
               onRefresh={fetchData}
-              onExport={() => toast.info('Exporting Active Endpoint DB...')}
+              onExport={() => {
+                if (!links.length) { toast.error('No links to export.'); return; }
+                const headers = ['Short URL', 'Target URL', 'Owner', 'Status', 'Clicks', 'Created'];
+                const rows = links.map(l => [l.shortUrl || '', l.targetUrl || '', l.owner || '', l.status || '', l.clicks || 0, l.createdAt ? new Date(l.createdAt).toLocaleDateString() : '']);
+                const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `links-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+                URL.revokeObjectURL(url); toast.success('Links exported.');
+              }}
               filterOptions={[
                 { value: 'all', label: 'All Operations' },
                 { value: 'active', label: 'Live Data' },
@@ -476,13 +502,14 @@ const AdminLinks = () => {
           </div>
 
           {loading ? (
-            <div className="text-center text-muted-foreground p-10 flex flex-col items-center">
-              <RefreshCw className="w-8 h-8 animate-spin text-[#3b82f6] opacity-50 mb-3" />
-              Locating DB Links...
+            <div className="flex items-center justify-center py-20">
+              <div className="relative w-9 h-9">
+                <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+              </div>
             </div>
           ) : (
             <div>
-              {/* Custom table rendering to support expandable rows */}
               <DataTable
                 columns={columns}
                 data={filteredLinks}

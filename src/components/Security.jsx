@@ -33,6 +33,7 @@ const Security = () => {
 	});
 	const [loading, setLoading] = useState(true);
 	const [dateRange, setDateRange] = useState('7d');
+	const [searchQuery, setSearchQuery] = useState('');
 
 	const fetchData = async () => {
 		setLoading(true);
@@ -245,7 +246,7 @@ const Security = () => {
 			cell: (row) => (
 				<ActionIconGroup
 					actions={[
-						{ icon: Eye, label: 'View Details', onClick: () => toast.info(`Viewing details for ${row.id}`) },
+						{ icon: Eye, label: 'View Details', onClick: () => toast.info(`${row.type || 'Event'} · IP: ${row.ip || '—'} · ${row.action || ''} · ${row.userAgent || ''}`, { duration: 5000 }) },
 					]}
 				/>
 			),
@@ -261,18 +262,12 @@ const Security = () => {
 
 			<FilterBar
 				searchPlaceholder="Search IP, link, or event type..."
-				onSearch={() => { }}
+				onSearch={setSearchQuery}
 				onRefresh={handleRefresh}
 				onExport={handleExport}
 				dateRangeOptions={['24h', '2d', '7d', '30d', '90d', '180d', '365d']}
 				onDateRangeChange={handleDateRangeChange}
 				selectedDateRange={dateRange}
-				extraButtons={[
-					<Button key="filter" variant="outline" size="sm" onClick={() => toast.info('Advanced filter options...')}>
-						<Filter className="h-4 w-4 mr-2" />
-						Filters
-					</Button>
-				]}
 			/>
 
 			{loading ? (
@@ -455,7 +450,11 @@ const Security = () => {
 						<CardContent>
 							<DataTable
 								columns={securityLogColumns}
-								data={securityLogs}
+								data={searchQuery ? securityLogs.filter(l =>
+									(l.ip || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+									(l.type || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+									(l.userAgent || '').toLowerCase().includes(searchQuery.toLowerCase())
+								) : securityLogs}
 								pageSize={10}
 							/>
 						</CardContent>

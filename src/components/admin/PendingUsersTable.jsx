@@ -131,7 +131,16 @@ const PendingUsersTable = () => {
             searchPlaceholder="Search by username or email..."
             onSearch={setSearchQuery}
             onRefresh={fetchData}
-            onExport={() => toast.info('Exporting pending users...')}
+            onExport={() => {
+              if (!filteredUsers.length) { toast.error('No pending users to export.'); return; }
+              const headers = ['Username', 'Email', 'Plan', 'Registered'];
+              const rows = filteredUsers.map(u => [u.username || '', u.email || '', u.plan_type || 'trial', u.created_at ? new Date(u.created_at).toLocaleDateString() : '']);
+              const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a'); a.href = url; a.download = `pending-users-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+              URL.revokeObjectURL(url); toast.success('Pending users exported.');
+            }}
             filterOptions={[]}
             onFilterChange={() => { }}
             dateRangeOptions={[]}

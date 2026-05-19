@@ -26,8 +26,8 @@ const SecuritySettings = () => {
       toast.error('New password and confirmation do not match.');
       return;
     }
-    if (passwords.new_password.length < 6) {
-      toast.error('New password must be at least 6 characters long.');
+    if (passwords.new_password.length < 8) {
+      toast.error('New password must be at least 8 characters long.');
       return;
     }
 

@@ -1,7 +1,51 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Clock, Search, CheckCircle, RefreshCw, Send, ShieldAlert, User, Mail, Shield, Trash2, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageSquare, Clock, Search, CheckCircle, RefreshCw, Send, ShieldAlert, User, Mail, Shield, Trash2 } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'sonner';
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.35, ease: [0.4, 0, 0.2, 1] } })
+};
+
+const glassCard = {
+  background: 'rgba(8,15,35,0.72)',
+  backdropFilter: 'blur(20px) saturate(160%)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  borderRadius: 14,
+};
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    open: { bg: 'bg-[#3b82f6]/10', text: 'text-[#3b82f6]', label: 'Open' },
+    in_progress: { bg: 'bg-[#f59e0b]/10', text: 'text-[#f59e0b]', label: 'In Progress' },
+    waiting_response: { bg: 'bg-[#f59e0b]/10', text: 'text-[#f59e0b]', label: 'Waiting' },
+    resolved: { bg: 'bg-[#10b981]/10', text: 'text-[#10b981]', label: 'Resolved' },
+    closed: { bg: 'bg-white/5', text: 'text-white/40', label: 'Closed' },
+  };
+  const s = map[status] || map.open;
+  return (
+    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${s.bg} ${s.text}`}>
+      {s.label}
+    </span>
+  );
+};
+
+const PriorityBadge = ({ priority }) => {
+  const map = {
+    high: { bg: 'bg-[#ef4444]/10', text: 'text-[#ef4444]', label: 'High' },
+    medium: { bg: 'bg-[#f59e0b]/10', text: 'text-[#f59e0b]', label: 'Medium' },
+    low: { bg: 'bg-[#10b981]/10', text: 'text-[#10b981]', label: 'Low' },
+  };
+  const p = map[priority];
+  if (!p) return null;
+  return (
+    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ${p.bg} ${p.text}`}>
+      {p.label}
+    </span>
+  );
+};
 
 const AdminTickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -9,7 +53,6 @@ const AdminTickets = () => {
   const [activeTicket, setActiveTicket] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  
   const [replyMessage, setReplyMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
@@ -17,13 +60,6 @@ const AdminTickets = () => {
 
   const scrollToBottom = () => {
     setTimeout(() => threadEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-  };
-
-  const getStatusBadgeClass = (status) => {
-    if (status === 'resolved') return 'badge-dim-green';
-    if (status === 'closed') return 'text-muted-foreground bg-white/5 border border-white/10 text-[9px] px-1.5 py-0 rounded font-semibold uppercase';
-    if (status === 'in_progress' || status === 'waiting_response') return 'badge-dim-blue';
-    return 'badge-dim-amber';
   };
 
   const fetchTickets = async () => {
@@ -52,9 +88,7 @@ const AdminTickets = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  useEffect(() => { fetchTickets(); }, []);
 
   const handleReply = async (e) => {
     e.preventDefault();
@@ -64,7 +98,6 @@ const AdminTickets = () => {
       await api.adminTickets.reply(activeTicket.id, replyMessage);
       toast.success('Reply submitted and sent to user.');
       setReplyMessage('');
-      // Refresh the thread
       const full = await api.adminTickets.getById(activeTicket.id);
       setActiveTicket(full.ticket || full);
       scrollToBottom();
@@ -81,7 +114,6 @@ const AdminTickets = () => {
     try {
       await api.adminTickets.close(activeTicket.id);
       toast.success('Ticket marked as resolved.');
-      // Update status immediately in UI
       setActiveTicket(prev => prev ? { ...prev, status: 'resolved' } : null);
       fetchTickets();
     } catch (error) {
@@ -107,177 +139,288 @@ const AdminTickets = () => {
     return true;
   });
 
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'open', label: 'Open' },
+    { key: 'in_progress', label: 'Active' },
+    { key: 'resolved', label: 'Resolved' },
+  ];
+
   return (
-    <div className="space-y-6 animate-fade-in w-full h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+    <div className="space-y-6 w-full h-full flex flex-col">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
         <div>
-          <h3 className="text-lg font-heading text-foreground">Global Support Hub</h3>
-          <p className="text-xs text-muted-foreground">Manage user communications and active support tickets.</p>
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-[#3b82f6]" />
+            Global Support Hub
+          </h3>
+          <p className="text-xs text-white/40 mt-0.5">Manage user communications and active support tickets.</p>
         </div>
-        <button onClick={fetchTickets} className="btn-secondary text-xs px-3">
-          <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Sync Queues
+        <button
+          onClick={fetchTickets}
+          style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 8 }}
+          className="flex items-center gap-2 text-[#3b82f6] text-xs px-3 py-2 hover:bg-[#3b82f6]/20 transition-colors"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          Sync Queues
         </button>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-[600px]">
-        {/* Ticket List */}
-        <div className="lg:col-span-1 enterprise-card flex flex-col h-full overflow-hidden">
-          <div className="p-4 border-b border-border bg-[rgba(255,255,255,0.01)] shrink-0 space-y-3">
-             <div className="relative">
-               <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-               <input 
-                 type="text" 
-                 placeholder="Search ID, Subject, or Email..." 
-                 className="enterprise-input pl-9 w-full text-xs h-10"
-                 value={search}
-                 onChange={(e) => setSearch(e.target.value)}
-               />
-             </div>
-             <div className="flex gap-2">
-               <button onClick={() => setFilter('all')} className={`flex-1 text-xs py-1.5 rounded-md font-semibold ${filter === 'all' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'text-muted-foreground hover:bg-white/5'}`}>All</button>
-               <button onClick={() => setFilter('open')} className={`flex-1 text-xs py-1.5 rounded-md font-semibold ${filter === 'open' ? 'bg-[#ef4444]/20 text-[#ef4444]' : 'text-muted-foreground hover:bg-white/5'}`}>Open</button>
-               <button onClick={() => setFilter('resolved')} className={`flex-1 text-xs py-1.5 rounded-md font-semibold ${filter === 'resolved' ? 'bg-white/10 text-foreground' : 'text-muted-foreground hover:bg-white/5'}`}>Resolved</button>
-             </div>
+        {/* Ticket List Panel */}
+        <motion.div
+          custom={0} variants={cardVariants} initial="hidden" animate="visible"
+          className="lg:col-span-1 flex flex-col overflow-hidden"
+          style={glassCard}
+        >
+          {/* Search + Filters */}
+          <div
+            className="p-4 shrink-0 space-y-3"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+              <input
+                type="text"
+                placeholder="Search ID, Subject, or Email..."
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}
+                className="w-full pl-9 pr-3 py-2 text-xs text-white placeholder-white/25 outline-none focus:border-[#3b82f6]/50 transition-colors"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-1.5">
+              {filters.map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
+                  className="flex-1 text-[11px] py-1.5 rounded-md font-semibold transition-colors"
+                  style={{
+                    background: filter === f.key ? 'rgba(59,130,246,0.15)' : 'transparent',
+                    color: filter === f.key ? '#3b82f6' : 'rgba(255,255,255,0.35)',
+                    border: filter === f.key ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+
+          {/* List */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {loading ? (
-              <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin"></div></div>
+              <div className="flex items-center justify-center py-20">
+                <div className="relative w-9 h-9">
+                  <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+                </div>
+              </div>
             ) : filteredTickets.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground text-xs"><ShieldAlert className="w-8 h-8 mx-auto mb-2 opacity-20" /> No tickets in queue.</div>
+              <div className="flex flex-col items-center justify-center py-16 text-white/30">
+                <ShieldAlert className="w-8 h-8 mb-2 opacity-30" />
+                <span className="text-xs">No tickets in queue.</span>
+              </div>
             ) : (
-               filteredTickets.map(ticket => (
-                 <div
-                   key={ticket.id}
-                   className={`w-full text-left p-3 mb-2 rounded-lg border transition-all ${activeTicket?.id === ticket.id ? 'bg-[rgba(59,130,246,0.05)] border-[#3b82f6]/50' : 'bg-transparent border-transparent hover:bg-white/5'}`}
-                 >
-                   <button className="w-full text-left" onClick={() => openTicket(ticket)}>
-                     <div className="flex justify-between items-start mb-1">
-                       <span className="text-[10px] uppercase tracking-widest font-bold text-[#3b82f6]">{ticket.id}</span>
-                       <span className={`${getStatusBadgeClass(ticket.status)} text-[9px] px-1.5 py-0`}>{(ticket.status || '').replace('_', ' ')}</span>
-                     </div>
-                     <h4 className="text-sm font-semibold text-foreground truncate mb-1">{ticket.subject}</h4>
-                     <div className="flex items-center text-[10px] text-muted-foreground/80 mb-2 truncate">
-                        <Mail className="w-3 h-3 mr-1" /> {ticket.user_email || ticket.email || 'Unknown User'}
-                     </div>
-                     <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                       <span className="flex items-center font-mono"><Clock className="w-3 h-3 mr-1" /> {new Date(ticket.created_at).toLocaleDateString()}</span>
-                       {ticket.priority === 'high' && <span className="px-1.5 rounded bg-[#ef4444]/20 text-[#ef4444] font-bold">HIGH</span>}
-                     </div>
-                   </button>
-                   <div className="flex justify-end mt-2 pt-2 border-t border-border/40">
-                     <button
-                       onClick={(e) => { e.stopPropagation(); handleDeleteTicket(ticket); }}
-                       className="flex items-center gap-1 text-[10px] text-[#ef4444]/70 hover:text-[#ef4444] transition-colors"
-                     >
-                       <Trash2 className="w-3 h-3" /> Delete
-                     </button>
-                   </div>
-                 </div>
-               ))
+              <AnimatePresence>
+                {filteredTickets.map((ticket, i) => (
+                  <motion.div
+                    key={ticket.id}
+                    custom={i}
+                    variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="rounded-xl overflow-hidden"
+                    style={{
+                      background: activeTicket?.id === ticket.id ? 'rgba(59,130,246,0.08)' : 'transparent',
+                      border: activeTicket?.id === ticket.id ? '1px solid rgba(59,130,246,0.25)' : '1px solid transparent',
+                    }}
+                  >
+                    <button
+                      className="w-full text-left p-3 transition-all hover:bg-white/[0.03]"
+                      onClick={() => openTicket(ticket)}
+                    >
+                      <div className="flex justify-between items-start mb-1.5">
+                        <span className="text-[10px] font-mono font-bold text-[#3b82f6] uppercase tracking-widest">{ticket.id}</span>
+                        <StatusBadge status={ticket.status} />
+                      </div>
+                      <h4 className="text-sm font-semibold text-white truncate mb-1">{ticket.subject}</h4>
+                      <div className="flex items-center text-[10px] text-white/35 mb-2 truncate">
+                        <Mail className="w-3 h-3 mr-1 shrink-0" />
+                        {ticket.user_email || ticket.email || 'Unknown User'}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="flex items-center gap-1 text-[10px] text-white/30 font-mono">
+                          <Clock className="w-3 h-3" />
+                          {new Date(ticket.created_at).toLocaleDateString()}
+                        </span>
+                        <PriorityBadge priority={ticket.priority} />
+                      </div>
+                    </button>
+                    <div className="px-3 pb-2 flex justify-end" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteTicket(ticket); }}
+                        className="flex items-center gap-1 text-[10px] text-[#ef4444]/50 hover:text-[#ef4444] transition-colors pt-2"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Action Area */}
-        <div className="lg:col-span-2 enterprise-card flex flex-col h-full overflow-hidden relative border-[#1e2d47]">
-           {activeTicket ? (
-              <div className="flex flex-col h-full animate-fade-in relative z-10 w-full">
-                 <div className="p-5 border-b border-border bg-[rgba(255,255,255,0.01)] shrink-0 flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-heading font-bold text-foreground mb-1 flex items-center">
-                         {activeTicket.subject}
-                         {activeTicket.priority === 'high' && <span className="ml-3 badge-dim-red text-[10px]">High Priority</span>}
-                      </h3>
-                      <div className="flex items-center gap-4 mt-2">
-                         <div className="flex items-center text-xs text-muted-foreground font-medium">
-                            <User className="w-3.5 h-3.5 mr-1" /> {activeTicket.user_email || activeTicket.email || 'Unknown User'}
-                         </div>
-                         <div className="flex items-center text-xs text-muted-foreground font-mono">
-                            <Clock className="w-3.5 h-3.5 mr-1" /> {new Date(activeTicket.created_at).toLocaleString()}
-                         </div>
-                      </div>
+        {/* Detail Panel */}
+        <motion.div
+          custom={1} variants={cardVariants} initial="hidden" animate="visible"
+          className="lg:col-span-2 flex flex-col overflow-hidden"
+          style={glassCard}
+        >
+          {activeTicket ? (
+            <div className="flex flex-col h-full">
+              {/* Thread Header */}
+              <div className="p-5 shrink-0 flex justify-between items-start" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div>
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <h3 className="text-base font-bold text-white">{activeTicket.subject}</h3>
+                    <StatusBadge status={activeTicket.status} />
+                    <PriorityBadge priority={activeTicket.priority} />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-white/35">
+                    <span className="flex items-center gap-1">
+                      <User className="w-3.5 h-3.5" />
+                      {activeTicket.user_email || activeTicket.email || 'Unknown'}
+                    </span>
+                    <span className="flex items-center gap-1 font-mono">
+                      <Clock className="w-3.5 h-3.5" />
+                      {new Date(activeTicket.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                {activeTicket.status !== 'resolved' && (
+                  <button
+                    onClick={handleCloseTicket}
+                    className="flex items-center gap-1.5 text-xs text-[#10b981] px-3 py-1.5 rounded-lg shrink-0 hover:bg-[#10b981]/10 transition-colors"
+                    style={{ border: '1px solid rgba(16,185,129,0.25)' }}
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" /> Mark Resolved
+                  </button>
+                )}
+              </div>
+
+              {/* Message Thread */}
+              <div className="flex-1 p-5 overflow-y-auto space-y-5" style={{ background: 'rgba(0,0,0,0.15)' }}>
+                {loadingThread ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="relative w-9 h-9">
+                      <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+                      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
                     </div>
-                    {activeTicket.status !== 'resolved' && (
-                       <button onClick={handleCloseTicket} className="btn-secondary text-xs px-3">
-                          <CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Mark Resolved
-                       </button>
-                    )}
-                 </div>
-                 
-                 {/* Thread area */}
-                 <div className="flex-1 p-5 overflow-y-auto custom-scrollbar space-y-6 bg-background/50">
-                   {loadingThread ? (
-                     <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-[#3b82f6]/30 border-t-[#3b82f6] rounded-full animate-spin"></div></div>
-                   ) : (
-                     <>
-                       {/* Show initial message if no messages array or as fallback */}
-                       {((activeTicket.messages || []).length === 0) && (
-                         <div className="flex items-start gap-4">
-                           <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center shrink-0 text-muted-foreground"><User className="w-4 h-4"/></div>
-                           <div className="bg-[rgba(255,255,255,0.03)] border border-border p-4 rounded-xl rounded-tl-sm w-full">
-                             <div className="flex justify-between items-center mb-2">
-                               <span className="text-xs font-bold text-foreground">{activeTicket.user_email || activeTicket.email || 'Client'}</span>
-                               <span className="text-[10px] text-muted-foreground">{new Date(activeTicket.created_at).toLocaleString()}</span>
-                             </div>
-                             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{activeTicket.message || activeTicket._msg || 'No message content.'}</p>
-                           </div>
-                         </div>
-                       )}
-                       {/* Render full message thread */}
-                       {(activeTicket.messages || []).map((msg, i) => {
-                         const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply === true || msg.is_admin_reply === 'true';
-                         return (
-                           <div key={msg.id || i} className={`flex items-start gap-4 ${isAdmin ? 'flex-row-reverse' : ''}`}>
-                             <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${isAdmin ? 'bg-[#10b981]/20 text-[#10b981]' : 'bg-secondary text-muted-foreground'}`}>
-                               {isAdmin ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                             </div>
-                             <div className={`p-4 rounded-xl w-full border ${isAdmin ? 'bg-[rgba(16,185,129,0.05)] border-[#10b981]/20 rounded-tr-sm' : 'bg-[rgba(255,255,255,0.03)] border-border rounded-tl-sm'}`}>
-                               <div className="flex justify-between items-center mb-2">
-                                 <span className={`text-xs font-bold ${isAdmin ? 'text-[#10b981]' : 'text-foreground'}`}>
-                                   {isAdmin ? 'Support Agent' : (msg.sender_email || activeTicket.user_email || 'Client')}
-                                 </span>
-                                 <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</span>
-                               </div>
-                               <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{msg.content || msg.message}</p>
-                             </div>
-                           </div>
-                         );
-                       })}
-                       <div ref={threadEndRef} />
-                     </>
-                   )}
-                 </div>
-
-                 {/* Admin Reply box */}
-                 {activeTicket.status !== 'resolved' && activeTicket.status !== 'closed' && (
-                   <div className="p-4 border-t border-border bg-card shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.1)]">
-                     <form onSubmit={handleReply} className="relative">
-                        <textarea 
-                          required
-                          value={replyMessage}
-                          onChange={(e) => setReplyMessage(e.target.value)}
-                          placeholder="Type your official reply to the client..."
-                          className="enterprise-input w-full pr-[140px] text-sm py-4 min-h-[80px] max-h-[150px] border-[#3b82f6]/40 focus:border-[#3b82f6]"
-                          disabled={submitting}
-                        />
-                        <div className="absolute right-3 top-3 flex items-center gap-2">
-                           <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground hidden sm:block">Admin Context</span>
-                           <button type="submit" disabled={!replyMessage.trim() || submitting} className="btn-primary px-4 shadow-lg disabled:opacity-50">
-                              {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1.5" />} Send Reply
-                           </button>
+                  </div>
+                ) : (
+                  <>
+                    {(activeTicket.messages || []).length === 0 && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.25)' }}>
+                          <User className="w-4 h-4 text-[#3b82f6]" />
                         </div>
-                     </form>
-                   </div>
-                 )}
+                        <div className="flex-1 rounded-xl rounded-tl-sm p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-[#3b82f6]">{activeTicket.user_email || activeTicket.email || 'Client'}</span>
+                            <span className="text-[10px] text-white/30">{new Date(activeTicket.created_at).toLocaleString()}</span>
+                          </div>
+                          <p className="text-sm text-white/80 whitespace-pre-wrap leading-relaxed">{activeTicket.message || activeTicket._msg || 'No message content.'}</p>
+                        </div>
+                      </div>
+                    )}
+                    {(activeTicket.messages || []).map((msg, i) => {
+                      const isAdmin = msg.sender_role === 'admin' || msg.sender_role === 'main_admin' || msg.is_admin_reply === true || msg.is_admin_reply === 'true';
+                      return (
+                        <motion.div
+                          key={msg.id || i}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                          className={`flex items-start gap-3 ${isAdmin ? 'flex-row-reverse' : ''}`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                            style={{
+                              background: isAdmin ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.06)',
+                              border: isAdmin ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(255,255,255,0.08)',
+                            }}
+                          >
+                            {isAdmin ? <Shield className="w-4 h-4 text-[#10b981]" /> : <User className="w-4 h-4 text-white/40" />}
+                          </div>
+                          <div
+                            className={`flex-1 p-4 rounded-xl ${isAdmin ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}
+                            style={{
+                              background: isAdmin ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.03)',
+                              border: isAdmin ? '1px solid rgba(16,185,129,0.15)' : '1px solid rgba(255,255,255,0.06)',
+                            }}
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <span className={`text-xs font-bold ${isAdmin ? 'text-[#10b981]' : 'text-white/80'}`}>
+                                {isAdmin ? 'Support Agent' : (msg.sender_email || activeTicket.user_email || 'Client')}
+                              </span>
+                              <span className="text-[10px] text-white/30">{new Date(msg.created_at).toLocaleString()}</span>
+                            </div>
+                            <p className="text-sm text-white/75 whitespace-pre-wrap leading-relaxed">{msg.content || msg.message}</p>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    <div ref={threadEndRef} />
+                  </>
+                )}
               </div>
-           ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-10 opacity-60">
-                 <ShieldAlert className="w-16 h-16 text-muted-foreground mb-4 opacity-30" />
-                 <h3 className="text-lg font-medium text-foreground">Support Operations</h3>
-                 <p className="text-sm text-muted-foreground mt-1 max-w-sm">Select a ticket from the queue on the left to begin correspondence with the client.</p>
+
+              {/* Reply Box */}
+              {activeTicket.status !== 'resolved' && activeTicket.status !== 'closed' && (
+                <div className="p-4 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.2)' }}>
+                  <form onSubmit={handleReply} className="relative">
+                    <textarea
+                      required
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      placeholder="Type your official reply to the client..."
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 10 }}
+                      className="w-full pr-[150px] text-sm py-3 px-4 min-h-[80px] max-h-[150px] text-white placeholder-white/25 outline-none focus:border-[#3b82f6]/60 transition-colors resize-none"
+                      disabled={submitting}
+                    />
+                    <div className="absolute right-3 top-3 flex items-center gap-2">
+                      <button
+                        type="submit"
+                        disabled={!replyMessage.trim() || submitting}
+                        className="flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-lg text-white disabled:opacity-40 transition-all"
+                        style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)', boxShadow: '0 4px 15px rgba(59,130,246,0.3)' }}
+                      >
+                        {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Send Reply
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center p-10">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <ShieldAlert className="w-8 h-8 text-white/20" />
               </div>
-           )}
-        </div>
+              <h3 className="text-base font-semibold text-white/60">Support Operations</h3>
+              <p className="text-sm text-white/30 mt-1 max-w-sm">Select a ticket from the queue on the left to begin correspondence with the client.</p>
+            </div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
