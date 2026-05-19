@@ -6,7 +6,6 @@ import {
   Globe, Shield, Settings, Zap, Users, X, ChevronLeft, ChevronRight,
   Bell, MessageSquare, Mail, ChevronDown
 } from 'lucide-react';
-import { Badge } from './ui/badge';
 import Logo from './Logo';
 import api from '../services/api';
 

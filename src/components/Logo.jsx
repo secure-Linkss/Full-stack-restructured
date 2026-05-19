@@ -48,7 +48,7 @@ const Logo = ({ size = 'md', showText = true, className = '' }) => {
           <h1 className={`${currentSize.title} font-heading font-black tracking-tight text-white leading-none`}>
              Brain <span className="text-[#3b82f6]">Link</span>
           </h1>
-          <span className={`${currentSize.subtitle} text-muted-foreground font-mono tracking-[0.2em] font-medium uppercase mt-0.5`}>
+          <span className={`${currentSize.subtitle} font-mono tracking-[0.2em] font-medium uppercase mt-0.5`} style={{ color: 'rgba(255,255,255,0.4)' }}>
              Tracker
           </span>
         </div>
