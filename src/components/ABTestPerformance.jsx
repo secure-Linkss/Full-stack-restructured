@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { TestTube, TrendingUp, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { TestTube, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../services/api';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
 
-
+const glass = {
+  background: 'rgba(8,15,35,0.72)',
+  backdropFilter: 'blur(20px) saturate(160%)',
+  border: '1px solid rgba(255,255,255,0.06)',
+  borderRadius: 14,
+};
 
 const ABTestPerformance = () => {
   const [testData, setTestData] = useState([]);
@@ -16,73 +18,107 @@ const ABTestPerformance = () => {
   const fetchTestData = async () => {
     setLoading(true);
     try {
-      // Assuming a new API endpoint for A/B test performance
       const response = await api.analytics.getABTestPerformance();
       setTestData(response.testData || []);
-      toast.success('A/B test data loaded.');
-    } catch (error) {
-      console.error('Error fetching A/B test data:', error);
-      toast.error('Failed to load A/B test data. Check API connection.');
+    } catch {
+      toast.error('Failed to load A/B test data.');
       setTestData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchTestData();
-  }, []);
+  useEffect(() => { fetchTestData(); }, []);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center"><TestTube className="h-5 w-5 mr-2 text-primary" /> A/B Test Performance</CardTitle>
-        <p className="text-sm text-muted-foreground">Compare the performance of your active and completed A/B tests.</p>
-      </CardHeader>
-      <CardContent className="p-0">
-        {loading ? (
-          <div className="h-64 flex items-center justify-center">
-            <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
+    <div style={glass}>
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-5 py-4"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.15)' }}>
+            <TestTube className="w-4 h-4 text-violet-400" />
           </div>
-	        ) : testData.length > 0 ? (
-	          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Test Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Clicks</TableHead>
-                <TableHead>Conversions</TableHead>
-                <TableHead className="text-right">Conversion Rate</TableHead>
-                <TableHead className="text-center">Winner</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {testData.map((test) => (
-                <TableRow key={test.id}>
-                  <TableCell className="font-medium">{test.name}</TableCell>
-                  <TableCell>
-                    <Badge variant={test.status === 'Active' ? 'default' : 'secondary'}>{test.status}</Badge>
-                  </TableCell>
-                  <TableCell>{test.clicks.toLocaleString()}</TableCell>
-                  <TableCell>{test.conversions.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-semibold text-green-400">{test.rate.toFixed(2)}%</TableCell>
-                  <TableCell className="text-center">
-                    {test.winner ? <CheckCircle className="h-5 w-5 text-green-500 mx-auto" /> : <XCircle className="h-5 w-5 text-red-500 mx-auto" />}
-                  </TableCell>
-                </TableRow>
-	              ))}
-	            </TableBody>
-	          </Table>
-	        ) : (
-	          <div className="h-64 flex items-center justify-center">
-	            <p className="text-muted-foreground">No A/B test data available for the selected period.</p>
-	          </div>
-	        )}
-	        <div className="p-4 border-t">
-	          <Button variant="link" className="p-0">View All Test History</Button>
-	        </div>
-	      </CardContent>
-    </Card>
+          <div>
+            <p className="text-sm font-bold text-white">A/B Test Performance</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Active and completed test results</p>
+          </div>
+        </div>
+        <button
+          onClick={fetchTestData}
+          disabled={loading}
+          className="p-1.5 rounded-lg transition-colors hover:bg-white/5 disabled:opacity-40"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 text-violet-400/70 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="p-5">
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="relative w-8 h-8">
+              <div className="absolute inset-0 rounded-full border-2 border-violet-500/20" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-violet-500 animate-spin" />
+            </div>
+          </div>
+        ) : testData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <TestTube className="w-8 h-8 text-violet-400/30" />
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>No A/B test data available.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  {['Test Name', 'Status', 'Clicks', 'Conversions', 'Conv. Rate', 'Winner'].map(h => (
+                    <th key={h} className="pb-3 text-left text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {testData.map((test, i) => (
+                  <motion.tr
+                    key={test.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                  >
+                    <td className="py-3 font-medium text-white">{test.name}</td>
+                    <td className="py-3">
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={test.status === 'Active'
+                          ? { background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }
+                          : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }
+                        }
+                      >
+                        {test.status}
+                      </span>
+                    </td>
+                    <td className="py-3" style={{ color: 'rgba(255,255,255,0.7)' }}>{test.clicks?.toLocaleString()}</td>
+                    <td className="py-3" style={{ color: 'rgba(255,255,255,0.7)' }}>{test.conversions?.toLocaleString()}</td>
+                    <td className="py-3 font-semibold text-emerald-400">{test.rate?.toFixed(2)}%</td>
+                    <td className="py-3 text-center">
+                      {test.winner
+                        ? <CheckCircle className="w-4 h-4 text-emerald-400 mx-auto" />
+                        : <XCircle className="w-4 h-4 mx-auto" style={{ color: 'rgba(239,68,68,0.5)' }} />
+                      }
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
